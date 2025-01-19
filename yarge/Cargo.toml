@@ -1,5 +1,9 @@
 [workspace]
 
-members = [
-    "maths" # Maths Library
+members = [ 
+    "error",     # Error Library
+    "maths",     # Maths Library
+    "platform",  # Platform Library   
 ]
+
+resolver = "3"

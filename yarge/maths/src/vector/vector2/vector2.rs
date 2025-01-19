@@ -74,12 +74,7 @@ impl Vector2 {
 
     /// Create a new vector given its coordinates
     pub const fn new(x: f32, y: f32) -> Self {
-        unsafe {
-            UnionCast {
-                array: [x, y],
-            }
-            .simd
-        }
+        unsafe { UnionCast { array: [x, y] }.simd }
     }
 
     /// Create a new vector with all coordinates set to `value`
@@ -136,16 +131,14 @@ impl Vector2 {
 
     /// Dot products between vectors
     pub fn dot(v1: &Vector2, v2: &Vector2) -> f32 {
-        (v1*v2).prefix_sum()
-    } 
+        (v1 * v2).prefix_sum()
+    }
 
     /// Length of the vector
     pub fn length(&self) -> f32 {
         Self::dot(self, self).sqrt()
     }
 }
-
-
 
 //////////////////////////////////////////////////////////
 //////////////     vector additions     //////////////////
@@ -193,19 +186,19 @@ impl std::ops::Add<&Vector2> for &Vector2 {
     }
 }
 
-/// Add `rhs` to all components of the vector 
+/// Add `rhs` to all components of the vector
 /// v1 + f = [v1.x + f, v1.y + f]
 impl std::ops::Add<f32> for Vector2 {
     type Output = Vector2;
 
     fn add(self, rhs: f32) -> Self::Output {
         Vector2 {
-            data: self.data + f32x2::from_array([rhs, rhs])
+            data: self.data + f32x2::from_array([rhs, rhs]),
         }
     }
 }
 
-/// Add `rhs` to all components of the vector 
+/// Add `rhs` to all components of the vector
 /// v1 + f = [v1.x + f, v1.y + f]
 impl std::ops::Add<f32> for &Vector2 {
     type Output = Vector2;
@@ -215,7 +208,7 @@ impl std::ops::Add<f32> for &Vector2 {
     }
 }
 
-/// Add `rhs` to all components of the vector 
+/// Add `rhs` to all components of the vector
 /// v1 + f = [v1.x + f, v1.y + f]
 impl std::ops::Add<&f32> for Vector2 {
     type Output = Vector2;
@@ -225,7 +218,7 @@ impl std::ops::Add<&f32> for Vector2 {
     }
 }
 
-/// Add `rhs` to all components of the vector 
+/// Add `rhs` to all components of the vector
 /// v1 + f = [v1.x + f, v1.y + f]
 impl std::ops::Add<&f32> for &Vector2 {
     type Output = Vector2;
@@ -234,7 +227,6 @@ impl std::ops::Add<&f32> for &Vector2 {
         (*self).add(*rhs)
     }
 }
-
 
 //////////////////////////////////////////////////////////
 //////////////   vector substractions    /////////////////
@@ -282,19 +274,19 @@ impl std::ops::Sub<&Vector2> for &Vector2 {
     }
 }
 
-/// Substract `rhs` to all components of the vector 
+/// Substract `rhs` to all components of the vector
 /// v1 - f = [v1.x - f, v1.y - f]
 impl std::ops::Sub<f32> for Vector2 {
     type Output = Vector2;
 
     fn sub(self, rhs: f32) -> Self::Output {
         Vector2 {
-            data: self.data - f32x2::from_array([rhs, rhs])
+            data: self.data - f32x2::from_array([rhs, rhs]),
         }
     }
 }
 
-/// Substract `rhs` to all components of the vector 
+/// Substract `rhs` to all components of the vector
 /// v1 - f = [v1.x - f, v1.y - f]
 impl std::ops::Sub<f32> for &Vector2 {
     type Output = Vector2;
@@ -304,7 +296,7 @@ impl std::ops::Sub<f32> for &Vector2 {
     }
 }
 
-/// Substract `rhs` to all components of the vector 
+/// Substract `rhs` to all components of the vector
 /// v1 - f = [v1.x - f, v1.y - f]
 impl std::ops::Sub<&f32> for Vector2 {
     type Output = Vector2;
@@ -314,7 +306,7 @@ impl std::ops::Sub<&f32> for Vector2 {
     }
 }
 
-/// Substract `rhs` to all components of the vector 
+/// Substract `rhs` to all components of the vector
 /// v1 - f = [v1.x - f, v1.y - f]
 impl std::ops::Sub<&f32> for &Vector2 {
     type Output = Vector2;
@@ -323,8 +315,6 @@ impl std::ops::Sub<&f32> for &Vector2 {
         (*self).sub(*rhs)
     }
 }
-
-
 
 //////////////////////////////////////////////////////////
 //////////////   vector multiplications   ////////////////
@@ -372,19 +362,19 @@ impl std::ops::Mul<&Vector2> for &Vector2 {
     }
 }
 
-/// Multiply all components of the vector by `rhs` 
+/// Multiply all components of the vector by `rhs`
 /// v1 * f = [v1.x * f, v1.y * f]
 impl std::ops::Mul<f32> for Vector2 {
     type Output = Vector2;
 
     fn mul(self, rhs: f32) -> Self::Output {
         Vector2 {
-            data: self.data * f32x2::from_array([rhs, rhs])
+            data: self.data * f32x2::from_array([rhs, rhs]),
         }
     }
 }
 
-/// Multiply all components of the vector by `rhs` 
+/// Multiply all components of the vector by `rhs`
 /// v1 * f = [v1.x * f, v1.y * f]
 impl std::ops::Mul<f32> for &Vector2 {
     type Output = Vector2;
@@ -394,7 +384,7 @@ impl std::ops::Mul<f32> for &Vector2 {
     }
 }
 
-/// Multiply all components of the vector by `rhs` 
+/// Multiply all components of the vector by `rhs`
 /// v1 * f = [v1.x * f, v1.y * f]
 impl std::ops::Mul<&f32> for Vector2 {
     type Output = Vector2;
@@ -404,7 +394,7 @@ impl std::ops::Mul<&f32> for Vector2 {
     }
 }
 
-/// Multiply all components of the vector by `rhs` 
+/// Multiply all components of the vector by `rhs`
 /// v1 * f = [v1.x * f, v1.y * f]
 impl std::ops::Mul<&f32> for &Vector2 {
     type Output = Vector2;
@@ -413,8 +403,6 @@ impl std::ops::Mul<&f32> for &Vector2 {
         (*self).mul(*rhs)
     }
 }
-
-
 
 //////////////////////////////////////////////////////////
 //////////////     vector divisions     //////////////////
@@ -462,19 +450,19 @@ impl std::ops::Div<&Vector2> for &Vector2 {
     }
 }
 
-/// Divide all components of the vector by `rhs` 
+/// Divide all components of the vector by `rhs`
 /// v1 / f = [v1.x / f, v1.y / f]
 impl std::ops::Div<f32> for Vector2 {
     type Output = Vector2;
 
     fn div(self, rhs: f32) -> Self::Output {
         Vector2 {
-            data: self.data / f32x2::from_array([rhs, rhs])
+            data: self.data / f32x2::from_array([rhs, rhs]),
         }
     }
 }
 
-/// Divide all components of the vector by `rhs` 
+/// Divide all components of the vector by `rhs`
 /// v1 / f = [v1.x / f, v1.y / f]
 impl std::ops::Div<f32> for &Vector2 {
     type Output = Vector2;
@@ -484,7 +472,7 @@ impl std::ops::Div<f32> for &Vector2 {
     }
 }
 
-/// Divide all components of the vector by `rhs` 
+/// Divide all components of the vector by `rhs`
 /// v1 / f = [v1.x / f, v1.y / f]
 impl std::ops::Div<&f32> for Vector2 {
     type Output = Vector2;
@@ -494,7 +482,7 @@ impl std::ops::Div<&f32> for Vector2 {
     }
 }
 
-/// Divide all components of the vector by `rhs` 
+/// Divide all components of the vector by `rhs`
 /// v1 / f = [v1.x / f, v1.y / f]
 impl std::ops::Div<&f32> for &Vector2 {
     type Output = Vector2;
@@ -504,12 +492,10 @@ impl std::ops::Div<&f32> for &Vector2 {
     }
 }
 
-
-
 //////////////////////////////////////////////////////////
 //////////////      vector assign       //////////////////
 //////////////////////////////////////////////////////////
- 
+
 /// Components wise addition
 /// v1 += v2 <=> v1 = [v1.x + v2.x, v1.y + v2.y]
 impl std::ops::AddAssign<Vector2> for Vector2 {
@@ -526,7 +512,7 @@ impl std::ops::AddAssign<&Vector2> for Vector2 {
     }
 }
 
-/// Add `rhs` to all components of the vector 
+/// Add `rhs` to all components of the vector
 /// v += f <=> v = [v*x + f, v*y + f]
 impl std::ops::AddAssign<f32> for Vector2 {
     fn add_assign(&mut self, rhs: f32) {
@@ -534,7 +520,7 @@ impl std::ops::AddAssign<f32> for Vector2 {
     }
 }
 
-/// Add `rhs` to all components of the vector 
+/// Add `rhs` to all components of the vector
 /// v += f <=> v = [v*x + f, v*y + f]
 impl std::ops::AddAssign<&f32> for Vector2 {
     fn add_assign(&mut self, rhs: &f32) {
@@ -558,7 +544,7 @@ impl std::ops::SubAssign<&Vector2> for Vector2 {
     }
 }
 
-/// Substract `rhs` to all components of the vector 
+/// Substract `rhs` to all components of the vector
 /// v -= f <=> v = [v*x - f, v*y - f]
 impl std::ops::SubAssign<f32> for Vector2 {
     fn sub_assign(&mut self, rhs: f32) {
@@ -566,7 +552,7 @@ impl std::ops::SubAssign<f32> for Vector2 {
     }
 }
 
-/// Substract `rhs` to all components of the vector 
+/// Substract `rhs` to all components of the vector
 /// v -= f <=> v = [v*x - f, v*y - f]
 impl std::ops::SubAssign<&f32> for Vector2 {
     fn sub_assign(&mut self, rhs: &f32) {
@@ -590,7 +576,7 @@ impl std::ops::MulAssign<&Vector2> for Vector2 {
     }
 }
 
-/// Multiply all components of the vector by `rhs` 
+/// Multiply all components of the vector by `rhs`
 /// v *= f <=> v = [v*x / f, v*y / f]
 impl std::ops::MulAssign<f32> for Vector2 {
     fn mul_assign(&mut self, rhs: f32) {
@@ -598,7 +584,7 @@ impl std::ops::MulAssign<f32> for Vector2 {
     }
 }
 
-/// Multiply all components of the vector by `rhs` 
+/// Multiply all components of the vector by `rhs`
 /// v *= f <=> v = [v*x / f, v*y / f]
 impl std::ops::MulAssign<&f32> for Vector2 {
     fn mul_assign(&mut self, rhs: &f32) {
@@ -622,7 +608,7 @@ impl std::ops::DivAssign<&Vector2> for Vector2 {
     }
 }
 
-/// Divide all components of the vector by `rhs` 
+/// Divide all components of the vector by `rhs`
 /// v /= f <=> v1 = [v.x / f, v.y / f]
 impl std::ops::DivAssign<f32> for Vector2 {
     fn div_assign(&mut self, rhs: f32) {
@@ -630,14 +616,13 @@ impl std::ops::DivAssign<f32> for Vector2 {
     }
 }
 
-/// Divide all components of the vector by `rhs` 
+/// Divide all components of the vector by `rhs`
 /// v /= f <=> v = [v.x / f, v.y / f]
 impl std::ops::DivAssign<&f32> for Vector2 {
     fn div_assign(&mut self, rhs: &f32) {
         self.div_assign(*rhs);
     }
 }
-
 
 //////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
@@ -667,19 +652,19 @@ mod tests {
 
         v3 += 1.;
         assert_eq!(v3, vec2(5., 7.));
-        assert_eq!(v3+v3-v3, v3);
+        assert_eq!(v3 + v3 - v3, v3);
 
-        assert_eq!(v3*2., vec2(10., 14.));
-        assert_eq!(v1*v2, vec2(8., 15.));
+        assert_eq!(v3 * 2., vec2(10., 14.));
+        assert_eq!(v1 * v2, vec2(8., 15.));
 
-        assert_eq!(v3/v3, Vector2::ONES);
+        assert_eq!(v3 / v3, Vector2::ONES);
         v3 /= v3;
         assert_eq!(v3, Vector2::ONES);
     }
 
     /// Test of 2 dimensional vector operations
     #[test]
-    fn operations(){
+    fn operations() {
         let v1 = vec2(1., 2.);
         let v2 = vec2(4., 3.);
         assert_eq!(Vector2::dot(&v1, &v2), 10.);
