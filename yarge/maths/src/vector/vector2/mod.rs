@@ -1,3 +1,3 @@
-/// 2D f32 vector
+/// 2D f32 vectors
 /// [Vector2]
-pub mod vector2;
+pub mod vector2_f32;

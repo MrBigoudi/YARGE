@@ -1,6 +1,4 @@
-use error::{ErrorLevel, ErrorType};
-
-use crate::log::LogTarget;
+use error::ErrorType;
 
 /// Abstract trait for the platform specific code
 pub trait PlatformManager {
@@ -9,7 +7,4 @@ pub trait PlatformManager {
 
     /// Shutdown the platform
     fn shutdown(&mut self) -> Result<(), ErrorType>;
-
-    /// Log message
-    fn log(message: &str, error_type: &ErrorType, error_level: &ErrorLevel, log_target: &LogTarget);
 }

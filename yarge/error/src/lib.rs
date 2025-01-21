@@ -20,4 +20,8 @@ pub enum ErrorLevel {
 pub enum ErrorType {
     /// Thrown when trying to divide by 0
     DivisionByZero,
+
+    /// Thrown when a wrong argument is given to a function
+    /// Take as parameter the expected argument
+    WrongArgument(String),
 }
