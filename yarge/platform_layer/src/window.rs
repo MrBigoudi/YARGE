@@ -14,7 +14,7 @@ pub enum DisplayMode {
     /// as well as the window's width and height
     /// # Examples
     /// ```
-    /// use platform::window::DisplayMode;
+    /// use platform::DisplayMode;
     ///
     /// // To center the window
     /// let width=0.5;  // width in [0.,1.]
@@ -33,10 +33,10 @@ pub enum DisplayMode {
 /// [0.,1.] is the bottom left corner of the monitor
 /// [1.,1.] is the bottom right corner of the monitor
 pub trait Window {
-    /// Initiates the internal structure of the window
-    fn init() -> Result<ErrorType, impl Window>;
+    /// Initializes the window
+    fn init() -> Result<impl Window, ErrorType>;
 
-    /// Shutdowns the window
+    /// Shuts down the window
     fn shutdown(&mut self) -> Result<(), ErrorType>;
 
     /// Gets the window's width
@@ -56,6 +56,10 @@ pub trait Window {
 
     /// Gets the Dots Per Inch (DPI) factor
     fn get_dpi_factor(&self) -> f32;
+
+    /// Gets the ID of the window
+    /// This is useful for multiple window handling
+    fn get_id(&self) -> u8;
 
     /// Sets the window's display mode
     /// See [DisplayMode]

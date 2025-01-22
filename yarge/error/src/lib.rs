@@ -18,6 +18,9 @@ pub enum ErrorLevel {
 /// The errors types
 #[derive(Debug)]
 pub enum ErrorType {
+    /// An unrecognized error type
+    Unknown,
+
     /// Thrown when trying to divide by 0
     DivisionByZero,
 

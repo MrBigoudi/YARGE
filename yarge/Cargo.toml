@@ -1,9 +1,10 @@
 [workspace]
 
 members = [ 
-    "error",     # Error Library
-    "maths",     # Maths Library
-    "platform",  # Platform Library   
+    "error",           # Error Library
+    "maths",           # Maths Library
+    "platform_layer",  # Platform Library   
+    "test_bed",  # temporary
 ]
 
 resolver = "3"

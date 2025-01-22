@@ -1,0 +1,16 @@
+[package]
+name = "platform_layer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+error = {path = "../error"}
+maths = {path = "../maths"}
+
+[build-dependencies]
+cfg_aliases = "0.2.1"
+
+[features]
+default = ["x11"]
+x11 = []
+wayland = []
