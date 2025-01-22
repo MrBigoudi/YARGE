@@ -5,7 +5,9 @@ use crate::window::{DisplayMode, Window};
 pub struct LinuxX11Window;
 
 impl Window for LinuxX11Window {
-    fn init() -> Result<impl Window, ErrorType> {
+    type WindowType = LinuxX11Window;
+
+    fn init() -> Result<Self::WindowType, ErrorType> {
         Ok(LinuxX11Window)
     }
 

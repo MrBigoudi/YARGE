@@ -1,8 +1,14 @@
-use platform_layer::{PlatformLayer, PlatformLayerImpl, Window};
+use core_layer::{App, Game};
+use error::ErrorType;
+
+struct TestBedGame;
+impl Game for TestBedGame {
+    fn on_start(&mut self) -> Result<(), ErrorType> {
+        println!("Test bed starts");
+        Ok(())
+    }
+}
 
 fn main() {
-    let mut platform = PlatformLayerImpl::init().unwrap();
-    let window = platform.get_window(0);
-    window.get_id();
-    platform.shutdown().unwrap()
+    App::run(&mut TestBedGame).unwrap();
 }

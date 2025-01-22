@@ -33,8 +33,12 @@ pub enum DisplayMode {
 /// [0.,1.] is the bottom left corner of the monitor
 /// [1.,1.] is the bottom right corner of the monitor
 pub trait Window {
+    /// The type of the struct implementing the trait
+    /// This would often be `Self`
+    type WindowType;
+
     /// Initializes the window
-    fn init() -> Result<impl Window, ErrorType>;
+    fn init() -> Result<Self::WindowType, ErrorType>;
 
     /// Shuts down the window
     fn shutdown(&mut self) -> Result<(), ErrorType>;

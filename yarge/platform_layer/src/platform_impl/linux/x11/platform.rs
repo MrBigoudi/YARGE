@@ -10,14 +10,17 @@ pub struct LinuxX11PlatformLayer {
 }
 
 impl PlatformLayer for LinuxX11PlatformLayer {
-    fn init() -> Result<impl PlatformLayer, ErrorType> {
+    type PlatformLayerType = LinuxX11PlatformLayer;
+
+    fn init() -> Result<Self::PlatformLayerType, ErrorType> {
         Ok(LinuxX11PlatformLayer {
             window: LinuxX11Window,
         })
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
-        todo!()
+        self.window.shutdown()?;
+        Ok(())
     }
 
     fn get_window(&mut self, _window_id: u8) -> &mut impl Window {

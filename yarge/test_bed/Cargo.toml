@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-platform_layer = {path = "../platform_layer"}
+core_layer = {path = "../core_layer"}
+error = {path = "../error"}
