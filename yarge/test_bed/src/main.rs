@@ -1,4 +1,4 @@
-use core_layer::{App, Game};
+use core_layer::{Entry, Game};
 use error::ErrorType;
 
 struct TestBedGame;
@@ -10,5 +10,6 @@ impl Game for TestBedGame {
 }
 
 fn main() {
-    App::run(&mut TestBedGame).unwrap();
+    let config_file = None;
+    Entry::run(&mut TestBedGame, config_file).unwrap();
 }

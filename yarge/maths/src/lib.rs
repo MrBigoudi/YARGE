@@ -8,8 +8,5 @@
 #![feature(portable_simd)]
 
 /// A module that defines all vector types of the crate
-pub mod vector;
-
-/// A module that exports the maths primitive types
-mod types;
-pub use types::*;
+mod vector;
+pub use vector::vector2::vector2_f32::{Vector2, vec2};

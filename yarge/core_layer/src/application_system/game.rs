@@ -1,6 +1,6 @@
 use error::ErrorType;
 
-/// Game state
+/// The game trait that can be ovveride by the user
 pub trait Game {
     /// Runs when the application starts
     /// Default behavior: don't do anything

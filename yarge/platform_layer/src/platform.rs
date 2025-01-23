@@ -1,3 +1,4 @@
+use config::Config;
 use error::ErrorType;
 
 use crate::window::Window;
@@ -9,7 +10,7 @@ pub trait PlatformLayer {
     type PlatformLayerType;
 
     /// Initializes the platform
-    fn init() -> Result<Self::PlatformLayerType, ErrorType>;
+    fn init(config: &Config) -> Result<Self::PlatformLayerType, ErrorType>;
 
     /// Shuts down the platform
     fn shutdown(&mut self) -> Result<(), ErrorType>;

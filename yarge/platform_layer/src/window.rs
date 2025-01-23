@@ -1,3 +1,4 @@
+use config::Config;
 use error::ErrorType;
 use maths::Vector2;
 
@@ -14,7 +15,7 @@ pub enum DisplayMode {
     /// as well as the window's width and height
     /// # Examples
     /// ```
-    /// use platform::DisplayMode;
+    /// use platform_layer::DisplayMode;
     ///
     /// // To center the window
     /// let width=0.5;  // width in [0.,1.]
@@ -38,7 +39,7 @@ pub trait Window {
     type WindowType;
 
     /// Initializes the window
-    fn init() -> Result<Self::WindowType, ErrorType>;
+    fn init(config: &Config) -> Result<Self::WindowType, ErrorType>;
 
     /// Shuts down the window
     fn shutdown(&mut self) -> Result<(), ErrorType>;

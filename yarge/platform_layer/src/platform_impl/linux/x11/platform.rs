@@ -1,3 +1,4 @@
+use config::Config;
 use error::ErrorType;
 
 use crate::{platform::PlatformLayer, window::Window};
@@ -12,9 +13,16 @@ pub struct LinuxX11PlatformLayer {
 impl PlatformLayer for LinuxX11PlatformLayer {
     type PlatformLayerType = LinuxX11PlatformLayer;
 
-    fn init() -> Result<Self::PlatformLayerType, ErrorType> {
+    fn init(config: &Config) -> Result<Self::PlatformLayerType, ErrorType> {
+        let window = match LinuxX11Window::init(config){
+            Ok(window) => window,
+            Err(err) => {
+                // TODO: add error message
+                return Err(err);
+            }
+        };
         Ok(LinuxX11PlatformLayer {
-            window: LinuxX11Window,
+            window,
         })
     }
 

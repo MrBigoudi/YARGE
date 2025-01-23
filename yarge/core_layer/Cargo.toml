@@ -6,4 +6,7 @@ edition = "2024"
 [dependencies]
 error = {path = "../error"}
 maths = {path = "../maths"}
+config = {path = "../config"}
 platform_layer = {path = "../platform_layer"}
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
