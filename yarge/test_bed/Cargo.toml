@@ -6,3 +6,8 @@ edition = "2024"
 [dependencies]
 core_layer = {path = "../core_layer"}
 error = {path = "../error"}
+
+# For PS-Vita build
+[package.metadata.vita]
+# A unique identifier for your project. 9 chars, alphanumeric.
+title_id = "RUSTAPP01"

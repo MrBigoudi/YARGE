@@ -1,5 +1,11 @@
 /// Implements the Linux platforms
-#[cfg(target_os = "linux")]
+#[cfg(linux_platform)]
 mod linux;
-#[cfg(target_os = "linux")]
+#[cfg(linux_platform)]
 pub use linux::PlatformLayerImpl;
+
+/// Implements the Sony platforms
+#[cfg(sony_platform)]
+mod sony;
+#[cfg(sony_platform)]
+pub use sony::PlatformLayerImpl;
