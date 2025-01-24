@@ -1,10 +1,15 @@
-use core_layer::{Entry, Game};
+use core_layer::{Entry, Game, info};
 use error::ErrorType;
 
 struct TestBedGame;
 impl Game for TestBedGame {
     fn on_start(&mut self) -> Result<(), ErrorType> {
-        println!("Test bed starts");
+        info!("Test bed starts");
+        Ok(())
+    }
+
+    fn on_shutdown(&mut self) -> Result<(), ErrorType> {
+        info!("Test bed ends");
         Ok(())
     }
 }

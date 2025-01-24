@@ -15,7 +15,7 @@ impl Window for LinuxX11Window {
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
         // TODO: Implement Linux X11 specific code
-        todo!()
+        Ok(())
     }
 
     fn get_width(&self) -> f32 {

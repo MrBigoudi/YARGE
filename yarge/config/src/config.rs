@@ -1,5 +1,5 @@
-use std::path::Path;
 use error::ErrorType;
+use std::path::Path;
 
 use crate::{LoggerConfig, WindowConfig};
 
@@ -18,7 +18,7 @@ impl Config {
     pub fn init(config_file: Option<&Path>) -> Result<Self, ErrorType> {
         match config_file {
             Some(_) => todo!(), // TODO: init config from file
-            None => Ok(Config::default())
-        }   
+            None => Ok(Config::default()),
+        }
     }
 }

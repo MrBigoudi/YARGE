@@ -3,7 +3,7 @@ use std::path::Path;
 use config::Config;
 use error::ErrorType;
 
-use crate::{core::CoreLayer, Game};
+use crate::{Game, core::CoreLayer};
 
 /// The entry point of the engine
 pub struct Entry;
@@ -11,12 +11,13 @@ pub struct Entry;
 impl Entry {
     /// The entry point of the engine
     /// Every program using the engine should work simply by calling this function
-    pub fn run<'a>(user_game: &'a mut dyn Game, config_file: Option<&Path>) -> Result<(), ErrorType> {
+    pub fn run(user_game: &mut dyn Game, config_file: Option<&Path>) -> Result<(), ErrorType> {
         // Reads the configuration file
-        let config = match Config::init(config_file){
+        let config = match Config::init(config_file) {
             Ok(config) => config,
             Err(err) => {
-                // TODO: add logging messages
+                // TODO: add better logging messages
+                eprintln!("Failed to initialize the config");
                 return Err(err);
             }
         };
@@ -26,6 +27,7 @@ impl Entry {
             Ok(application_layer) => application_layer,
             Err(err) => {
                 // TODO: add logging messages
+                eprintln!("Failed to initialize the core layer");
                 return Err(err);
             }
         };
@@ -35,6 +37,7 @@ impl Entry {
         // Shuts down the core layer
         if let Err(err) = core_layer.shutdown() {
             // TODO: add logging messages
+            eprintln!("Failed to shutdown the core layer");
             return Err(err);
         }
 

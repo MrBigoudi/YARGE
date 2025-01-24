@@ -6,7 +6,7 @@ mod window;
 pub use window::WindowConfig;
 
 mod logger;
-pub use logger::{LoggerConfig, ConfigLogLevel};
+pub use logger::{ConfigLogLevel, ConfigLogTarget, LoggerConfig};
 
 mod config;
 pub use config::Config;

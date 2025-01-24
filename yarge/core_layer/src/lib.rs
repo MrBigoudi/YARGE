@@ -7,6 +7,7 @@ pub use application_system::{ApplicationSystem, Game};
 
 mod logger_system;
 pub use logger_system::LoggerSystem;
+pub use logger_system::{debug, error, info, warn};
 
 mod entry;
 pub use entry::Entry;

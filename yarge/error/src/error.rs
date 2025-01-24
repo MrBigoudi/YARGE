@@ -2,7 +2,7 @@
 #[derive(Debug)]
 pub enum ErrorLevel {
     /// Error that can't be recovered    
-    Fatal,
+    Error,
     /// Error that can be recovered
     Warn,
     /// Debug information

@@ -14,16 +14,14 @@ impl PlatformLayer for LinuxX11PlatformLayer {
     type PlatformLayerType = LinuxX11PlatformLayer;
 
     fn init(config: &Config) -> Result<Self::PlatformLayerType, ErrorType> {
-        let window = match LinuxX11Window::init(config){
+        let window = match LinuxX11Window::init(config) {
             Ok(window) => window,
             Err(err) => {
                 // TODO: add error message
                 return Err(err);
             }
         };
-        Ok(LinuxX11PlatformLayer {
-            window,
-        })
+        Ok(LinuxX11PlatformLayer { window })
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
