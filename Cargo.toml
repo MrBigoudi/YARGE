@@ -1,0 +1,8 @@
+[workspace]
+
+members = [ 
+    "yarge",
+    "test_bed",
+]
+
+resolver = "3"

@@ -1,12 +1,19 @@
-[workspace]
+[package]
+name = "yarge"
+version = "0.1.0"
+edition = "2024"
 
-members = [ 
-    "config", 
-    "core_layer", 
-    "error",
-    "maths",
-    "platform_layer", 
-    "test_bed",
-]
+[dependencies]
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 
-resolver = "3"
+[build-dependencies]
+cfg_aliases = "0.2.1"
+
+[features]
+default = ["x11"]
+x11 = []
+wayland = []
+
+[target.x11_platform.dependencies]
+x11rb = "0.13.1"
