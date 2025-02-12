@@ -23,4 +23,14 @@ pub enum ErrorType {
     /// Thrown when a wrong argument is given to a function
     /// Take as parameter the expected argument
     WrongArgument(String),
+
+    /// Thrown when an initialization failed
+    InitializationFailure,
+
+    /// Thrown when a shut down failed
+    ShutDownFailure,
+
+    /// Thrown when a platform dependent error occurs
+    PlatformDependentFailure,
+    
 }

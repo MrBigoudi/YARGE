@@ -1,4 +1,5 @@
 use crate::{
+    log_error,
     config::Config,
     error::ErrorType,
     platform_layer::{PlatformLayer, Window},
@@ -18,15 +19,18 @@ impl PlatformLayer for LinuxX11PlatformLayer {
         let window = match LinuxX11Window::init(config) {
             Ok(window) => window,
             Err(err) => {
-                // TODO: add error message
-                return Err(err);
+                log_error!("Failed to initialize the xcb window: {:?}", err);
+                return Err(ErrorType::InitializationFailure);
             }
         };
         Ok(LinuxX11PlatformLayer { window })
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
-        self.window.shutdown()?;
+        if let Err(err) = self.window.shutdown() {
+            log_error!("Failed to shut down the xcb window: {:?}", err);
+            return Err(ErrorType::ShutDownFailure);
+        }
         Ok(())
     }
 

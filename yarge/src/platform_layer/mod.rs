@@ -12,3 +12,6 @@ pub use window::{DisplayMode, Window};
 /// The concrete implementations
 mod platform_impl;
 pub use platform_impl::PlatformLayerImpl;
+
+/// Unified format for events
+pub mod event;
