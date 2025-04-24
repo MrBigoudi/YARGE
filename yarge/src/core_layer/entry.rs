@@ -1,6 +1,11 @@
 use std::path::Path;
 
-use crate::{config::Config, error::ErrorType};
+use crate::{
+    config::Config,
+    error::ErrorType,
+    log_debug, log_error, log_info, log_warn,
+    platform_layer::{Event, PlatformLayer},
+};
 
 use super::{Game, core::CoreLayer};
 
@@ -32,11 +37,27 @@ impl Entry {
         };
 
         // Runs the application
+        'infinite_loop: loop {
+            match core_layer.platform_layer.poll_event() {
+                Ok(Event::WindowClosed) => break 'infinite_loop,
+                Ok(event) => {
+                    if let Err(err) = core_layer.application_system.loop_iteration(event) {
+                        log_error!("Failed to handle an event: {:?}", err);
+                        return Err(err);
+                    }
+                }
+                Err(err) => {
+                    // TODO: add logging messages
+                    log_error!("Failed to poll an event: {:?}", err);
+                    return Err(err);
+                }
+            };
+        }
 
         // Shuts down the core layer
         if let Err(err) = core_layer.shutdown() {
             // TODO: add logging messages
-            eprintln!("Failed to shutdown the core layer");
+            log_error!("Failed to shutdown the core layer");
             return Err(err);
         }
 

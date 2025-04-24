@@ -15,3 +15,5 @@ pub use core_layer::log_debug;
 pub use core_layer::log_error;
 pub use core_layer::log_info;
 pub use core_layer::log_warn;
+
+pub use platform_layer::{gamepad, keyboard, mouse};

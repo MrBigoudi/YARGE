@@ -7,4 +7,4 @@ mod logger;
 pub use logger::{ConfigLogLevel, ConfigLogTarget, LoggerConfig};
 
 mod init;
-pub use init::Config as Config;
+pub use init::Config;

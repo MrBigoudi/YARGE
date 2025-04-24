@@ -12,3 +12,11 @@ pub use window::{DisplayMode, Window};
 /// The concrete implementations
 mod platform_impl;
 pub use platform_impl::PlatformLayerImpl;
+
+/// A module representing an event
+mod event;
+pub use event::Event;
+
+/// A module that handles different input devices
+mod input;
+pub use input::{gamepad, keyboard, mouse};

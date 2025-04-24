@@ -1,6 +1,6 @@
 use crate::{config::Config, error::ErrorType};
 
-use super::Window;
+use super::{Window, event::Event};
 
 /// Abstract trait for the platform specific code
 pub trait PlatformLayer {
@@ -16,4 +16,7 @@ pub trait PlatformLayer {
 
     /// Accessor to a window
     fn get_window(&mut self, window_id: u8) -> &mut impl Window;
+
+    /// Poll the next event
+    fn poll_event(&mut self) -> Result<Event, ErrorType>;
 }

@@ -15,4 +15,6 @@ fn main() {
     }
 
     // TODO: merge all config files into a giant config file
+
+    // TODO: compile shaders
 }

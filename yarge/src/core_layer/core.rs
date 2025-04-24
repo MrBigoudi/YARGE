@@ -9,9 +9,9 @@ use super::{ApplicationSystem, Game, LoggerSystem};
 
 /// The core layer
 pub struct CoreLayer<'a> {
-    platform_layer: PlatformLayerImpl,
-    logger_system: LoggerSystem,
-    application_system: ApplicationSystem<'a>,
+    pub platform_layer: PlatformLayerImpl,
+    pub logger_system: LoggerSystem,
+    pub application_system: ApplicationSystem<'a>,
 }
 
 impl<'a> CoreLayer<'a> {
