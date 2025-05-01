@@ -1,6 +1,10 @@
-use super::input::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
+use crate::core_layer::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
+    /// Default unrecognized event
+    Unrecognized,
+
     // Keyboard related events
     /// Event triggered on key press
     KeyboardKeyPressed(KeyboardKey),
@@ -19,10 +23,19 @@ pub enum Event {
     MouseScrolled(f32),
     /// Event triggered on mouse movement
     /// MouseMove(new_x, new_y)
-    /// The positions new_x and new_y are in pixel coordinates
+    /// The position new_x and new_y are in pixel coordinates
     /// MouseMove(0,0) corresponds to the bottom left of the window
-    /// MouseMove(width,height) corresponds to the top right of the window
+    /// MouseMove(width, height) corresponds to the top right of the window
     MouseMoved(u16, u16),
+    /// Event triggered on mouse movement when a button is pressed
+    MouseMovedAndButton(u16, u16, MouseButton),
+    /// Event triggered when the mouse enters the window
+    /// MouseEnteredWindow(x, y)
+    /// The position x and y correspond to the position at which the mouse entered the window
+    MouseEnteredWindow(u16, u16),
+    /// Event triggered when the mouse leaves the window
+    /// The position x and y correspond to the position at which the mouse left the window
+    MouseLeftWindow(u16, u16),
 
     // Gamepad related events
     /// Event triggered on button press
@@ -38,4 +51,12 @@ pub enum Event {
     WindowResized(f32, f32),
     /// Event triggered when the window is closed
     WindowClosed,
+    /// Event triggered when the window is mimized
+    WindowMinimized,    
+    /// Event triggered when the window is restored (opposite of WindowMinimized)
+    WindowRestored,
+    /// Event triggered when the focus enters the window
+    WindowFocused, 
+    /// Event triggered when the focus leaves the window
+    WindowUnfocused, 
 }

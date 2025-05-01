@@ -19,4 +19,7 @@ pub trait PlatformLayer {
 
     /// Poll the next event
     fn poll_event(&mut self) -> Result<Event, ErrorType>;
+
+    /// Get the time in milliseconds ellapsed since the Unix epochs
+    fn get_time_since_unix_epoch() -> Result<u128, ErrorType>;
 }

@@ -1,6 +1,6 @@
 use crate::{
     error::ErrorType,
-    platform_layer::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton},
+    gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton,
 };
 
 /// The game trait that can be ovveride by the user
@@ -67,11 +67,27 @@ pub trait Game {
     fn on_mouse_scrolled(&mut self, _delta: f32) -> Result<(), ErrorType> {
         Ok(())
     }
-    /// Runs when the mouse moved
+    /// Runs when the mouse moves
     /// Default behavior: don't do anything
     fn on_mouse_moved(&mut self, _new_x: u16, _new_y: u16) -> Result<(), ErrorType> {
         Ok(())
     }
+    /// Runs when the mouse moves while a mouse button is being pressed
+    /// Default behavior: don't do anything
+    fn on_mouse_moved_and_button_pressed(&mut self, _new_x: u16, _new_y: u16, _mouse_button: MouseButton) -> Result<(), ErrorType> {
+        Ok(())
+    }
+    /// Runs when the mouse enters the window
+    /// Default behavior: don't do anything
+    fn on_mouse_entered_window(&mut self, _x: u16, _y: u16) -> Result<(), ErrorType> {
+        Ok(())
+    }
+    /// Runs when the mouse leaves the window
+    /// Default behavior: don't do anything
+    fn on_mouse_left_window(&mut self, _x: u16, _y: u16) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
     /// Runs when a gamepad button is pressed
     /// Default behavior: don't do anything
     fn on_gamepad_button_pressed(
@@ -86,6 +102,33 @@ pub trait Game {
         &mut self,
         _gamepad_button: GamepadButton,
     ) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
+    /// Runs when the window is miminized
+    /// Default behavior: don't do anything
+    fn on_window_minimized(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+    /// Runs when the window is restored
+    /// Default behavior: don't do anything
+    fn on_window_resotred(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+    /// Runs when the window gains focus
+    /// Default behavior: don't do anything
+    fn on_window_focused(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+    /// Runs when the window looses focus
+    /// Default behavior: don't do anything
+    fn on_window_unfocused(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
+    /// Runs when the window is closed
+    /// Default behavior: don't do anything
+    fn on_window_closed(&mut self) -> Result<(), ErrorType> {
         Ok(())
     }
 }

@@ -1,8 +1,9 @@
 use crate::{
     config::Config,
     error::ErrorType,
+    log_error,
     platform_layer::{
-        PlatformLayer, Window, event::Event, keyboard::KeyboardKey, mouse::MouseButton,
+        PlatformLayer, Window, event::Event,
     },
 };
 
@@ -37,17 +38,23 @@ impl PlatformLayer for LinuxX11PlatformLayer {
     }
 
     fn poll_event(&mut self) -> Result<Event, ErrorType> {
-        // TODO: implement X11 specific code
-        static mut COUNTER: u32 = 0;
-        unsafe { COUNTER += 1 };
-        unsafe {
-            match COUNTER {
-                1 => Ok(Event::KeyboardKeyPressed(KeyboardKey::A)),
-                2 => Ok(Event::KeyboardKeyReleased(KeyboardKey::B)),
-                3 => Ok(Event::MouseButtonPressed(MouseButton::Left)),
-                4 => Ok(Event::MouseButtonReleased(MouseButton::Right)),
-                _ => Ok(Event::WindowClosed),
-            }
+        match self.window.poll_event(){
+            Ok(event) => Ok(event),
+            Err(err) => {
+                log_error!("Failed to poll an event from the X11 linux platform layer: {:?}", err);
+                Err(ErrorType::Unknown)
+            },
+        }
+    }
+    
+    fn get_time_since_unix_epoch() -> Result<u128, ErrorType> {
+        let start = std::time::SystemTime::now();
+        match start.duration_since(std::time::UNIX_EPOCH){
+            Err(err) => {
+                log_error!("Failed to get the linux time {:?}", err);
+                return Err(ErrorType::Unknown);
+            },
+            Ok(duration) => Ok(duration.as_millis())
         }
     }
 }

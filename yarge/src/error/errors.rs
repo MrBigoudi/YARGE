@@ -23,4 +23,7 @@ pub enum ErrorType {
     /// Thrown when a wrong argument is given to a function
     /// Take as parameter the expected argument
     WrongArgument(String),
+
+    /// Thrown when an element does not exist
+    DoesNotExist,
 }

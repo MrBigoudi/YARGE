@@ -35,5 +35,7 @@ impl Game for TestBedGame {
 
 fn main() {
     let config_file = None;
-    Entry::run(&mut TestBedGame, config_file).unwrap();
+    if let Err(err) = Entry::run(&mut TestBedGame, config_file) {
+        eprintln!("Failed to run the test bed: {:?}", err);
+    }
 }

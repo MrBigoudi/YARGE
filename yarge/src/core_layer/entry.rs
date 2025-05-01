@@ -38,12 +38,16 @@ impl Entry {
 
         // Runs the application
         'infinite_loop: loop {
+            // Handle events
             match core_layer.platform_layer.poll_event() {
-                Ok(Event::WindowClosed) => break 'infinite_loop,
                 Ok(event) => {
                     if let Err(err) = core_layer.application_system.loop_iteration(event) {
                         log_error!("Failed to handle an event: {:?}", err);
                         return Err(err);
+                    }
+                    if event == Event::WindowClosed {
+                        log_debug!("The window is closing");
+                        break 'infinite_loop
                     }
                 }
                 Err(err) => {

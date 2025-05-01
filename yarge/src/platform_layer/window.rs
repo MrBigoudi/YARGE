@@ -1,5 +1,8 @@
 use crate::{config::Config, error::ErrorType, maths::Vector2};
 
+use super::Event;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// Tells how the window should be displayed
 pub enum DisplayMode {
     /// Fullscreen mode
@@ -25,6 +28,30 @@ pub enum DisplayMode {
     Floating(Option<(f32, f32, f32, f32)>),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// Common properties for any platform specific window implementations
+pub struct WindowCommonProperties {
+    /// The window's position
+    /// The position is such that
+    /// `x` is the left of the window
+    /// `y` is the top of the window
+    /// The values are given between 0 and 1
+    pub position: Vector2,
+
+    /// The window's width
+    /// The width must be between 0. and 1.
+    /// 1 meaning the monitor's width
+    pub width: f32,
+
+    /// The window's height
+    /// The height must be between 0. and 1.
+    /// 1 meaning the monitor's height
+    pub height: f32,
+
+    /// The current display mode
+    pub display_mode: DisplayMode,
+}
+
 /// Abstract trait for a window
 /// The window's position is such that:
 /// [0.,0.] is the top left corner of the monitor
@@ -42,38 +69,9 @@ pub trait Window {
     /// Shuts down the window
     fn shutdown(&mut self) -> Result<(), ErrorType>;
 
-    /// Gets the window's width
-    /// The value is given between 0 and 1
-    fn get_width(&self) -> f32;
+    /// Gets the window's properties
+    fn get_properties(&self) -> WindowCommonProperties;
 
-    /// Gets the window's height
-    /// The value is given between 0 and 1
-    fn get_height(&self) -> f32;
-
-    /// Gets the window's position
-    /// The position is such that
-    /// `x` is the left of the window
-    /// `y` is the top of the window
-    /// The value are given between 0 and 1
-    fn get_position(&self) -> Vector2;
-
-    /// Gets the Dots Per Inch (DPI) factor
-    fn get_dpi_factor(&self) -> f32;
-
-    /// Gets the ID of the window
-    /// This is useful for multiple window handling
-    fn get_id(&self) -> u8;
-
-    /// Sets the window's display mode
-    /// See [DisplayMode]
-    /// Returns a [WrongArgument] error if `mode` is [DisplayMode::Floating]
-    /// with values that are not between 0. and 1.
-    fn set_display_mode(&mut self, mode: DisplayMode) -> Result<(), ErrorType>;
-
-    /// Moves the window to a given position
-    /// `x` is the left of the window
-    /// `y` is the top of the window
-    /// The values must be given between 0 and 1
-    /// Returns a [WrongArgument] error if the given parameters are not between 0. and 1.
-    fn set_position(&mut self, x: f32, y: f32) -> Result<(), ErrorType>;
+    /// Poll the next event
+    fn poll_event(&mut self) -> Result<Event, ErrorType>;
 }
