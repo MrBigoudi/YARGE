@@ -1,8 +1,22 @@
-pub struct Mouse {}
+/// The state of a mouse button
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum MouseButtonState {
+    /// When a mouse button is being pressed
+    Pressed,
+    /// When a mouse button is being released
+    #[default]
+    Released,
+}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// The different mouse buttons
+/// By default, a mouse can only have 3 buttons
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MouseButton {
+    /// The left button
     Left,
-    Middle,
+    /// The right button
     Right,
+    /// The middle button
+    /// This button is often the mouse wheel
+    Middle,
 }

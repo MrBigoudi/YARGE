@@ -97,7 +97,7 @@ impl Window for LinuxX11Window {
             y,
             width,
             height,
-            border_width: 0,
+            border_width: config.window_config.border_width,
             class: x::WindowClass::InputOutput,
             visual: screen.root_visual(),
             value_list: &[
@@ -370,59 +370,64 @@ impl LinuxX11Window {
         };
         match keysym {
             // Alphabet keys
-            0x0061 => Some(KeyboardKey::A),
-            0x0062 => Some(KeyboardKey::B),
-            0x0063 => Some(KeyboardKey::C),
-            0x0064 => Some(KeyboardKey::D),
-            0x0065 => Some(KeyboardKey::E),
-            0x0066 => Some(KeyboardKey::F),
-            0x0067 => Some(KeyboardKey::G),
-            0x0068 => Some(KeyboardKey::H),
-            0x0069 => Some(KeyboardKey::I),
-            0x006a => Some(KeyboardKey::J),
-            0x006b => Some(KeyboardKey::K),
-            0x006c => Some(KeyboardKey::L),
-            0x006d => Some(KeyboardKey::M),
-            0x006e => Some(KeyboardKey::N),
-            0x006f => Some(KeyboardKey::O),
-            0x0070 => Some(KeyboardKey::P),
-            0x0071 => Some(KeyboardKey::Q),
-            0x0072 => Some(KeyboardKey::R),
-            0x0073 => Some(KeyboardKey::S),
-            0x0074 => Some(KeyboardKey::T),
-            0x0075 => Some(KeyboardKey::U),
-            0x0076 => Some(KeyboardKey::V),
-            0x0077 => Some(KeyboardKey::W),
-            0x0078 => Some(KeyboardKey::X),
-            0x0079 => Some(KeyboardKey::Y),
-            0x007a => Some(KeyboardKey::Z),
+            0x0061 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::A)),
+            0x0062 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::B)),
+            0x0063 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::C)),
+            0x0064 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::D)),
+            0x0065 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::E)),
+            0x0066 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::F)),
+            0x0067 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::G)),
+            0x0068 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::H)),
+            0x0069 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::I)),
+            0x006A => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::J)),
+            0x006B => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::K)),
+            0x006C => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::L)),
+            0x006D => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::M)),
+            0x006E => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::N)),
+            0x006F => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::O)),
+            0x0070 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::P)),
+            0x0071 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Q)),
+            0x0072 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::R)),
+            0x0073 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::S)),
+            0x0074 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::T)),
+            0x0075 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::U)),
+            0x0076 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::V)),
+            0x0077 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::W)),
+            0x0078 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::X)),
+            0x0079 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Y)),
+            0x007A => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Z)),
 
             // Digit keys (0-9)
-            0x0030 => Some(KeyboardKey::Zero),
-            0x0031 => Some(KeyboardKey::One),
-            0x0032 => Some(KeyboardKey::Two),
-            0x0033 => Some(KeyboardKey::Three),
-            0x0034 => Some(KeyboardKey::Four),
-            0x0035 => Some(KeyboardKey::Five),
-            0x0036 => Some(KeyboardKey::Six),
-            0x0037 => Some(KeyboardKey::Seven),
-            0x0038 => Some(KeyboardKey::Eight),
-            0x0039 => Some(KeyboardKey::Nine),
+            0x0030 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Zero)),
+            0x0031 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::One)),
+            0x0032 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Two)),
+            0x0033 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Three)),
+            0x0034 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Four)),
+            0x0035 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Five)),
+            0x0036 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Six)),
+            0x0037 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Seven)),
+            0x0038 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Eight)),
+            0x0039 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Nine)),
+
+            // Arrows
+            0xFF51 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Left)),    // Left arrow key
+            0xFF53 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Right)),   // Right arrow key
+            0xFF52 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Up)),      // Up arrow key
+            0xFF54 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Down)),    // Down arrow key
+
+            // Modifiers
+            0xFFE1 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::ShiftLeft)),   // Shift key
+            0xFFE9 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::AltLeft)),     // Left Alt key
+            0xFFE3 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::ControlLeft)), // Left Control key
 
             // Special keys
-            0xFFE1 => Some(KeyboardKey::Shift),   // Shift key
-            0xFF0D => Some(KeyboardKey::Enter),   // Enter key
-            0xFF08 => Some(KeyboardKey::BackSpace), // Backspace key
-            0xFFFF => Some(KeyboardKey::Del),     // Delete key
-            0x0020 => Some(KeyboardKey::Space),   // Space key
-            0xFF09 => Some(KeyboardKey::Tab),     // Tab key
-            0xFF51 => Some(KeyboardKey::Left),    // Left arrow key
-            0xFF53 => Some(KeyboardKey::Right),   // Right arrow key
-            0xFF52 => Some(KeyboardKey::Up),      // Up arrow key
-            0xFF54 => Some(KeyboardKey::Down),    // Down arrow key
-            0xFFE9 => Some(KeyboardKey::Alt),     // Left Alt key
-            0xFFE3 => Some(KeyboardKey::LeftCtrl), // Left Control key
-            0xFF1B => Some(KeyboardKey::Escape),  // Escape key
+            0xFF0D => Some(KeyboardKey::Special(crate::keyboard::Special::Enter)),   // Enter key
+            0xFF08 => Some(KeyboardKey::Special(crate::keyboard::Special::Backspace)), // Backspace key
+            0xFFFF => Some(KeyboardKey::Special(crate::keyboard::Special::Delete)),     // Delete key
+            0x0020 => Some(KeyboardKey::Special(crate::keyboard::Special::Spacebar)),   // Space key
+            0xFF09 => Some(KeyboardKey::Special(crate::keyboard::Special::Tab)),     // Tab key
+            0xFF1B => Some(KeyboardKey::Special(crate::keyboard::Special::Escape)),  // Escape key
+
 
             // If no match, return Unrecognized
             _ => Some(KeyboardKey::Unrecognized),

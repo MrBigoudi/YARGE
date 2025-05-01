@@ -33,11 +33,11 @@ where
         _ctx: tracing_subscriber::layer::Context<'_, S>,
     ) {
         // Do not display logs that are under the minimum level
-        if event.metadata().level() < &self.min_level.as_tracing_level() {
+        if event.metadata().level() < &self.config.min_level.as_tracing_level() {
             return;
         }
 
-        match &self.target {
+        match &self.config.target {
             LogTarget::Console => {
                 let mut visitor = LoggerConsoleVisitor;
                 event.record(&mut visitor);
@@ -52,38 +52,39 @@ where
 impl LoggerSystem {
     /// Initiates the logger systems
     pub fn init(config: &Config) -> Result<Self, ErrorType> {
-        let min_level = LogLevel::from_config(&config.logger_config.level);
-        let target = LogTarget::from_config(&config.logger_config.target);
 
         let logger = LoggerSystem {
-            min_level,
-            target: target.clone(),
+            config: config.logger_config.clone(),
         };
 
         // Sets up how `tracing-subscriber` will deal with tracing data
         tracing_subscriber::registry().with(logger).init();
 
-        Ok(LoggerSystem { min_level, target })
+        Ok(LoggerSystem {
+            config: config.logger_config.clone(),
+        })
     }
 
     /// Updates the the minimum log level
     pub fn update_min_level(&mut self, new_min_level: LogLevel) {
+        let mut new_config = self.config.clone();
+        new_config.min_level = new_min_level;
         let logger = LoggerSystem {
-            min_level: new_min_level,
-            target: self.target.clone(),
+            config: new_config,
         };
         tracing_subscriber::registry().with(logger).init();
-        self.min_level = new_min_level;
+        self.config.min_level = new_min_level;
     }
 
     /// Updates the the log target
     pub fn update_target(&mut self, new_target: LogTarget) {
+        let mut new_config = self.config.clone();
+        new_config.target = new_target.clone();
         let logger = LoggerSystem {
-            min_level: self.min_level,
-            target: new_target.clone(),
+            config: new_config,
         };
         tracing_subscriber::registry().with(logger).init();
-        self.target = new_target;
+        self.config.target = new_target;
     }
 
     /// Shuts down the logger

@@ -1,8 +1,7 @@
 mod logger;
 pub use logger::LoggerSystem;
 
-mod helpers;
-use helpers::LogLevel;
+pub mod helpers;
 
 mod logger_impl;
 pub use logger_impl::macros::debug as log_debug;
