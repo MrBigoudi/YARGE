@@ -8,6 +8,7 @@ pub(crate) mod core_layer;
 pub mod error;
 pub mod maths;
 pub(crate) mod platform_layer;
+pub (crate) mod rendering_layer;
 
 pub use core_layer::Entry;
 pub use core_layer::Game;

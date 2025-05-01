@@ -6,12 +6,19 @@ fn main() {
 
     // Setup cfg aliases
     cfg_aliases! {
+        // Platforms
         linux_platform: { target_os = "linux" },
         x11_platform: { all(feature = "x11", linux_platform) },
         wayland_platform: { all(feature = "wayland", linux_platform) },
         web_platform: { all(target_family = "wasm", target_os = "unknown") },
         windows_platform: { target_os = "windows" },
         macos_platform: { target_os = "macos" },
+        // Renderers
+        vulkan_renderer: { all(feature = "vulkan") },
+        opengl_renderer: { all(feature = "opengl") },
+        wgpu_renderer: { all(feature = "wgpu") },
+        directx_renderer: { all(feature = "directx") },
+        metal_renderer: { all(feature = "metal") },
     }
 
     // TODO: merge all config files into a giant config file
