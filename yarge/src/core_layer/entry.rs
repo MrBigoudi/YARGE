@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::{
     config::Config,
     error::ErrorType,
-    log_debug, log_error, log_info, log_warn,
+    log_debug, log, log_error, log_info, log_warn,
     platform_layer::{Event, PlatformLayer},
 };
 

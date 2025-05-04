@@ -12,6 +12,7 @@ pub use window::{DisplayMode, Window};
 /// The concrete implementations
 mod platform_impl;
 pub use platform_impl::PlatformLayerImpl;
+pub use platform_impl::PlatformLayerRwLock;
 
 /// A module representing an event
 mod event;

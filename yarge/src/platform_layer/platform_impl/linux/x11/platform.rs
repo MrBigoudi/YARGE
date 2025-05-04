@@ -1,11 +1,10 @@
 use crate::{
-    config::Config,
-    error::ErrorType,
-    log_error,
-    platform_layer::{
-        PlatformLayer, Window, event::Event,
-    },
+    config::Config, core_layer::logger_system::helpers::{LogLevel, LogTarget}, error::ErrorType, log, log_error, platform_layer::{
+        event::Event, PlatformLayer, Window
+    }
 };
+
+use colored::Colorize;
 
 use super::window::LinuxX11Window;
 
@@ -55,6 +54,26 @@ impl PlatformLayer for LinuxX11PlatformLayer {
                 return Err(ErrorType::Unknown);
             },
             Ok(duration) => Ok(duration.as_millis())
+        }
+    }
+    
+    fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType> {
+        match target {
+            LogTarget::Console => println!("[{}]: {}", Self::format_level(level), message),
+            LogTarget::ErrorConsole => eprintln!("[{:?}]: {:?}", Self::format_level(level), message),
+        };
+        Ok(())
+    }
+}
+
+impl LinuxX11PlatformLayer {
+    /// Get the correct ANSI color given the logging level
+    fn format_level(level: &LogLevel) -> String {
+        match level {
+            LogLevel::Info => "Info".green().to_string(),
+            LogLevel::Debug => "Debug".yellow().to_string(),
+            LogLevel::Warn => "Warn".truecolor(255, 165, 0).to_string(),
+            LogLevel::Error => "Error".red().to_string(),
         }
     }
 }

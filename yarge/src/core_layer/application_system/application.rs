@@ -1,4 +1,4 @@
-use crate::{config::Config, error::ErrorType, log_debug, log_error, platform_layer::Event};
+use crate::{config::Config, error::ErrorType, log_debug, log, log_error, platform_layer::Event};
 
 use super::Game;
 

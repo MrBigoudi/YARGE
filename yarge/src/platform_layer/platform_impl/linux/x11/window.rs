@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    config::Config, error::ErrorType, keyboard::KeyboardKey, log_debug, log_error, platform_layer::{window::WindowCommonProperties, DisplayMode, Event, Window}
+    config::Config, error::ErrorType, keyboard::KeyboardKey, log_debug, log, log_error, platform_layer::{window::WindowCommonProperties, DisplayMode, Event, Window}
 };
 
 use xcb::{x, Xid};

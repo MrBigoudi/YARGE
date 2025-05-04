@@ -1,3 +1,7 @@
-mod back_end;
 
-pub use back_end::VulkanRendererBackend as RendererBackendImpl;
+mod renderer;
+
+pub use renderer::VulkanRenderingLayer as RenderingLayerImpl;
+
+mod context;
+mod init;
