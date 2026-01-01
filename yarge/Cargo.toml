@@ -4,22 +4,20 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tracing = { version = "0.1.41", optional = true }
-tracing-subscriber = { version = "0.3.19", optional = true }
 xcb = { version = "1.5.0", optional = true }
+ash = { version = "0.38.0", optional = true }
+colored = { version = "3.0.0", optional = true }
+once_cell = { version = "1.21.3" }
 
 [build-dependencies]
 cfg_aliases = "0.2.1"
 
 [features]
 default = ["x11", "vulkan"]
-x11 = ["tracing", "tracing-subscriber", "xcb"]
-wayland = []
+x11 = ["xcb", "colored"]
+wayland = ["colored"]
 directx = []
 metal = []
 opengl = []
-vulkan = []
+vulkan = ["ash"]
 wgpu = []
-
-[target.x11_platform.dependencies]
-xcb = "1.5.0"

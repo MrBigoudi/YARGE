@@ -1,3 +1,9 @@
-mod back_end;
+mod renderer;
 
-pub use back_end::VulkanRendererBackend as RendererBackendImpl;
+pub use renderer::VulkanRenderingLayer as RenderingLayerImpl;
+
+mod context;
+mod init;
+mod types;
+
+pub use types::{VkFeatures11, VkFeatures12, VkFeatures13, VkLayers};

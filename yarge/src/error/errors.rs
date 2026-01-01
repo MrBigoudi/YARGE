@@ -26,4 +26,10 @@ pub enum ErrorType {
 
     /// Thrown when an element does not exist
     DoesNotExist,
+
+    /// Thrown when a vulkan issue happens
+    VulkanError,
+
+    /// Thrown when an IO error occured
+    IO,
 }

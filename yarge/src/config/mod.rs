@@ -6,5 +6,11 @@ pub use window::WindowConfig;
 mod logger;
 pub use logger::LoggerConfig;
 
+mod renderer;
+pub use renderer::RendererConfig;
+
+mod application;
+pub use application::ApplicationConfig;
+
 mod init;
 pub use init::Config;

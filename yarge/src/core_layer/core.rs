@@ -1,8 +1,10 @@
+#[allow(unused)]
 use crate::{
     config::Config,
     error::ErrorType,
-    log_error,
+    log, log_debug, log_error,
     platform_layer::{PlatformLayer, PlatformLayerImpl},
+    rendering_layer::{RendereringLayer, RenderingLayerImpl},
 };
 
 use super::{ApplicationSystem, Game, LoggerSystem};
@@ -10,6 +12,7 @@ use super::{ApplicationSystem, Game, LoggerSystem};
 /// The core layer
 pub struct CoreLayer<'a> {
     pub platform_layer: PlatformLayerImpl,
+    pub rendering_layer: RenderingLayerImpl,
     pub logger_system: LoggerSystem,
     pub application_system: ApplicationSystem<'a>,
 }
@@ -45,8 +48,18 @@ impl<'a> CoreLayer<'a> {
             Ok(application_system) => application_system,
         };
 
+        // Inits the rendering layer
+        let rendering_layer = match RenderingLayerImpl::init(config) {
+            Ok(rendering_layer) => rendering_layer,
+            Err(err) => {
+                log_error!("Failed to initialize the rendering layer: {:?}", err);
+                return Err(err);
+            }
+        };
+
         Ok(CoreLayer {
             platform_layer,
+            rendering_layer,
             logger_system,
             application_system,
         })
@@ -54,6 +67,12 @@ impl<'a> CoreLayer<'a> {
 
     /// Shuts down the application
     pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+        // Shuts down the rendering layer
+        if let Err(err) = self.rendering_layer.shutdown() {
+            log_error!("Failed to shutdown the rendering layer");
+            return Err(err);
+        }
+
         // Shuts down the application system
         if let Err(err) = self.application_system.shutdown() {
             log_error!("Failed to shutdown the application system");

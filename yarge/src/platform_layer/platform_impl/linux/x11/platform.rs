@@ -1,11 +1,13 @@
+#[allow(unused)]
 use crate::{
     config::Config,
+    core_layer::logger_system::helpers::{LogLevel, LogTarget},
     error::ErrorType,
-    log_error,
-    platform_layer::{
-        PlatformLayer, Window, event::Event,
-    },
+    log, log_error,
+    platform_layer::{PlatformLayer, Window, event::Event},
 };
+
+use colored::Colorize;
 
 use super::window::LinuxX11Window;
 
@@ -38,23 +40,46 @@ impl PlatformLayer for LinuxX11PlatformLayer {
     }
 
     fn poll_event(&mut self) -> Result<Event, ErrorType> {
-        match self.window.poll_event(){
+        match self.window.poll_event() {
             Ok(event) => Ok(event),
             Err(err) => {
-                log_error!("Failed to poll an event from the X11 linux platform layer: {:?}", err);
+                log_error!(
+                    "Failed to poll an event from the X11 linux platform layer: {:?}",
+                    err
+                );
                 Err(ErrorType::Unknown)
-            },
+            }
         }
     }
-    
+
     fn get_time_since_unix_epoch() -> Result<u128, ErrorType> {
         let start = std::time::SystemTime::now();
-        match start.duration_since(std::time::UNIX_EPOCH){
+        match start.duration_since(std::time::UNIX_EPOCH) {
             Err(err) => {
                 log_error!("Failed to get the linux time {:?}", err);
-                return Err(ErrorType::Unknown);
-            },
-            Ok(duration) => Ok(duration.as_millis())
+                Err(ErrorType::Unknown)
+            }
+            Ok(duration) => Ok(duration.as_millis()),
+        }
+    }
+
+    fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType> {
+        match target {
+            LogTarget::Console => print!("[{}]: {}", Self::format_level(level), message),
+            LogTarget::ErrorConsole => eprint!("[{:?}]: {:?}", Self::format_level(level), message),
+        };
+        Ok(())
+    }
+}
+
+impl LinuxX11PlatformLayer {
+    /// Get the correct ANSI color given the logging level
+    fn format_level(level: &LogLevel) -> String {
+        match level {
+            LogLevel::Info => "Info".green().to_string(),
+            LogLevel::Debug => "Debug".yellow().to_string(),
+            LogLevel::Warn => "Warn".truecolor(255, 165, 0).to_string(),
+            LogLevel::Error => "Error".red().to_string(),
         }
     }
 }

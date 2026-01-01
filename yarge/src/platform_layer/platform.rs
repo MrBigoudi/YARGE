@@ -1,4 +1,8 @@
-use crate::{config::Config, error::ErrorType};
+use crate::{
+    config::Config,
+    core_layer::logger_system::helpers::{LogLevel, LogTarget},
+    error::ErrorType,
+};
 
 use super::{Window, event::Event};
 
@@ -20,6 +24,10 @@ pub trait PlatformLayer {
     /// Poll the next event
     fn poll_event(&mut self) -> Result<Event, ErrorType>;
 
+    // Static method that are platform dependant
     /// Get the time in milliseconds ellapsed since the Unix epochs
     fn get_time_since_unix_epoch() -> Result<u128, ErrorType>;
+
+    /// Write a logging message
+    fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType>;
 }

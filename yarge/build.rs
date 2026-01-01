@@ -19,6 +19,8 @@ fn main() {
         wgpu_renderer: { all(feature = "wgpu") },
         directx_renderer: { all(feature = "directx") },
         metal_renderer: { all(feature = "metal") },
+        // STD usage
+        bare_metal: { all(feature = "no_std") },
     }
 
     // TODO: merge all config files into a giant config file

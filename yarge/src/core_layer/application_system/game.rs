@@ -1,7 +1,4 @@
-use crate::{
-    error::ErrorType,
-    gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton,
-};
+use crate::{error::ErrorType, gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
 
 /// The game trait that can be ovveride by the user
 pub trait Game {
@@ -74,7 +71,12 @@ pub trait Game {
     }
     /// Runs when the mouse moves while a mouse button is being pressed
     /// Default behavior: don't do anything
-    fn on_mouse_moved_and_button_pressed(&mut self, _new_x: u16, _new_y: u16, _mouse_button: MouseButton) -> Result<(), ErrorType> {
+    fn on_mouse_moved_and_button_pressed(
+        &mut self,
+        _new_x: u16,
+        _new_y: u16,
+        _mouse_button: MouseButton,
+    ) -> Result<(), ErrorType> {
         Ok(())
     }
     /// Runs when the mouse enters the window

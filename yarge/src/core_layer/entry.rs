@@ -1,9 +1,10 @@
 use std::path::Path;
 
+#[allow(unused)]
 use crate::{
     config::Config,
     error::ErrorType,
-    log_debug, log_error, log_info, log_warn,
+    log, log_debug, log_error, log_info, log_warn,
     platform_layer::{Event, PlatformLayer},
 };
 
@@ -47,7 +48,7 @@ impl Entry {
                     }
                     if event == Event::WindowClosed {
                         log_debug!("The window is closing");
-                        break 'infinite_loop
+                        break 'infinite_loop;
                     }
                 }
                 Err(err) => {

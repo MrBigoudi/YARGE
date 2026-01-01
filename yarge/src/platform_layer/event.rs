@@ -1,5 +1,6 @@
 use crate::core_layer::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
 
+/// An enum representing an application event
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
     /// Default unrecognized event
@@ -52,11 +53,11 @@ pub enum Event {
     /// Event triggered when the window is closed
     WindowClosed,
     /// Event triggered when the window is mimized
-    WindowMinimized,    
+    WindowMinimized,
     /// Event triggered when the window is restored (opposite of WindowMinimized)
     WindowRestored,
     /// Event triggered when the focus enters the window
-    WindowFocused, 
+    WindowFocused,
     /// Event triggered when the focus leaves the window
-    WindowUnfocused, 
+    WindowUnfocused,
 }

@@ -1,3 +1,5 @@
+//! Contains the implementation for a Keyboard device
+//! 
 use std::collections::HashMap;
 
 /// The state of a key
@@ -140,20 +142,19 @@ pub enum Special {
 pub enum KeyboardKey {
     /// An unrecognized key
     Unrecognized,
-    /// An alpha-numeric key 
+    /// An alpha-numeric key
     /// See 'AlphaNumeric'
     AlphaNumeric(AlphaNumeric),
-    /// An arrow key 
+    /// An arrow key
     /// See 'Arrow'
     Arrow(Arrow),
-    /// A modifier key 
+    /// A modifier key
     /// See 'Modifier'
     Modifier(Modifier),
-    /// A special key 
+    /// A special key
     /// See 'Special'
     Special(Special),
 }
-
 
 /// A structure representing a keyboard
 #[derive(Clone)]
@@ -171,13 +172,42 @@ impl Default for Keyboard {
 
         // Insert all alphanumeric keys
         for key in [
-            AlphaNumeric::A, AlphaNumeric::B, AlphaNumeric::C, AlphaNumeric::D, AlphaNumeric::E, AlphaNumeric::F,
-            AlphaNumeric::G, AlphaNumeric::H, AlphaNumeric::I, AlphaNumeric::J, AlphaNumeric::K, AlphaNumeric::L,
-            AlphaNumeric::M, AlphaNumeric::N, AlphaNumeric::O, AlphaNumeric::P, AlphaNumeric::Q, AlphaNumeric::R,
-            AlphaNumeric::S, AlphaNumeric::T, AlphaNumeric::U, AlphaNumeric::V, AlphaNumeric::W, AlphaNumeric::X,
-            AlphaNumeric::Y, AlphaNumeric::Z, AlphaNumeric::Zero, AlphaNumeric::One, AlphaNumeric::Two,
-            AlphaNumeric::Three, AlphaNumeric::Four, AlphaNumeric::Five, AlphaNumeric::Six, AlphaNumeric::Seven,
-            AlphaNumeric::Eight, AlphaNumeric::Nine
+            AlphaNumeric::A,
+            AlphaNumeric::B,
+            AlphaNumeric::C,
+            AlphaNumeric::D,
+            AlphaNumeric::E,
+            AlphaNumeric::F,
+            AlphaNumeric::G,
+            AlphaNumeric::H,
+            AlphaNumeric::I,
+            AlphaNumeric::J,
+            AlphaNumeric::K,
+            AlphaNumeric::L,
+            AlphaNumeric::M,
+            AlphaNumeric::N,
+            AlphaNumeric::O,
+            AlphaNumeric::P,
+            AlphaNumeric::Q,
+            AlphaNumeric::R,
+            AlphaNumeric::S,
+            AlphaNumeric::T,
+            AlphaNumeric::U,
+            AlphaNumeric::V,
+            AlphaNumeric::W,
+            AlphaNumeric::X,
+            AlphaNumeric::Y,
+            AlphaNumeric::Z,
+            AlphaNumeric::Zero,
+            AlphaNumeric::One,
+            AlphaNumeric::Two,
+            AlphaNumeric::Three,
+            AlphaNumeric::Four,
+            AlphaNumeric::Five,
+            AlphaNumeric::Six,
+            AlphaNumeric::Seven,
+            AlphaNumeric::Eight,
+            AlphaNumeric::Nine,
         ] {
             keys.insert(KeyboardKey::AlphaNumeric(key), KeyboardKeyState::Released);
         }
@@ -188,15 +218,32 @@ impl Default for Keyboard {
         }
 
         // Insert all modifier keys
-        for key in [Modifier::ShiftLeft, Modifier::ShiftRight, Modifier::ControlLeft, Modifier::ControlRight, Modifier::AltLeft, Modifier::AltRight] {
+        for key in [
+            Modifier::ShiftLeft,
+            Modifier::ShiftRight,
+            Modifier::ControlLeft,
+            Modifier::ControlRight,
+            Modifier::AltLeft,
+            Modifier::AltRight,
+        ] {
             keys.insert(KeyboardKey::Modifier(key), KeyboardKeyState::Released);
         }
 
         // Insert all special keys
-        for key in [Special::Escape, Special::Enter, Special::Backspace, Special::Tab, Special::Delete, Special::Spacebar] {
+        for key in [
+            Special::Escape,
+            Special::Enter,
+            Special::Backspace,
+            Special::Tab,
+            Special::Delete,
+            Special::Spacebar,
+        ] {
             keys.insert(KeyboardKey::Special(key), KeyboardKeyState::Released);
         }
 
-        Self { current_key_states: keys.clone(), last_key_states: keys }
+        Self {
+            current_key_states: keys.clone(),
+            last_key_states: keys,
+        }
     }
 }

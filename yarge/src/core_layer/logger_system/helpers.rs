@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 /// The possible log levels
 #[derive(Debug, Default, Clone, Copy)]
 pub enum LogLevel {
@@ -22,8 +20,8 @@ pub enum LogTarget {
     Console,
     /// To log to the error console
     ErrorConsole,
-    /// To log to a markdown file
-    Markdown(PathBuf),
-    /// To log to a json file
-    Json(PathBuf),
+    // /// To log to a markdown file
+    // Markdown(PathBuf),
+    // /// To log to a json file
+    // Json(PathBuf),
 }
