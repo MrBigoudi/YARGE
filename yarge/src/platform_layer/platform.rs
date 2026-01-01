@@ -1,4 +1,8 @@
-use crate::{config::Config, core_layer::logger_system::helpers::{LogLevel, LogTarget}, error::ErrorType};
+use crate::{
+    config::Config,
+    core_layer::logger_system::helpers::{LogLevel, LogTarget},
+    error::ErrorType,
+};
 
 use super::{Window, event::Event};
 

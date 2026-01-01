@@ -1,18 +1,23 @@
 use std::collections::HashMap;
 
+#[allow(unused)]
 use crate::{
-    config::Config, error::ErrorType, keyboard::KeyboardKey, log_debug, log, log_error, platform_layer::{window::WindowCommonProperties, DisplayMode, Event, Window}
+    config::Config,
+    error::ErrorType,
+    keyboard::KeyboardKey,
+    log, log_debug, log_error,
+    platform_layer::{DisplayMode, Event, Window, window::WindowCommonProperties},
 };
 
-use xcb::{x, Xid};
+use xcb::{Xid, x};
 
 /// Handled atoms
 pub struct LinuxX11Atoms {
     /// Tells the window manager what special messages you can understand
     /// Mainly use to announce support for window close
-    pub protocols: x::Atom, 
+    pub protocols: x::Atom,
     /// Handles window close requests
-    pub delete_window: x::Atom, 
+    pub delete_window: x::Atom,
     /// Window states (fullscreen, maximized, minimized)
     pub state: x::Atom,
     /// Window maximized vertically
@@ -41,6 +46,7 @@ pub struct LinuxX11Window {
     /// The xcb connection
     connection: xcb::Connection,
     /// The xcb window
+    #[allow(unused)]
     window: x::Window,
     /// The xcb screen properties
     screen: LinuxX11ScreenProperties,
@@ -51,22 +57,25 @@ impl Window for LinuxX11Window {
 
     fn init(config: &Config) -> Result<Self::WindowType, ErrorType> {
         // Conenct to the X server
-        let (connection, screen_number) = match xcb::Connection::connect(None){
+        let (connection, screen_number) = match xcb::Connection::connect(None) {
             Ok((connection, screen_number)) => (connection, screen_number),
             Err(err) => {
-                log_error!("Failed to create an xcb connection when initializing the X11 linux window: {:?}", err);
+                log_error!(
+                    "Failed to create an xcb connection when initializing the X11 linux window: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
-            },
+            }
         };
 
         // Fetch the x::Setup and get the main x::Screen object
         let setup = connection.get_setup();
-        let screen = match setup.roots().nth(screen_number as usize){
+        let screen = match setup.roots().nth(screen_number as usize) {
             Some(screen) => screen,
             None => {
                 log_error!("Failed to fetch the screen when initializing the X11 linux window");
                 return Err(ErrorType::DoesNotExist);
-            },
+            }
         };
 
         // Generate an Xid for the client window
@@ -87,8 +96,7 @@ impl Window for LinuxX11Window {
             | x::EventMask::ENTER_WINDOW
             | x::EventMask::LEAVE_WINDOW
             | x::EventMask::STRUCTURE_NOTIFY
-            | x::EventMask::FOCUS_CHANGE
-        ;
+            | x::EventMask::FOCUS_CHANGE;
         let cookie = connection.send_request_checked(&x::CreateWindow {
             depth: x::COPY_FROM_PARENT as u8,
             wid: window,
@@ -102,13 +110,16 @@ impl Window for LinuxX11Window {
             visual: screen.root_visual(),
             value_list: &[
                 x::Cw::BackPixel(screen.black_pixel()),
-                x::Cw::EventMask(event_mask)
-            ]
+                x::Cw::EventMask(event_mask),
+            ],
         });
 
         // Check if the window creation worked
-        if let Err(err) = connection.check_request(cookie){
-            log_error!("Failed to create a window when initializing the X11 linux window: {:?}", err);
+        if let Err(err) = connection.check_request(cookie) {
+            log_error!(
+                "Failed to create a window when initializing the X11 linux window: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -120,15 +131,16 @@ impl Window for LinuxX11Window {
             r#type: x::ATOM_STRING,
             data: config.window_config.title.as_bytes(),
         });
-        if let Err(err) = connection.check_request(cookie){
-            log_error!("Failed to update the window title when initializing the X11 linux window: {:?}", err);
+        if let Err(err) = connection.check_request(cookie) {
+            log_error!(
+                "Failed to update the window title when initializing the X11 linux window: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         };
 
         // Map the window
-        connection.send_request(&x::MapWindow{
-            window,
-        });
+        connection.send_request(&x::MapWindow { window });
 
         // Get necessary atoms
         // An atom is an id replacement for a string
@@ -163,73 +175,97 @@ impl Window for LinuxX11Window {
                 match connection.wait_for_reply(cookies.0) {
                     Ok(reply) => reply.atom(),
                     Err(err) => {
-                        log_error!("Failed to fetch back an atom when initializing the X11 linux window: {:?}", err);
+                        log_error!(
+                            "Failed to fetch back an atom when initializing the X11 linux window: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
-                    },
+                    }
                 },
                 match connection.wait_for_reply(cookies.1) {
                     Ok(reply) => reply.atom(),
                     Err(err) => {
-                        log_error!("Failed to fetch back an atom when initializing the X11 linux window: {:?}", err);
+                        log_error!(
+                            "Failed to fetch back an atom when initializing the X11 linux window: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
-                    },
+                    }
                 },
                 match connection.wait_for_reply(cookies.2) {
                     Ok(reply) => reply.atom(),
                     Err(err) => {
-                        log_error!("Failed to fetch back an atom when initializing the X11 linux window: {:?}", err);
+                        log_error!(
+                            "Failed to fetch back an atom when initializing the X11 linux window: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
-                    },
+                    }
                 },
                 match connection.wait_for_reply(cookies.3) {
                     Ok(reply) => reply.atom(),
                     Err(err) => {
-                        log_error!("Failed to fetch back an atom when initializing the X11 linux window: {:?}", err);
+                        log_error!(
+                            "Failed to fetch back an atom when initializing the X11 linux window: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
-                    },
+                    }
                 },
                 match connection.wait_for_reply(cookies.4) {
                     Ok(reply) => reply.atom(),
                     Err(err) => {
-                        log_error!("Failed to fetch back an atom when initializing the X11 linux window: {:?}", err);
+                        log_error!(
+                            "Failed to fetch back an atom when initializing the X11 linux window: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
-                    },
+                    }
                 },
                 match connection.wait_for_reply(cookies.5) {
                     Ok(reply) => reply.atom(),
                     Err(err) => {
-                        log_error!("Failed to fetch back an atom when initializing the X11 linux window: {:?}", err);
+                        log_error!(
+                            "Failed to fetch back an atom when initializing the X11 linux window: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
-                    },
+                    }
                 },
             )
         };
 
         // Activate the window close event
-        if let Err(err) = connection.check_request(
-            connection.send_request_checked(&x::ChangeProperty {
+        if let Err(err) =
+            connection.check_request(connection.send_request_checked(&x::ChangeProperty {
                 mode: x::PropMode::Replace,
                 window,
                 property: wm_protocols,
                 r#type: x::ATOM_ATOM,
                 data: &[wm_del_window],
-            })){
-                log_error!("Failed to activate the window close event when initializing the X11 linux window: {:?}", err);
-                return Err(ErrorType::Unknown);
-            }
-        ;
+            }))
+        {
+            log_error!(
+                "Failed to activate the window close event when initializing the X11 linux window: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        };
 
         // Cache the keymap
         let min_keycode = setup.min_keycode();
         let max_keycode = setup.max_keycode();
         let cookie = connection.send_request(&x::GetKeyboardMapping {
             first_keycode: min_keycode,
-            count: (max_keycode - min_keycode +1).into(),
+            count: (max_keycode - min_keycode + 1u8),
         });
-        let keymap_reply = match connection.wait_for_reply(cookie){
+        let keymap_reply = match connection.wait_for_reply(cookie) {
             Ok(reply) => reply,
             Err(err) => {
-                log_error!("Failed to fetch the keymap when initializing the X11 linux window: {:?}", err);
+                log_error!(
+                    "Failed to fetch the keymap when initializing the X11 linux window: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
@@ -242,7 +278,6 @@ impl Window for LinuxX11Window {
                 keymap.insert(keycode, keysym);
             }
         }
-
 
         let properties = WindowCommonProperties {
             position: config.window_config.position,
@@ -279,39 +314,38 @@ impl Window for LinuxX11Window {
         // TODO: Implement Linux X11 specific code
         Ok(())
     }
-    
+
     fn get_properties(&self) -> WindowCommonProperties {
         self.properties
     }
-    
+
     fn poll_event(&mut self) -> Result<Event, ErrorType> {
         match self.connection.wait_for_event() {
             Err(err) => {
                 log_error!("Failed to wait for an event on the X11 linux: {:?}", err);
                 Err(ErrorType::Unknown)
-            },
+            }
             Ok(event) => match event {
                 // Keyboard events
                 xcb::Event::X(x::Event::KeyPress(event)) => {
-                    match self.get_key_from_keysym(event.detail()){
+                    match self.get_key_from_keysym(event.detail()) {
                         Some(key) => Ok(Event::KeyboardKeyPressed(key)),
-                        None => {
-                            Ok(Event::KeyboardKeyPressed(KeyboardKey::Unrecognized))
-                        },
+                        None => Ok(Event::KeyboardKeyPressed(KeyboardKey::Unrecognized)),
                     }
-                },
+                }
                 xcb::Event::X(x::Event::KeyRelease(event)) => {
-                    match self.get_key_from_keysym(event.detail()){
+                    match self.get_key_from_keysym(event.detail()) {
                         Some(key) => Ok(Event::KeyboardKeyReleased(key)),
-                        None => {
-                            Ok(Event::KeyboardKeyReleased(KeyboardKey::Unrecognized))
-                        },
+                        None => Ok(Event::KeyboardKeyReleased(KeyboardKey::Unrecognized)),
                     }
-                },
+                }
                 // Client message events
                 xcb::Event::X(x::Event::ClientMessage(event)) => {
                     if event.r#type() == self.atoms.state {
-                        if let x::ClientMessageData::Data32([_, first_property, second_property, ..]) = event.data() {
+                        if let x::ClientMessageData::Data32(
+                            [_, first_property, second_property, ..],
+                        ) = event.data()
+                        {
                             // Window maximized
                             if first_property == self.atoms.state_maximized_horz.resource_id()
                                 || first_property == self.atoms.state_maximized_vert.resource_id()
@@ -319,18 +353,17 @@ impl Window for LinuxX11Window {
                                 || second_property == self.atoms.state_maximized_vert.resource_id()
                             {
                                 return Ok(Event::WindowRestored);
-                            } 
+                            }
                             // Window minimized
                             else if first_property == self.atoms.state_hidden.resource_id() {
                                 return Ok(Event::WindowMinimized);
                             }
                         }
-                    } else if event.r#type() == self.atoms.protocols {
-                        if let x::ClientMessageData::Data32([atom, ..]) = event.data() {
-                            // Window closed
-                            if atom == self.atoms.delete_window.resource_id() {
-                                return Ok(Event::WindowClosed);
-                            }
+                    } else if event.r#type() == self.atoms.protocols 
+                        && let x::ClientMessageData::Data32([atom, ..]) = event.data() {
+                        // Window closed
+                        if atom == self.atoms.delete_window.resource_id() {
+                            return Ok(Event::WindowClosed);
                         }
                     }
                     log_debug!("Unknown X11 linux client message event");
@@ -340,34 +373,31 @@ impl Window for LinuxX11Window {
                 xcb::Event::X(x::Event::ConfigureNotify(event)) => {
                     let width = (event.width() as f32) / (self.screen.width as f32);
                     let height = (event.height() as f32) / (self.screen.height as f32);
-    
+
                     // Detect if the size has changed and trigger the corresponding event
                     if width != self.properties.width || height != self.properties.height {
                         // Update the window's properties
                         self.properties.width = width;
                         self.properties.height = height;
-    
+
                         return Ok(Event::WindowResized(width, height));
                     }
                     Ok(Event::Unrecognized)
-                },
+                }
                 // TODO: other events
                 _ => {
                     log_debug!("Unknown X11 linux window event");
                     Ok(Event::Unrecognized)
                 }
-            }
+            },
         }
     }
 }
 
-
 impl LinuxX11Window {
     fn get_key_from_keysym(&self, keycode: x::Keycode) -> Option<KeyboardKey> {
-        let keysym = match self.keymap.get(&keycode) {
-            Some(keysym) => keysym,
-            None => return None,
-        };
+        let keysym = self.keymap.get(&keycode)?;
+        
         match keysym {
             // Alphabet keys
             0x0061 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::A)),
@@ -398,36 +428,57 @@ impl LinuxX11Window {
             0x007A => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Z)),
 
             // Digit keys (0-9)
-            0x0030 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Zero)),
-            0x0031 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::One)),
-            0x0032 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Two)),
-            0x0033 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Three)),
-            0x0034 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Four)),
-            0x0035 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Five)),
-            0x0036 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Six)),
-            0x0037 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Seven)),
-            0x0038 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Eight)),
-            0x0039 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::Nine)),
+            0x0030 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Zero,
+            )),
+            0x0031 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::One,
+            )),
+            0x0032 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Two,
+            )),
+            0x0033 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Three,
+            )),
+            0x0034 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Four,
+            )),
+            0x0035 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Five,
+            )),
+            0x0036 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Six,
+            )),
+            0x0037 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Seven,
+            )),
+            0x0038 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Eight,
+            )),
+            0x0039 => Some(KeyboardKey::AlphaNumeric(
+                crate::keyboard::AlphaNumeric::Nine,
+            )),
 
             // Arrows
-            0xFF51 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Left)),    // Left arrow key
-            0xFF53 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Right)),   // Right arrow key
-            0xFF52 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Up)),      // Up arrow key
-            0xFF54 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Down)),    // Down arrow key
+            0xFF51 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Left)), // Left arrow key
+            0xFF53 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Right)), // Right arrow key
+            0xFF52 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Up)),   // Up arrow key
+            0xFF54 => Some(KeyboardKey::Arrow(crate::keyboard::Arrow::Down)), // Down arrow key
 
             // Modifiers
-            0xFFE1 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::ShiftLeft)),   // Shift key
-            0xFFE9 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::AltLeft)),     // Left Alt key
-            0xFFE3 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::ControlLeft)), // Left Control key
+            0xFFE1 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::ShiftLeft)), // Shift key
+            0xFFE9 => Some(KeyboardKey::Modifier(crate::keyboard::Modifier::AltLeft)), // Left Alt key
+            0xFFE3 => Some(KeyboardKey::Modifier(
+                crate::keyboard::Modifier::ControlLeft,
+            )), // Left Control key
 
             // Special keys
-            0xFF0D => Some(KeyboardKey::Special(crate::keyboard::Special::Enter)),   // Enter key
+            0xFF0D => Some(KeyboardKey::Special(crate::keyboard::Special::Enter)), // Enter key
             0xFF08 => Some(KeyboardKey::Special(crate::keyboard::Special::Backspace)), // Backspace key
-            0xFFFF => Some(KeyboardKey::Special(crate::keyboard::Special::Delete)),     // Delete key
-            0x0020 => Some(KeyboardKey::Special(crate::keyboard::Special::Spacebar)),   // Space key
-            0xFF09 => Some(KeyboardKey::Special(crate::keyboard::Special::Tab)),     // Tab key
-            0xFF1B => Some(KeyboardKey::Special(crate::keyboard::Special::Escape)),  // Escape key
-
+            0xFFFF => Some(KeyboardKey::Special(crate::keyboard::Special::Delete)),    // Delete key
+            0x0020 => Some(KeyboardKey::Special(crate::keyboard::Special::Spacebar)),  // Space key
+            0xFF09 => Some(KeyboardKey::Special(crate::keyboard::Special::Tab)),       // Tab key
+            0xFF1B => Some(KeyboardKey::Special(crate::keyboard::Special::Escape)),    // Escape key
 
             // If no match, return Unrecognized
             _ => Some(KeyboardKey::Unrecognized),

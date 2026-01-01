@@ -1,3 +1,5 @@
+//! Contains the implementation for a Mouse device
+
 /// The state of a mouse button
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum MouseButtonState {

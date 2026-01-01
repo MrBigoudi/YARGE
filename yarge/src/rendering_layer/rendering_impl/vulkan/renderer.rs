@@ -1,8 +1,13 @@
-use crate::{log_debug, log, log_error, config::Config, error::ErrorType, rendering_layer::renderer::RendereringLayer};
+#[allow(unused)]
+use crate::{
+    config::Config, error::ErrorType, log, log_debug, log_error,
+    rendering_layer::renderer::RendereringLayer,
+};
 
 use super::context::VulkanContext;
 
 pub struct VulkanRenderingLayer {
+    #[allow(unused)]
     pub context: VulkanContext,
 }
 
@@ -18,9 +23,7 @@ impl RendereringLayer for VulkanRenderingLayer {
             }
         };
         log_debug!("Vulkan renderer initialized");
-        Ok(VulkanRenderingLayer {
-            context,
-        })
+        Ok(VulkanRenderingLayer { context })
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {

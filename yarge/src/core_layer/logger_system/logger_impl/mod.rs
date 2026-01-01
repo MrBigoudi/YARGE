@@ -1,7 +1,9 @@
 use crate::{config::Config, error::ErrorType};
 
 use super::{
-    helpers::{LogLevel, LogTarget}, logger::GLOBAL_LOGGER, LoggerSystem
+    LoggerSystem,
+    helpers::{LogLevel, LogTarget},
+    logger::GLOBAL_LOGGER,
 };
 
 pub mod macros;
@@ -9,7 +11,7 @@ pub mod macros;
 impl LoggerSystem {
     /// Initiates the logger systems
     pub fn init(config: &Config) -> Result<Self, ErrorType> {
-        let mut logger = match unsafe { GLOBAL_LOGGER.write() } {
+        let mut logger = match GLOBAL_LOGGER.write() {
             Ok(logger) => logger,
             Err(err) => {
                 // TODO: better logging messages
@@ -18,18 +20,20 @@ impl LoggerSystem {
             }
         };
         logger.config = config.logger_config.clone();
-        Ok(LoggerSystem{
-            global_logger: unsafe { &GLOBAL_LOGGER }
+        Ok(LoggerSystem {
+            global_logger: &GLOBAL_LOGGER,
         })
     }
 
     /// Updates the the minimum log level
-    pub fn update_min_level(&mut self, new_min_level: LogLevel) {
+    #[allow(unused)]
+    pub fn update_min_level(&mut self, _new_min_level: LogLevel) {
         todo!("Implement logger level update")
     }
 
     /// Updates the the log target
-    pub fn update_target(&mut self, new_target: LogTarget) {
+    #[allow(unused)]
+    pub fn update_target(&mut self, _new_target: LogTarget) {
         todo!("Implement logger target update")
     }
 

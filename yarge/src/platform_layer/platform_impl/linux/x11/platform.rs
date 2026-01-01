@@ -1,7 +1,10 @@
+#[allow(unused)]
 use crate::{
-    config::Config, core_layer::logger_system::helpers::{LogLevel, LogTarget}, error::ErrorType, log, log_error, platform_layer::{
-        event::Event, PlatformLayer, Window
-    }
+    config::Config,
+    core_layer::logger_system::helpers::{LogLevel, LogTarget},
+    error::ErrorType,
+    log, log_error,
+    platform_layer::{PlatformLayer, Window, event::Event},
 };
 
 use colored::Colorize;
@@ -37,30 +40,33 @@ impl PlatformLayer for LinuxX11PlatformLayer {
     }
 
     fn poll_event(&mut self) -> Result<Event, ErrorType> {
-        match self.window.poll_event(){
+        match self.window.poll_event() {
             Ok(event) => Ok(event),
             Err(err) => {
-                log_error!("Failed to poll an event from the X11 linux platform layer: {:?}", err);
+                log_error!(
+                    "Failed to poll an event from the X11 linux platform layer: {:?}",
+                    err
+                );
                 Err(ErrorType::Unknown)
-            },
+            }
         }
     }
-    
+
     fn get_time_since_unix_epoch() -> Result<u128, ErrorType> {
         let start = std::time::SystemTime::now();
-        match start.duration_since(std::time::UNIX_EPOCH){
+        match start.duration_since(std::time::UNIX_EPOCH) {
             Err(err) => {
                 log_error!("Failed to get the linux time {:?}", err);
-                return Err(ErrorType::Unknown);
-            },
-            Ok(duration) => Ok(duration.as_millis())
+                Err(ErrorType::Unknown)
+            }
+            Ok(duration) => Ok(duration.as_millis()),
         }
     }
-    
+
     fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType> {
         match target {
-            LogTarget::Console => println!("[{}]: {}", Self::format_level(level), message),
-            LogTarget::ErrorConsole => eprintln!("[{:?}]: {:?}", Self::format_level(level), message),
+            LogTarget::Console => print!("[{}]: {}", Self::format_level(level), message),
+            LogTarget::ErrorConsole => eprint!("[{:?}]: {:?}", Self::format_level(level), message),
         };
         Ok(())
     }

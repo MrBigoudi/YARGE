@@ -27,3 +27,7 @@ pub use wgpu::RenderingLayerImpl;
 mod vulkan;
 #[cfg(vulkan_renderer)]
 pub use vulkan::RenderingLayerImpl;
+
+#[allow(unused)]
+#[cfg(vulkan_renderer)]
+pub use vulkan::{VkFeatures11, VkFeatures12, VkFeatures13, VkLayers};

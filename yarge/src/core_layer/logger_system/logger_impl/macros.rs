@@ -19,7 +19,7 @@ macro_rules! log {
         use $crate::{platform_layer::{PlatformLayer, PlatformLayerImpl}, {LogLevel, LogTarget}};
         let message = format!("{} (from {}:{})\n", format!($($arg)*), file!(), line!());
         if let Err(err) = PlatformLayerImpl::write($level, &message, $target) {
-            let message = format!("Logging failure {:?}, default to error console, original message: {}\n", 
+            let message = format!("Logging failure {:?}, default to error console, original message: {}\n",
                 err, message
             );
             if let Err(err) = PlatformLayerImpl::write(&LogLevel::Warn, &message, &LogTarget::ErrorConsole) {
@@ -41,7 +41,7 @@ macro_rules! log_info {
                 log!(&LogLevel::Info, target)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console\n",
                     err
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)
@@ -57,7 +57,7 @@ macro_rules! log_info {
                 log!(&LogLevel::Info, target, $($arg)*)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n",
                     err, format!($($arg)*)
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)
@@ -78,7 +78,7 @@ macro_rules! log_debug {
                 log!(&LogLevel::Debug, target)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console\n",
                     err
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)
@@ -94,7 +94,7 @@ macro_rules! log_debug {
                 log!(&LogLevel::Debug, target, $($arg)*)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n",
                     err, format!($($arg)*)
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)
@@ -115,7 +115,7 @@ macro_rules! log_warn {
                 log!(&LogLevel::Warn, target)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console\n",
                     err
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)
@@ -131,7 +131,7 @@ macro_rules! log_warn {
                 log!(&LogLevel::Warn, target, $($arg)*)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n",
                     err, format!($($arg)*)
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)
@@ -169,7 +169,7 @@ macro_rules! log_error {
                 log!(&LogLevel::Error, target, $($arg)*)
             },
             Err(err) => {
-                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n", 
+                let message = format!("Logging failure {:?}, failed to get info from the global logger, default to error console, original message {}\n",
                     err, format!($($arg)*)
                 );
                 log!(&LogLevel::Error, &LogTarget::ErrorConsole, "{}", message)

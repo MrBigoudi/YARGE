@@ -24,7 +24,7 @@ impl Config {
     /// Reads the config file to fill the Config struct
     pub fn init(config_file: Option<&Path>) -> Result<Self, ErrorType> {
         match config_file {
-            Some(file_path) => todo!(), // TODO: init config from file
+            Some(_file_path) => todo!(), // TODO: init config from file
             None => Ok(Config::default()),
         }
     }

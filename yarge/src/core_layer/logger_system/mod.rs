@@ -1,7 +1,7 @@
 mod logger;
-pub use logger::LoggerSystem;
 pub use logger::GLOBAL_LOGGER;
+pub use logger::LoggerSystem;
 
-pub (crate) mod helpers;
+pub(crate) mod helpers;
 
 mod logger_impl;

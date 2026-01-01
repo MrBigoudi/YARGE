@@ -1,8 +1,10 @@
+#[allow(unused)]
 use crate::{
     config::Config,
     error::ErrorType,
-    log, log_error, log_debug,
-    platform_layer::{PlatformLayer, PlatformLayerImpl}, rendering_layer::{RendereringLayer, RenderingLayerImpl},
+    log, log_debug, log_error,
+    platform_layer::{PlatformLayer, PlatformLayerImpl},
+    rendering_layer::{RendereringLayer, RenderingLayerImpl},
 };
 
 use super::{ApplicationSystem, Game, LoggerSystem};

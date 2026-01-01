@@ -16,6 +16,6 @@ pub struct ApplicationVersion {
 pub struct ApplicationConfig {
     /// The application's name
     pub name: String,
-    /// The application's version 
+    /// The application's version
     pub version: ApplicationVersion,
 }
