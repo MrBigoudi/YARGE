@@ -1,6 +1,6 @@
 #[allow(unused)]
 use crate::{
-    config::Config, error::ErrorType, log, log_debug, log_error,
+    config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::PlatformLayerImpl,
     rendering_layer::renderer::RendereringLayer,
 };
 
@@ -14,7 +14,10 @@ pub struct VulkanRenderingLayer {
 impl RendereringLayer for VulkanRenderingLayer {
     type RendereringLayerType = VulkanRenderingLayer;
 
-    fn init(config: &Config) -> Result<Self::RendereringLayerType, ErrorType> {
+    fn init(
+        config: &Config,
+        _platform_layer: &mut PlatformLayerImpl,
+    ) -> Result<Self::RendereringLayerType, ErrorType> {
         let context = match VulkanContext::new(config) {
             Ok(context) => context,
             Err(err) => {
@@ -29,5 +32,13 @@ impl RendereringLayer for VulkanRenderingLayer {
     fn shutdown(&mut self) -> Result<(), ErrorType> {
         log_debug!("Vulkan renderer shutted down");
         Ok(())
+    }
+
+    fn begin_frame(&mut self) -> Result<(), ErrorType> {
+        Err(ErrorType::NotImplemented)
+    }
+
+    fn end_frame(&mut self, _platform_layer: &mut PlatformLayerImpl) -> Result<(), ErrorType> {
+        Err(ErrorType::NotImplemented)
     }
 }

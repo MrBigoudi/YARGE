@@ -31,7 +31,7 @@ impl<'a> CoreLayer<'a> {
         };
 
         // Inits the platform layer
-        let platform_layer = match PlatformLayerImpl::init(config) {
+        let mut platform_layer = match PlatformLayerImpl::init(config) {
             Ok(platform_layer) => platform_layer,
             Err(err) => {
                 log_error!("Failed to initialize the platform layer");
@@ -49,7 +49,7 @@ impl<'a> CoreLayer<'a> {
         };
 
         // Inits the rendering layer
-        let rendering_layer = match RenderingLayerImpl::init(config) {
+        let rendering_layer = match RenderingLayerImpl::init(config, &mut platform_layer) {
             Ok(rendering_layer) => rendering_layer,
             Err(err) => {
                 log_error!("Failed to initialize the rendering layer: {:?}", err);

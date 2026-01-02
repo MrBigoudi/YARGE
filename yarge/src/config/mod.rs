@@ -14,3 +14,6 @@ pub use application::ApplicationConfig;
 
 mod init;
 pub use init::Config;
+
+mod helper;
+pub use helper::Version;

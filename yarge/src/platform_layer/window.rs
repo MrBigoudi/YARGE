@@ -74,4 +74,16 @@ pub trait Window {
 
     /// Poll the next event
     fn poll_event(&mut self) -> Result<Event, ErrorType>;
+
+    /// Swaps the color buffer and show it as output to the screen
+    #[cfg(opengl_renderer)]
+    fn opengl_swap_buffers(&mut self) -> Result<(), ErrorType>;
+
+    /// Makes the context of the window current on the calling thread
+    #[cfg(opengl_renderer)]
+    fn opengl_make_context_current(&mut self) -> Result<(), ErrorType>;
+
+    /// Loads all the OpenGL functions
+    #[cfg(opengl_renderer)]
+    fn opengl_load_functions(&mut self) -> Result<(), ErrorType>;
 }

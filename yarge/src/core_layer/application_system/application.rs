@@ -179,13 +179,13 @@ impl<'a> ApplicationSystem<'a> {
                     return Err(err);
                 }
             }
-            _ => {}
+            _ => {} //TODO: handle other events
         };
         Ok(())
     }
 
     /// One iteration of the infinite running loop
-    pub fn loop_iteration(&mut self, event: Event) -> Result<(), ErrorType> {
+    pub fn loop_iteration(&mut self, event: Event) -> Result<Option<Event>, ErrorType> {
         if let Err(err) = self.handle_event(event) {
             log_error!("Failed to handle an event in the application layer");
             return Err(err);
@@ -193,17 +193,25 @@ impl<'a> ApplicationSystem<'a> {
 
         // TODO: delta time
         let delta_time = 0.;
-        if let Err(err) = self.user_game.on_update(delta_time) {
-            log_error!("Failed to update the game in the application layer");
+        let user_event = match self.user_game.on_update(delta_time) {
+            Ok(Some(Event::WindowClosed)) => {
+                Some(Event::WindowClosed)
+            },
+            Err(err) => {
+                log_error!("Failed to update the game in the application layer");
+                return Err(err);
+            }
+            _ => None,
+        };
+
+        if event == Event::Expose
+            && let Err(err) = self.user_game.on_render(delta_time)
+        {
+            log_error!("Failed to render the game in the application layer");
             return Err(err);
         };
 
-        if let Err(err) = self.user_game.on_render(delta_time) {
-            log_error!("Failed to update the game in the application layer");
-            return Err(err);
-        };
-
-        Ok(())
+        Ok(user_event)
     }
 
     /// Shuts down the application

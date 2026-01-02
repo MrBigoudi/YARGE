@@ -1,4 +1,4 @@
-use crate::{error::ErrorType, gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
+use crate::{error::ErrorType, gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton, platform_layer::Event};
 
 /// The game trait that can be ovveride by the user
 pub trait Game {
@@ -11,9 +11,9 @@ pub trait Game {
 
     /// Runs each frame
     /// Default behavior: don't do anything
-    fn on_update(&mut self, _delta_time: f64) -> Result<(), ErrorType> {
+    fn on_update(&mut self, _delta_time: f64) -> Result<Option<Event>, ErrorType> {
         // TODO: add debug message
-        Ok(())
+        Ok(None)
     }
 
     /// Runs each frame

@@ -32,4 +32,7 @@ pub enum ErrorType {
 
     /// Thrown when an IO error occured
     IO,
+
+    /// Thrown when something is not yet implemented
+    NotImplemented,
 }

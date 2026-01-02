@@ -14,6 +14,8 @@ pub use metal::RenderingLayerImpl;
 #[cfg(opengl_renderer)]
 mod opengl;
 #[cfg(opengl_renderer)]
+pub use opengl::OpenglConfig;
+#[cfg(opengl_renderer)]
 pub use opengl::RenderingLayerImpl;
 
 /// Implements the WebGPU API
@@ -27,7 +29,8 @@ pub use wgpu::RenderingLayerImpl;
 mod vulkan;
 #[cfg(vulkan_renderer)]
 pub use vulkan::RenderingLayerImpl;
-
 #[allow(unused)]
 #[cfg(vulkan_renderer)]
 pub use vulkan::{VkFeatures11, VkFeatures12, VkFeatures13, VkLayers};
+
+pub mod types;

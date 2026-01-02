@@ -25,10 +25,10 @@ fn init_application_info(config: &'_ Config) -> Result<ApplicationInfo<'_>, Erro
     };
 
     let application_version = vk::make_api_version(
-        config.application_config.version.variant,
-        config.application_config.version.major,
-        config.application_config.version.minor,
-        config.application_config.version.patch,
+        config.application_config.version.variant as u32,
+        config.application_config.version.major as u32,
+        config.application_config.version.minor as u32,
+        config.application_config.version.patch as u32,
     );
 
     let engine_name = match std::ffi::CString::new(env!("CARGO_PKG_NAME")) {

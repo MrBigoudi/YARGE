@@ -1,6 +1,13 @@
+#[cfg(opengl_renderer)]
+use crate::rendering_layer::rendering_impl::OpenglConfig;
+
 /// The configuration for the renderer
 #[derive(Clone)]
 pub struct RendererConfig {
+    #[cfg(opengl_renderer)]
+    /// The opengl specific parameters
+    pub opengl_parameters: OpenglConfig,
+
     #[cfg(vulkan_renderer)]
     /// The required vulkan layers
     /// Default to only the validation layers
@@ -15,6 +22,9 @@ impl Default for RendererConfig {
             vec![crate::rendering_layer::rendering_impl::VkLayers::Validation];
 
         RendererConfig {
+            #[cfg(opengl_renderer)]
+            opengl_parameters: OpenglConfig::default(),
+
             #[cfg(vulkan_renderer)]
             vulkan_required_layers,
         }

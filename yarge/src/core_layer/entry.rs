@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::rendering_layer::RendereringLayer;
 #[allow(unused)]
 use crate::{
     config::Config,
@@ -42,11 +43,30 @@ impl Entry {
             // Handle events
             match core_layer.platform_layer.poll_event() {
                 Ok(event) => {
-                    if let Err(err) = core_layer.application_system.loop_iteration(event) {
-                        log_error!("Failed to handle an event: {:?}", err);
-                        return Err(err);
+                    let should_quit = event == Event::WindowClosed;
+
+                    let should_render = event == Event::Expose;
+                    if should_render && let Err(err) = core_layer.rendering_layer.begin_frame(){
+                        log_error!("Failed to begin a frame: {:?}", err);
+                        return Err(ErrorType::Unknown);
                     }
-                    if event == Event::WindowClosed {
+
+                    let user_event = match core_layer.application_system.loop_iteration(event) {
+                        Err(err) => {
+                            log_error!("Failed to handle an event: {:?}", err);
+                            return Err(ErrorType::Unknown);
+                        },
+                        Ok(event) => event,
+                    };
+
+                    if should_render && let Err(err) = core_layer.rendering_layer
+                            .end_frame(&mut core_layer.platform_layer)
+                    {
+                        log_error!("Failed to end a frame: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+
+                    if should_quit || user_event == Some(Event::WindowClosed) {
                         log_debug!("The window is closing");
                         break 'infinite_loop;
                     }

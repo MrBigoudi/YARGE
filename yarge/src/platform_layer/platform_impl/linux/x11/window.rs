@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
+#[cfg(opengl_renderer)]
+use crate::rendering_layer::rendering_impl::types::ImageFormat;
+
 #[allow(unused)]
 use crate::{
     config::Config,
     error::ErrorType,
     keyboard::KeyboardKey,
-    log, log_debug, log_error,
+    log, log_debug, log_error, log_info,
     platform_layer::{DisplayMode, Event, Window, window::WindowCommonProperties},
 };
 
@@ -36,6 +39,344 @@ pub struct LinuxX11ScreenProperties {
     pub height: u16,
 }
 
+/// Properties to handle OpenGL with Linux X11
+#[cfg(opengl_renderer)]
+pub struct LinuxX11OpenglWindow {
+    /// The xlib display
+    pub display: *mut x11::xlib::Display,
+
+    /// The framebuffer config
+    pub framebuffer_config: *mut x11::glx::__GLXFBConfigRec,
+
+    /// The OpenGL context
+    pub context: *mut x11::glx::__GLXcontextRec,
+
+    /// The Visual ID
+    pub visual_id: std::os::raw::c_int,
+
+    /// The colormap
+    pub colormap: x::Colormap,
+
+    /// The drawable window
+    pub drawable: x11::glx::GLXDrawable,
+
+    /// The GLX window
+    pub window: x11::glx::GLXWindow,
+}
+
+#[cfg(opengl_renderer)]
+impl LinuxX11OpenglWindow {
+    /// Gets the glx render type bit from the framebuffer image format
+    fn get_glx_render_type_bit(framebuffer_format: &ImageFormat) -> std::os::raw::c_int {
+        match framebuffer_format {
+            ImageFormat::R8G8B8A8_SFLOAT
+            | ImageFormat::R8G8B8A8_UNORM
+            | ImageFormat::R16G16B16A16_SFLOAT
+            | ImageFormat::R16G16B16A16_UNORM
+            | ImageFormat::R32G32B32A32_SFLOAT
+            | ImageFormat::R32G32B32A32_UNORM => x11::glx::GLX_RGBA_BIT,
+            _ => x11::glx::GLX_COLOR_INDEX_BIT,
+        }
+    }
+
+    /// Gets the glx render type from the framebuffer image format
+    fn get_glx_render_type(framebuffer_format: &ImageFormat) -> std::os::raw::c_int {
+        match framebuffer_format {
+            ImageFormat::R8G8B8A8_SFLOAT
+            | ImageFormat::R8G8B8A8_UNORM
+            | ImageFormat::R16G16B16A16_SFLOAT
+            | ImageFormat::R16G16B16A16_UNORM
+            | ImageFormat::R32G32B32A32_SFLOAT
+            | ImageFormat::R32G32B32A32_UNORM => x11::glx::GLX_RGBA_TYPE,
+            _ => x11::glx::GLX_COLOR_INDEX_TYPE,
+        }
+    }
+
+    /// Gets the channel sizes from an image format
+    fn get_channel_size(format: &ImageFormat) -> std::os::raw::c_int {
+        format.get_channel_size() as std::os::raw::c_int
+    }
+
+    /// Gets the alphaa channel sizes from the framebuffer image format
+    fn get_alpha_channel_size(framebuffer_format: &ImageFormat) -> Option<std::os::raw::c_int> {
+        match framebuffer_format {
+            ImageFormat::R8G8B8A8_SFLOAT
+            | ImageFormat::R8G8B8A8_UNORM
+            | ImageFormat::R16G16B16A16_SFLOAT
+            | ImageFormat::R16G16B16A16_UNORM
+            | ImageFormat::R32G32B32A32_SFLOAT
+            | ImageFormat::R32G32B32A32_UNORM => {
+                Some(framebuffer_format.get_channel_size() as std::os::raw::c_int)
+            }
+            _ => None,
+        }
+    }
+
+    /// Creates the framebuffer configurations
+    fn init_framebuffer_configurations(
+        config: &Config,
+        display: *mut x11::xlib::Display,
+        screen_number: i32,
+    ) -> Result<(*mut x11::glx::GLXFBConfig, std::os::raw::c_int), ErrorType> {
+        let color_channel_size =
+            Self::get_channel_size(&config.renderer_config.opengl_parameters.framebuffer_format);
+        let mut visual_attributes: Vec<std::os::raw::c_int> = vec![
+            x11::glx::GLX_X_RENDERABLE,
+            true as std::os::raw::c_int,
+            x11::glx::GLX_DRAWABLE_TYPE,
+            x11::glx::GLX_WINDOW_BIT,
+            x11::glx::GLX_X_VISUAL_TYPE,
+            x11::glx::GLX_TRUE_COLOR,
+            x11::glx::GLX_DOUBLEBUFFER,
+            true as std::os::raw::c_int,
+            x11::glx::GLX_RENDER_TYPE,
+            Self::get_glx_render_type_bit(
+                &config.renderer_config.opengl_parameters.framebuffer_format,
+            ),
+            x11::glx::GLX_RED_SIZE,
+            color_channel_size,
+            x11::glx::GLX_GREEN_SIZE,
+            color_channel_size,
+            x11::glx::GLX_BLUE_SIZE,
+            color_channel_size,
+        ];
+        if let Some(alpha_size) = Self::get_alpha_channel_size(
+            &config.renderer_config.opengl_parameters.framebuffer_format,
+        ) {
+            visual_attributes.push(x11::glx::GLX_ALPHA_SIZE);
+            visual_attributes.push(alpha_size);
+        }
+        if let Some(format) = &config.renderer_config.opengl_parameters.depthbuffer_format {
+            visual_attributes.push(x11::glx::GLX_DEPTH_SIZE);
+            visual_attributes.push(Self::get_channel_size(format));
+        }
+        if let Some(format) = &config
+            .renderer_config
+            .opengl_parameters
+            .stencilbuffer_format
+        {
+            visual_attributes.push(x11::glx::GLX_STENCIL_SIZE);
+            visual_attributes.push(Self::get_channel_size(format));
+        }
+        // The list must be null terminated
+        visual_attributes.push(x11::glx::GLX_NONE);
+
+        let mut nb_framebuffer_configs: std::os::raw::c_int = 0;
+        let framebuffer_configs = unsafe {
+            x11::glx::glXChooseFBConfig(
+                display,
+                screen_number,
+                visual_attributes.as_ptr(),
+                &mut nb_framebuffer_configs,
+            )
+        };
+
+        if framebuffer_configs.is_null() {
+            log_error!("Failed to get framebuffer configurations");
+            return Err(ErrorType::Unknown);
+        }
+        if nb_framebuffer_configs == 0 {
+            log_error!("No compatible framebuffer configurations found");
+            return Err(ErrorType::DoesNotExist);
+        }
+        Ok((framebuffer_configs, nb_framebuffer_configs))
+    }
+
+    /// Creates the framebuffer configurations
+    fn init_framebuffer_configuration(
+        config: &Config,
+        display: *mut x11::xlib::Display,
+        screen_number: i32,
+    ) -> Result<*mut x11::glx::__GLXFBConfigRec, ErrorType> {
+        let (framebuffer_configs, nb_framebuffer_configs) =
+            match Self::init_framebuffer_configurations(config, display, screen_number) {
+                Ok(configs) => configs,
+                Err(err) => {
+                    log_error!("Failed to init the framebuffer configurations: {:?}", err);
+                    return Err(ErrorType::Unknown);
+                }
+            };
+
+        let framebuffer_configs_slice = unsafe {
+            std::slice::from_raw_parts(framebuffer_configs, nb_framebuffer_configs as usize)
+        };
+
+        // TODO: select best config instead of first
+        log_info!(
+            "{:?} framebuffer configurations found",
+            nb_framebuffer_configs
+        );
+        let selected_config = framebuffer_configs_slice[0];
+
+        // Free the other configs
+        unsafe {
+            x11::xlib::XFree(framebuffer_configs as *mut _);
+        }
+
+        Ok(selected_config)
+    }
+
+    /// Creates the opengl context
+    fn init_context(
+        config: &Config,
+        display: *mut x11::xlib::Display,
+        framebuffer_config: *mut x11::glx::__GLXFBConfigRec,
+    ) -> Result<(*mut x11::glx::__GLXcontextRec, std::os::raw::c_int), ErrorType> {
+        // Get visual id
+        let mut visual_id: std::os::raw::c_int = 0;
+        let status = unsafe {
+            x11::glx::glXGetFBConfigAttrib(
+                display,
+                framebuffer_config,
+                x11::glx::GLX_VISUAL_ID,
+                &mut visual_id,
+            )
+        };
+        if status != 0 {
+            log_error!("Failed to get the visual id from the framebuffer config");
+            return Err(ErrorType::Unknown);
+        }
+
+        // Create context
+        let share_list = std::ptr::null_mut();
+        let direct_connection_to_gpu = true as std::os::raw::c_int;
+        let context = unsafe {
+            x11::glx::glXCreateNewContext(
+                display,
+                framebuffer_config,
+                Self::get_glx_render_type(
+                    &config.renderer_config.opengl_parameters.framebuffer_format,
+                ),
+                share_list,
+                direct_connection_to_gpu,
+            )
+        };
+
+        Ok((context, visual_id))
+    }
+
+    /// Inits the colormap
+    fn init_colormap(
+        connection: &xcb::Connection,
+        screen: &xcb::x::Screen,
+        visual_id: std::os::raw::c_int,
+    ) -> Result<xcb::x::Colormap, ErrorType> {
+        let colormap = connection.generate_id();
+        let cookie = connection.send_request_checked(&x::CreateColormap {
+            alloc: x::ColormapAlloc::None,
+            mid: colormap,
+            window: screen.root(),
+            visual: visual_id as u32,
+        });
+        if let Err(err) = connection.check_request(cookie) {
+            log_error!("Failed to create a colormap: {:?}", err);
+            return Err(ErrorType::Unknown);
+        };
+
+        Ok(colormap)
+    }
+
+    pub fn init(
+        config: &Config,
+        display: *mut x11::xlib::Display,
+        connection: &xcb::Connection,
+        screen: &xcb::x::Screen,
+        screen_number: i32,
+    ) -> Result<Self, ErrorType> {
+        let framebuffer_config = match LinuxX11OpenglWindow::init_framebuffer_configuration(
+            config,
+            display,
+            screen_number,
+        ) {
+            Ok(config) => config,
+            Err(err) => {
+                log_error!(
+                    "Failed to init the OpenGL framebuffer config when initializing the X11 linux window: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        let (context, visual_id) = match LinuxX11OpenglWindow::init_context(
+            config,
+            display,
+            framebuffer_config,
+        ) {
+            Ok(context) => context,
+            Err(err) => {
+                log_error!(
+                    "Failed to init the OpenGL context when initializing the X11 linux window: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        let colormap = match LinuxX11OpenglWindow::init_colormap(connection, screen, visual_id) {
+            Ok(config) => config,
+            Err(err) => {
+                log_error!(
+                    "Failed to init the OpenGL colormap when initializing the X11 linux window: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        Ok(Self {
+            display,
+            framebuffer_config,
+            context,
+            visual_id,
+            colormap,
+            // The drawable and the window must be created after the xcb window
+            drawable: x11::glx::GLXDrawable::default(),
+            window: x11::glx::GLXWindow::default(),
+        })
+    }
+
+    /// Inits the drawable windows
+    pub fn init_drawable(&mut self, window: x::Window) -> Result<(), ErrorType> {
+        self.window = unsafe {
+            x11::glx::glXCreateWindow(
+                self.display,
+                self.framebuffer_config,
+                window.resource_id() as std::os::raw::c_ulong,
+                std::ptr::null(),
+            )
+        };
+        if self.window == x11::glx::GLXWindow::default() {
+            log_error!("Failed to init the OpenGL GLX window");
+            return Err(ErrorType::Unknown);
+        }
+
+        self.drawable = self.window;
+
+        Ok(())
+    }
+
+    /// Shutds down the opengl window
+    pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+        // Shutting down the opengl window
+        unsafe { x11::glx::glXDestroyWindow(self.display, self.window) };
+        // Shutting down the opengl context
+        unsafe { x11::glx::glXDestroyContext(self.display, self.context) };
+        Ok(())
+    }
+
+    pub fn get_depth(&self) -> Result<u8, ErrorType> {
+        let visual_info =
+            unsafe { x11::glx::glXGetVisualFromFBConfig(self.display, self.framebuffer_config) };
+        if visual_info.is_null() {
+            log_error!(
+                "Failed to get the visual info when initializing the linux X11 plateform with OpenGL"
+            );
+            return Err(ErrorType::Unknown);
+        }
+        Ok((unsafe { *visual_info }).depth as u8)
+    }
+}
+
+/// The required elements to manage a window in Linux X11
 pub struct LinuxX11Window {
     /// Common window properties
     pub properties: WindowCommonProperties,
@@ -50,18 +391,39 @@ pub struct LinuxX11Window {
     window: x::Window,
     /// The xcb screen properties
     screen: LinuxX11ScreenProperties,
+
+    #[cfg(opengl_renderer)]
+    /// OpenGL specific window information
+    opengl_window: LinuxX11OpenglWindow,
 }
 
 impl Window for LinuxX11Window {
     type WindowType = LinuxX11Window;
 
     fn init(config: &Config) -> Result<Self::WindowType, ErrorType> {
-        // Conenct to the X server
-        let (connection, screen_number) = match xcb::Connection::connect(None) {
-            Ok((connection, screen_number)) => (connection, screen_number),
+        // Open Xlib display
+        let display = unsafe { x11::xlib::XOpenDisplay(std::ptr::null()) };
+        if display.is_null() {
+            log_error!("Failed to open an xlib display when initializing the X11 linux window");
+            return Err(ErrorType::Unknown);
+        }
+
+        // Connect to the X server
+        let connection = unsafe { xcb::Connection::from_xlib_display(display) };
+        if let Err(err) = connection.has_error() {
+            log_error!(
+                "Failed to create an xcb connection when initializing the X11 linux window: {:?}",
+                err
+            );
+            unsafe { x11::xlib::XCloseDisplay(display) };
+            return Err(ErrorType::Unknown);
+        }
+
+        let default_screen_number = match xcb::Connection::connect(None) {
+            Ok((_, default_screen_number)) => default_screen_number,
             Err(err) => {
                 log_error!(
-                    "Failed to create an xcb connection when initializing the X11 linux window: {:?}",
+                    "Failed to create the default screen connection when initializing the X11 linux window: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -70,11 +432,30 @@ impl Window for LinuxX11Window {
 
         // Fetch the x::Setup and get the main x::Screen object
         let setup = connection.get_setup();
-        let screen = match setup.roots().nth(screen_number as usize) {
+        let screen = match setup.roots().nth(default_screen_number as usize) {
             Some(screen) => screen,
             None => {
                 log_error!("Failed to fetch the screen when initializing the X11 linux window");
                 return Err(ErrorType::DoesNotExist);
+            }
+        };
+
+        // Create OpenGL requirements
+        #[cfg(opengl_renderer)]
+        let mut opengl_window = match LinuxX11OpenglWindow::init(
+            config,
+            display,
+            &connection,
+            screen,
+            default_screen_number,
+        ) {
+            Ok(opengl_window) => opengl_window,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the OpenGL window when initializing the X11 linux window: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
             }
         };
 
@@ -86,6 +467,26 @@ impl Window for LinuxX11Window {
         let y = (config.window_config.position.y * (screen.height_in_pixels() as f32)) as i16;
         let width = (config.window_config.width * (screen.width_in_pixels() as f32)) as u16;
         let height = (config.window_config.height * (screen.height_in_pixels() as f32)) as u16;
+
+        #[allow(unused)]
+        let depth = x::COPY_FROM_PARENT as u8;
+        #[cfg(opengl_renderer)]
+        let depth = match opengl_window.get_depth() {
+            Ok(depth) => depth,
+            Err(err) => {
+                log_error!(
+                    "Failed to get the depth when initializing the X11 linux plateform with OpenGL: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        #[allow(unused)]
+        let visual = screen.root_visual();
+        #[cfg(opengl_renderer)]
+        let visual = opengl_window.visual_id as u32;
+
         let event_mask = x::EventMask::EXPOSURE
             | x::EventMask::KEY_PRESS
             | x::EventMask::KEY_RELEASE
@@ -97,8 +498,20 @@ impl Window for LinuxX11Window {
             | x::EventMask::LEAVE_WINDOW
             | x::EventMask::STRUCTURE_NOTIFY
             | x::EventMask::FOCUS_CHANGE;
+
+        // Warning, the list must be sorted in the same order as in
+        // https://docs.rs/xcb/1.5.0/xcb/x/enum.Cw.html
+        #[allow(unused_mut)]
+        let mut value_list = vec![
+            x::Cw::BackPixel(screen.black_pixel()),
+            x::Cw::EventMask(event_mask),
+        ];
+
+        #[cfg(opengl_renderer)]
+        value_list.push(x::Cw::Colormap(opengl_window.colormap));
+
         let cookie = connection.send_request_checked(&x::CreateWindow {
-            depth: x::COPY_FROM_PARENT as u8,
+            depth,
             wid: window,
             parent: screen.root(),
             x,
@@ -107,11 +520,8 @@ impl Window for LinuxX11Window {
             height,
             border_width: config.window_config.border_width,
             class: x::WindowClass::InputOutput,
-            visual: screen.root_visual(),
-            value_list: &[
-                x::Cw::BackPixel(screen.black_pixel()),
-                x::Cw::EventMask(event_mask),
-            ],
+            visual,
+            value_list: &value_list,
         });
 
         // Check if the window creation worked
@@ -300,6 +710,16 @@ impl Window for LinuxX11Window {
             height: screen.height_in_pixels(),
         };
 
+        // Inits the opengl drawable windows
+        #[cfg(opengl_renderer)]
+        if let Err(err) = opengl_window.init_drawable(window) {
+            log_error!(
+                "Failed to initialize the OpenGL window when initializing the X11 linux window: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        };
+
         Ok(LinuxX11Window {
             properties,
             keymap,
@@ -307,11 +727,20 @@ impl Window for LinuxX11Window {
             connection,
             window,
             screen,
+            #[cfg(opengl_renderer)]
+            opengl_window,
         })
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
-        // TODO: Implement Linux X11 specific code
+        #[cfg(opengl_renderer)]
+        if let Err(err) = self.opengl_window.shutdown() {
+            log_error!(
+                "Failed to shut down the opengl window when shutting down the X11 linux window: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
         Ok(())
     }
 
@@ -359,8 +788,9 @@ impl Window for LinuxX11Window {
                                 return Ok(Event::WindowMinimized);
                             }
                         }
-                    } else if event.r#type() == self.atoms.protocols 
-                        && let x::ClientMessageData::Data32([atom, ..]) = event.data() {
+                    } else if event.r#type() == self.atoms.protocols
+                        && let x::ClientMessageData::Data32([atom, ..]) = event.data()
+                    {
                         // Window closed
                         if atom == self.atoms.delete_window.resource_id() {
                             return Ok(Event::WindowClosed);
@@ -384,6 +814,8 @@ impl Window for LinuxX11Window {
                     }
                     Ok(Event::Unrecognized)
                 }
+                xcb::Event::X(x::Event::Expose(_)) => Ok(Event::Expose),
+
                 // TODO: other events
                 _ => {
                     log_debug!("Unknown X11 linux window event");
@@ -392,12 +824,64 @@ impl Window for LinuxX11Window {
             },
         }
     }
+
+    #[cfg(opengl_renderer)]
+    fn opengl_swap_buffers(&mut self) -> Result<(), ErrorType> {
+        unsafe {
+            x11::glx::glXSwapBuffers(self.opengl_window.display, self.opengl_window.drawable)
+        };
+        Ok(())
+    }
+
+    #[cfg(opengl_renderer)]
+    fn opengl_make_context_current(&mut self) -> Result<(), ErrorType> {
+        if unsafe {
+            x11::glx::glXMakeContextCurrent(
+                self.opengl_window.display,
+                self.opengl_window.drawable,
+                self.opengl_window.drawable,
+                self.opengl_window.context,
+            )
+        } == 0
+        {
+            log_error!("Failed to make the OpenGL context current on the Linux X11 plateform");
+            return Err(ErrorType::Unknown);
+        };
+
+        Ok(())
+    }
+
+    #[cfg(opengl_renderer)]
+    fn opengl_load_functions(&mut self) -> Result<(), ErrorType> {
+        gl::load_with(|name| {
+            let cname = std::ffi::CString::new(name).unwrap(); // should never fail for valid GL names
+            unsafe {
+                x11::glx::glXGetProcAddress(cname.as_ptr() as *const std::os::raw::c_uchar).unwrap()
+                    as *const std::os::raw::c_void
+            }
+        });
+
+        // Check if OpenGL functions are loaded
+        if !gl::Clear::is_loaded() {
+            log_error!("Failed to load the OpenGL `Clear' function");
+            return Err(ErrorType::Unknown);
+        }
+        if !gl::ClearColor::is_loaded() {
+            log_error!("Failed to load the OpenGL `Clear' function");
+            return Err(ErrorType::Unknown);
+        }
+        // TODO: add other used functions
+
+        log_info!("All OpenGL functions loaded");
+
+        Ok(())
+    }
 }
 
 impl LinuxX11Window {
     fn get_key_from_keysym(&self, keycode: x::Keycode) -> Option<KeyboardKey> {
         let keysym = self.keymap.get(&keycode)?;
-        
+
         match keysym {
             // Alphabet keys
             0x0061 => Some(KeyboardKey::AlphaNumeric(crate::keyboard::AlphaNumeric::A)),

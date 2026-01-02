@@ -4,20 +4,25 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-xcb = { version = "1.5.0", optional = true }
+xcb = { version = "1.5.0", optional = true, features = ["xlib_xcb"]}
+x11 = { version = "2.21.0", optional = true }
 ash = { version = "0.38.0", optional = true }
+gl = { version = "0.14.0", optional = true }
 colored = { version = "3.0.0", optional = true }
 once_cell = { version = "1.21.3" }
 
+
 [build-dependencies]
 cfg_aliases = "0.2.1"
+pkg-config = "0.3.32"
 
 [features]
-default = ["x11", "vulkan"]
-x11 = ["xcb", "colored"]
+default = ["xeleven", "opengl"]
+# default = ["xeleven", "vulkan"]
+xeleven = ["xcb", "x11", "colored"]
 wayland = ["colored"]
 directx = []
 metal = []
-opengl = []
+opengl = ["gl"]
 vulkan = ["ash"]
 wgpu = []

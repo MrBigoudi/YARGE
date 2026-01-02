@@ -6,6 +6,9 @@ pub enum Event {
     /// Default unrecognized event
     Unrecognized,
 
+    /// Expose event to start rendering
+    Expose,
+
     // Keyboard related events
     /// Event triggered on key press
     KeyboardKeyPressed(KeyboardKey),

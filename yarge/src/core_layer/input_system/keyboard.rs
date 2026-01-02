@@ -1,5 +1,5 @@
 //! Contains the implementation for a Keyboard device
-//! 
+//!
 use std::collections::HashMap;
 
 /// The state of a key

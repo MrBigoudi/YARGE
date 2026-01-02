@@ -4,11 +4,11 @@ fn main() {
     // The script doesn't depend on our code
     println!("cargo:rerun-if-changed=build.rs");
 
-    // Setup cfg aliases
+    // Sets up cfg aliases
     cfg_aliases! {
         // Platforms
         linux_platform: { target_os = "linux" },
-        x11_platform: { all(feature = "x11", linux_platform) },
+        x11_platform: { all(feature = "xeleven", linux_platform) },
         wayland_platform: { all(feature = "wayland", linux_platform) },
         web_platform: { all(target_family = "wasm", target_os = "unknown") },
         windows_platform: { target_os = "windows" },
@@ -21,6 +21,13 @@ fn main() {
         metal_renderer: { all(feature = "metal") },
         // STD usage
         bare_metal: { all(feature = "no_std") },
+    }
+
+    // Find correct libraries
+    if cfg!(all(feature = "opengl", target_os = "linux")) {
+        pkg_config::Config::new()
+            .probe("gl")
+            .expect("Failed to find libGL in linux");
     }
 
     // TODO: merge all config files into a giant config file

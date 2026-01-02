@@ -43,6 +43,6 @@ impl VulkanContext {
             }
         };
 
-        Ok(VulkanContext { entry, instance })
+        Ok(Self { entry, instance })
     }
 }
