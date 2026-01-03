@@ -1,4 +1,7 @@
-use crate::{config::Config, error::ErrorType, platform_layer::PlatformLayerImpl, rendering_layer::types::RendererBeginFrameOutput};
+use crate::{
+    config::Config, error::ErrorType, platform_layer::PlatformLayerImpl,
+    rendering_layer::types::RendererBeginFrameOutput,
+};
 
 /// Abstract trait for the renderer backend specific code
 pub trait RenderingLayer {
@@ -16,7 +19,7 @@ pub trait RenderingLayer {
     fn shutdown(&mut self) -> Result<(), ErrorType>;
 
     /// Prepares a frame for rendering
-    /// Returns true if the 
+    /// Returns true if the
     /// TODO: add frame data as parameter
     fn begin_frame(&mut self) -> Result<RendererBeginFrameOutput, ErrorType>;
 

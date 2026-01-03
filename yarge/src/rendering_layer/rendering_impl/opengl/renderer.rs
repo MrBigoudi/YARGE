@@ -1,12 +1,12 @@
-use crate::{platform_layer::PlatformLayer, rendering_layer::types::RendererBeginFrameOutput};
 #[allow(unused)]
 use crate::{
     config::Config,
     error::ErrorType,
-    log, log_debug, log_error,
+    log, log_error, log_info,
     platform_layer::{PlatformLayerImpl, Window},
     rendering_layer::renderer::RenderingLayer,
 };
+use crate::{platform_layer::PlatformLayer, rendering_layer::types::RendererBeginFrameOutput};
 
 use super::context::OpenglContext;
 
@@ -46,12 +46,12 @@ impl RenderingLayer for OpenglRenderingLayer {
             return Err(ErrorType::Unknown);
         };
 
-        log_debug!("OpenGL renderer initialized");
+        log_info!("OpenGL renderer initialized");
         Ok(OpenglRenderingLayer { context })
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
-        log_debug!("OpenGL renderer shutted down");
+        log_info!("OpenGL renderer shutted down");
         Ok(())
     }
 

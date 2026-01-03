@@ -9,14 +9,16 @@ pub(crate) mod core_layer;
 
 pub mod error;
 pub mod maths;
-pub mod platform_layer;
+pub(crate) mod platform_layer;
 pub(crate) mod rendering_layer;
 
-pub use core_layer::Entry;
-pub use core_layer::Game;
-
 pub use core_layer::{
-    GLOBAL_LOGGER, gamepad, keyboard,
+    Entry, FileLoaderSystem, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game,
+    RonFileResource, UserEvent, gamepad, keyboard,
     logger_system::helpers::{LogLevel, LogTarget},
     mouse,
 };
+
+pub use platform_layer::{PlatformLayer, PlatformLayerImpl};
+
+pub use macros::{FileResource, RonFileResource};

@@ -19,7 +19,10 @@ impl Entry {
     pub fn run(user_game: &mut dyn Game, config_file: Option<&Path>) -> Result<(), ErrorType> {
         // Reads the configuration file
         let config = match Config::init(config_file) {
-            Ok(config) => config,
+            Ok(config) => {
+                log_info!("Configuration initialized");
+                config
+            }
             Err(err) => {
                 // TODO: add better logging messages
                 eprintln!("Failed to initialize the config: {:?}", err);
@@ -29,7 +32,10 @@ impl Entry {
 
         // Inits the core layer
         let mut core_layer = match CoreLayer::init(user_game, &config) {
-            Ok(application_layer) => application_layer,
+            Ok(core_layer) => {
+                log_info!("Core layer initialized");
+                core_layer
+            }
             Err(err) => {
                 // TODO: add logging messages
                 eprintln!("Failed to initialize the core layer: {:?}", err);
@@ -42,7 +48,7 @@ impl Entry {
             // Handle events
             match core_layer.platform_layer.poll_event() {
                 Ok(event) => {
-                    let user_event = match core_layer.application_system.loop_iteration(
+                    let should_quit = match core_layer.application_system.loop_iteration(
                         event,
                         &mut core_layer.platform_layer,
                         &mut core_layer.rendering_layer,
@@ -53,8 +59,8 @@ impl Entry {
                         }
                         Ok(event) => event,
                     };
-                    if event == Event::WindowClosed || user_event == Some(Event::WindowClosed) {
-                        log_debug!("The window is closing");
+                    if event == Event::WindowClosed || should_quit {
+                        log_info!("The window is closing");
                         break 'infinite_loop;
                     }
                 }
@@ -72,6 +78,8 @@ impl Entry {
             log_error!("Failed to shutdown the core layer: {:?}", err);
             return Err(ErrorType::Unknown);
         }
+
+        log_info!("Core layer shutted down");
 
         Ok(())
     }

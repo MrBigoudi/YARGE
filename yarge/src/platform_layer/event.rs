@@ -1,9 +1,10 @@
 use crate::core_layer::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
 
 /// An enum representing an application event
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Event {
     /// Default unrecognized event
+    #[default]
     Unrecognized,
 
     /// Expose event to start rendering

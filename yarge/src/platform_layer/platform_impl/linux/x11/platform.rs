@@ -1,3 +1,4 @@
+use crate::log_info;
 #[allow(unused)]
 use crate::{
     config::Config,
@@ -32,6 +33,7 @@ impl PlatformLayer for LinuxX11PlatformLayer {
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
         self.window.shutdown()?;
+        log_info!("Platform layer shutted down");
         Ok(())
     }
 

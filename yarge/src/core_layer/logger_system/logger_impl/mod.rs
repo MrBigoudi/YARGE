@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{config::Config, error::ErrorType};
 
 use super::{
@@ -39,6 +41,15 @@ impl LoggerSystem {
 
     /// Shuts down the logger
     pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+        if let Err(err) = std::io::stdout().flush() {
+            eprintln!("Failed to flush the stdout: {:?}", err);
+            return Err(ErrorType::IO);
+        }
+        if let Err(err) = std::io::stderr().flush() {
+            eprintln!("Failed to flush the stderr: {:?}", err);
+            return Err(ErrorType::IO);
+        }
+        println!("Logger shutted down");
         Ok(())
     }
 }

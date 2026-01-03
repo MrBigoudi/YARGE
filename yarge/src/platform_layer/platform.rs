@@ -2,6 +2,7 @@ use crate::{
     config::Config,
     core_layer::logger_system::helpers::{LogLevel, LogTarget},
     error::ErrorType,
+    log_error,
 };
 
 use super::{Window, event::Event};
@@ -30,4 +31,17 @@ pub trait PlatformLayer {
 
     /// Write a logging message
     fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType>;
+
+    /// Load a file into a string
+    fn load_to_string(path: &std::path::Path) -> Result<String, ErrorType> {
+        // Default implementation
+        // TODO: add implementation to the platform layer
+        match std::fs::read_to_string(path) {
+            Ok(content) => Ok(content),
+            Err(err) => {
+                log_error!("Failed to load the file `{:?}': {:?}", path, err);
+                Err(ErrorType::IO)
+            }
+        }
+    }
 }

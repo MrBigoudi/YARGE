@@ -1,9 +1,9 @@
+use crate::rendering_layer::types::RendererBeginFrameOutput;
 #[allow(unused)]
 use crate::{
     config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::PlatformLayerImpl,
     rendering_layer::renderer::RenderingLayer,
 };
-use crate::rendering_layer::types::RendererBeginFrameOutput;
 
 use super::context::VulkanContext;
 
