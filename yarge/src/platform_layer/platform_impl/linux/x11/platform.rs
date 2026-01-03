@@ -23,8 +23,8 @@ impl PlatformLayer for LinuxX11PlatformLayer {
         let window = match LinuxX11Window::init(config) {
             Ok(window) => window,
             Err(err) => {
-                // TODO: add error message
-                return Err(err);
+                log_error!("Failed to init the X11 linux window: {:?}", err);
+                return Err(ErrorType::Unknown);
             }
         };
         Ok(LinuxX11PlatformLayer { window })

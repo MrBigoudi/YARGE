@@ -1,11 +1,11 @@
-use crate::platform_layer::PlatformLayer;
+use crate::{platform_layer::PlatformLayer, rendering_layer::types::RendererBeginFrameOutput};
 #[allow(unused)]
 use crate::{
     config::Config,
     error::ErrorType,
     log, log_debug, log_error,
     platform_layer::{PlatformLayerImpl, Window},
-    rendering_layer::renderer::RendereringLayer,
+    rendering_layer::renderer::RenderingLayer,
 };
 
 use super::context::OpenglContext;
@@ -15,13 +15,13 @@ pub struct OpenglRenderingLayer {
     pub context: OpenglContext,
 }
 
-impl RendereringLayer for OpenglRenderingLayer {
-    type RendereringLayerType = OpenglRenderingLayer;
+impl RenderingLayer for OpenglRenderingLayer {
+    type RenderingLayerType = OpenglRenderingLayer;
 
     fn init(
         config: &Config,
         platform_layer: &mut PlatformLayerImpl,
-    ) -> Result<Self::RendereringLayerType, ErrorType> {
+    ) -> Result<Self::RenderingLayerType, ErrorType> {
         let context = match OpenglContext::new(config) {
             Ok(context) => context,
             Err(err) => {
@@ -55,10 +55,10 @@ impl RendereringLayer for OpenglRenderingLayer {
         Ok(())
     }
 
-    fn begin_frame(&mut self) -> Result<(), ErrorType> {
+    fn begin_frame(&mut self) -> Result<RendererBeginFrameOutput, ErrorType> {
         unsafe { gl::ClearColor(0.2, 0.4, 0.9, 1.0) };
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT) };
-        Ok(())
+        Ok(RendererBeginFrameOutput::Success)
     }
 
     fn end_frame(&mut self, platform_layer: &mut PlatformLayerImpl) -> Result<(), ErrorType> {

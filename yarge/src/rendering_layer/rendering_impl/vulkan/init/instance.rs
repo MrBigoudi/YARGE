@@ -163,7 +163,7 @@ pub fn init_instance(config: &Config, entry: &Entry) -> Result<Instance, ErrorTy
                 "Failed to create the application info when initializing the instance: {:?}",
                 err
             );
-            return Err(err);
+            return Err(ErrorType::Unknown);
         }
     };
 
@@ -174,7 +174,7 @@ pub fn init_instance(config: &Config, entry: &Entry) -> Result<Instance, ErrorTy
                 "Failed to get the required layers when initializing the instance: {:?}",
                 err
             );
-            return Err(err);
+            return Err(ErrorType::Unknown);
         }
     };
 

@@ -3,8 +3,11 @@
 
 /// A module that abstracts a renderer
 mod renderer;
-pub use renderer::RendereringLayer;
+pub use renderer::RenderingLayer;
 
 /// The concrete implementation
 pub mod rendering_impl;
 pub use rendering_impl::RenderingLayerImpl;
+
+/// A module with different types declaration
+pub mod types;

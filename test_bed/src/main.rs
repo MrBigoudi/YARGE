@@ -1,9 +1,15 @@
-use yarge::{Entry, Game, error::ErrorType, keyboard::{KeyboardKey, Special}, log_info, mouse::MouseButton, platform_layer::Event};
+use yarge::{
+    Entry, Game,
+    error::ErrorType,
+    keyboard::{KeyboardKey, Special},
+    log_info,
+    mouse::MouseButton,
+    platform_layer::Event,
+};
 
 struct TestBedGame {
     should_quit: bool,
 }
-
 
 impl Game for TestBedGame {
     fn on_update(&mut self, _delta_time: f64) -> Result<Option<Event>, ErrorType> {
@@ -26,7 +32,7 @@ impl Game for TestBedGame {
 
     fn on_keyboard_key_pressed(&mut self, keyboard_key: KeyboardKey) -> Result<(), ErrorType> {
         log_info!("Keyboard's {:?} key pressed", keyboard_key);
-        if keyboard_key == KeyboardKey::Special(Special::Escape){
+        if keyboard_key == KeyboardKey::Special(Special::Escape) {
             self.should_quit = true;
         }
         Ok(())

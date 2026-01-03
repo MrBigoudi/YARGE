@@ -1,8 +1,9 @@
 #[allow(unused)]
 use crate::{
     config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::PlatformLayerImpl,
-    rendering_layer::renderer::RendereringLayer,
+    rendering_layer::renderer::RenderingLayer,
 };
+use crate::rendering_layer::types::RendererBeginFrameOutput;
 
 use super::context::VulkanContext;
 
@@ -11,18 +12,18 @@ pub struct VulkanRenderingLayer {
     pub context: VulkanContext,
 }
 
-impl RendereringLayer for VulkanRenderingLayer {
-    type RendereringLayerType = VulkanRenderingLayer;
+impl RenderingLayer for VulkanRenderingLayer {
+    type RenderingLayerType = VulkanRenderingLayer;
 
     fn init(
         config: &Config,
         _platform_layer: &mut PlatformLayerImpl,
-    ) -> Result<Self::RendereringLayerType, ErrorType> {
+    ) -> Result<Self::RenderingLayerType, ErrorType> {
         let context = match VulkanContext::new(config) {
             Ok(context) => context,
             Err(err) => {
                 log_error!("Failed to initialize the vulkan context: {:?}", err);
-                return Err(err);
+                return Err(ErrorType::Unknown);
             }
         };
         log_debug!("Vulkan renderer initialized");
@@ -34,7 +35,7 @@ impl RendereringLayer for VulkanRenderingLayer {
         Ok(())
     }
 
-    fn begin_frame(&mut self) -> Result<(), ErrorType> {
+    fn begin_frame(&mut self) -> Result<RendererBeginFrameOutput, ErrorType> {
         Err(ErrorType::NotImplemented)
     }
 

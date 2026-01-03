@@ -4,7 +4,7 @@ use crate::{
     error::ErrorType,
     log, log_debug, log_error,
     platform_layer::{PlatformLayer, PlatformLayerImpl},
-    rendering_layer::{RendereringLayer, RenderingLayerImpl},
+    rendering_layer::{RenderingLayer, RenderingLayerImpl},
 };
 
 use super::{ApplicationSystem, Game, LoggerSystem};
@@ -24,8 +24,8 @@ impl<'a> CoreLayer<'a> {
         let logger_system = match LoggerSystem::init(config) {
             Err(err) => {
                 // TODO: add logging messages
-                eprintln!("Failed to initialize the logger system");
-                return Err(err);
+                eprintln!("Failed to initialize the logger system: {:?}", err);
+                return Err(ErrorType::Unknown);
             }
             Ok(logger_system) => logger_system,
         };
@@ -34,16 +34,16 @@ impl<'a> CoreLayer<'a> {
         let mut platform_layer = match PlatformLayerImpl::init(config) {
             Ok(platform_layer) => platform_layer,
             Err(err) => {
-                log_error!("Failed to initialize the platform layer");
-                return Err(err);
+                log_error!("Failed to initialize the platform layer: {:?}", err);
+                return Err(ErrorType::Unknown);
             }
         };
 
         // Inits the application system
         let application_system = match ApplicationSystem::init(user_game, config) {
             Err(err) => {
-                log_error!("Failed to initialize the application system");
-                return Err(err);
+                log_error!("Failed to initialize the application system: {:?}", err);
+                return Err(ErrorType::Unknown);
             }
             Ok(application_system) => application_system,
         };
@@ -53,7 +53,7 @@ impl<'a> CoreLayer<'a> {
             Ok(rendering_layer) => rendering_layer,
             Err(err) => {
                 log_error!("Failed to initialize the rendering layer: {:?}", err);
-                return Err(err);
+                return Err(ErrorType::Unknown);
             }
         };
 
@@ -69,27 +69,27 @@ impl<'a> CoreLayer<'a> {
     pub fn shutdown(&mut self) -> Result<(), ErrorType> {
         // Shuts down the rendering layer
         if let Err(err) = self.rendering_layer.shutdown() {
-            log_error!("Failed to shutdown the rendering layer");
-            return Err(err);
+            log_error!("Failed to shutdown the rendering layer: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         // Shuts down the application system
         if let Err(err) = self.application_system.shutdown() {
-            log_error!("Failed to shutdown the application system");
-            return Err(err);
+            log_error!("Failed to shutdown the application system: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         // Shuts down the platform layer
         if let Err(err) = self.platform_layer.shutdown() {
-            log_error!("Failed to shutdown the platform layer");
-            return Err(err);
+            log_error!("Failed to shutdown the platform layer: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         // Shuts down the logger system
         if let Err(err) = self.logger_system.shutdown() {
             // TODO: add better logging messages
-            eprintln!("Failed to shutdown the logger system");
-            return Err(err);
+            eprintln!("Failed to shutdown the logger system: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         Ok(())

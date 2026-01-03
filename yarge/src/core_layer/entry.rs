@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use crate::rendering_layer::RendereringLayer;
 #[allow(unused)]
 use crate::{
     config::Config,
@@ -23,8 +22,8 @@ impl Entry {
             Ok(config) => config,
             Err(err) => {
                 // TODO: add better logging messages
-                eprintln!("Failed to initialize the config");
-                return Err(err);
+                eprintln!("Failed to initialize the config: {:?}", err);
+                return Err(ErrorType::Unknown);
             }
         };
 
@@ -33,8 +32,8 @@ impl Entry {
             Ok(application_layer) => application_layer,
             Err(err) => {
                 // TODO: add logging messages
-                eprintln!("Failed to initialize the core layer");
-                return Err(err);
+                eprintln!("Failed to initialize the core layer: {:?}", err);
+                return Err(ErrorType::Unknown);
             }
         };
 
@@ -43,30 +42,18 @@ impl Entry {
             // Handle events
             match core_layer.platform_layer.poll_event() {
                 Ok(event) => {
-                    let should_quit = event == Event::WindowClosed;
-
-                    let should_render = event == Event::Expose;
-                    if should_render && let Err(err) = core_layer.rendering_layer.begin_frame(){
-                        log_error!("Failed to begin a frame: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
-
-                    let user_event = match core_layer.application_system.loop_iteration(event) {
+                    let user_event = match core_layer.application_system.loop_iteration(
+                        event,
+                        &mut core_layer.platform_layer,
+                        &mut core_layer.rendering_layer,
+                    ) {
                         Err(err) => {
                             log_error!("Failed to handle an event: {:?}", err);
                             return Err(ErrorType::Unknown);
-                        },
+                        }
                         Ok(event) => event,
                     };
-
-                    if should_render && let Err(err) = core_layer.rendering_layer
-                            .end_frame(&mut core_layer.platform_layer)
-                    {
-                        log_error!("Failed to end a frame: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
-
-                    if should_quit || user_event == Some(Event::WindowClosed) {
+                    if event == Event::WindowClosed || user_event == Some(Event::WindowClosed) {
                         log_debug!("The window is closing");
                         break 'infinite_loop;
                     }
@@ -74,7 +61,7 @@ impl Entry {
                 Err(err) => {
                     // TODO: add logging messages
                     log_error!("Failed to poll an event: {:?}", err);
-                    return Err(err);
+                    return Err(ErrorType::Unknown);
                 }
             };
         }
@@ -82,8 +69,8 @@ impl Entry {
         // Shuts down the core layer
         if let Err(err) = core_layer.shutdown() {
             // TODO: add logging messages
-            log_error!("Failed to shutdown the core layer");
-            return Err(err);
+            log_error!("Failed to shutdown the core layer: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         Ok(())

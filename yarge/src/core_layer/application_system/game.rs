@@ -1,4 +1,7 @@
-use crate::{error::ErrorType, gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton, platform_layer::Event};
+use crate::{
+    error::ErrorType, gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton,
+    platform_layer::Event,
+};
 
 /// The game trait that can be ovveride by the user
 pub trait Game {
