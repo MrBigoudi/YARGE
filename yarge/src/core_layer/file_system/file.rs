@@ -1,12 +1,15 @@
 use std::{
     collections::HashMap,
-    path::PathBuf,
-    sync::mpsc::{Receiver, TryRecvError},
+    path::{Path, PathBuf},
+    sync::{
+        Arc,
+        mpsc::{Receiver, TryRecvError},
+    },
 };
 
-use crate::{
-    core_layer::file_system::ron::RonFileResource, error::ErrorType, log_error, log_info, log_warn,
-};
+use crate::{error::ErrorType, log_error, log_warn};
+
+use downcast_rs::impl_downcast;
 
 /// A trait representing a file resource
 pub trait FileResource: downcast_rs::DowncastSync + Send + Sync + 'static {}
@@ -14,7 +17,30 @@ impl_downcast!(sync FileResource);
 
 /// A file that is being loaded
 pub struct LoadingFile {
-    pub(crate) receiver: Receiver<std::sync::Arc<dyn FileResource>>,
+    pub(crate) receiver: Receiver<Arc<dyn FileResource>>,
+}
+
+/// A type to abstract a loading function
+pub(crate) type LoadingFileFunction =
+    fn(&Path) -> Result<Receiver<Arc<dyn FileResource>>, ErrorType>;
+
+impl LoadingFile {
+    /// Begin to load a file
+    fn new(path: &std::path::Path, loading_fct: &LoadingFileFunction) -> Result<Self, ErrorType> {
+        let receiver = match loading_fct(path) {
+            Ok(receiver) => receiver,
+            Err(err) => {
+                log_error!(
+                    "Failed to start to load the ron file `{:?}': {:?}",
+                    path,
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        Ok(Self { receiver })
+    }
 }
 
 /// A file that is done loading
@@ -24,22 +50,25 @@ pub struct LoadedFile {
 
 /// The id of a resource type
 pub type FileResourceTypeId = String;
-/// A type for loader function signature
-type FileLoaderFunction = fn(&std::path::Path) -> Result<LoadingFile, ErrorType>;
 
 /// The internal file loader system
-pub struct FileLoaderSystemInternal {
+pub struct FileLoaderSystem {
     /// The loading functions
-    pub(crate) loaders: HashMap<FileResourceTypeId, FileLoaderFunction>,
+    pub(crate) loaders: HashMap<FileResourceTypeId, LoadingFileFunction>,
     /// Files that are currently being loaded
     pub(crate) loading_files: HashMap<PathBuf, LoadingFile>,
     /// Files that are done being loaded and are now accessible
     pub(crate) loaded_files: HashMap<PathBuf, LoadedFile>,
 }
 
-impl FileLoaderSystemInternal {
+impl FileLoaderSystem {
+    /// Casts a user defined resource id into its safe version
+    pub fn cast_resource_id(id: &FileResourceTypeId) -> FileResourceTypeId {
+        String::from("user.") + id
+    }
+
     /// A simple constructor
-    pub fn new() -> Self {
+    pub fn init() -> Self {
         Self {
             loaders: HashMap::new(),
             loading_files: HashMap::new(),
@@ -47,10 +76,31 @@ impl FileLoaderSystemInternal {
         }
     }
 
+    /// Registers a new resource type in the system
+    pub fn register(
+        &mut self,
+        id: &FileResourceTypeId,
+        loading_fct: LoadingFileFunction,
+    ) -> Result<(), ErrorType> {
+        if self.loaders.contains_key(id) {
+            log_error!(
+                "Failed to register a new file resource type: resource `{:?}' is already registered",
+                id
+            );
+            return Err(ErrorType::WrongArgument(String::from(
+                "Can't add twice the same resoure id",
+            )));
+        }
+
+        self.loaders.insert(id.clone(), loading_fct);
+
+        Ok(())
+    }
+
     /// Begin to load a file
     pub fn start_load(
         &mut self,
-        id: FileResourceTypeId,
+        id: &FileResourceTypeId,
         path: &std::path::Path,
     ) -> Result<(), ErrorType> {
         if self.loading_files.contains_key(path) {
@@ -63,7 +113,7 @@ impl FileLoaderSystemInternal {
             return Ok(());
         }
 
-        match self.loaders.get(&id) {
+        match self.loaders.get(id) {
             None => {
                 log_error!(
                     "Can't load a `{:?}' resource without registering it beforehand",
@@ -72,7 +122,7 @@ impl FileLoaderSystemInternal {
                 return Err(ErrorType::DoesNotExist);
             }
             Some(loader_function) => {
-                let loading_file = match loader_function(path) {
+                let loading_file = match LoadingFile::new(path, loader_function) {
                     Ok(file) => file,
                     Err(err) => {
                         log_error!(
@@ -115,7 +165,7 @@ impl FileLoaderSystemInternal {
                     Ok(Some(arc))
                 }
                 Err(TryRecvError::Empty) => {
-                    log_info!("The `{:?}' file has not done loading yet", path);
+                    // log_info!("The `{:?}' file is not done loading yet", path);
                     Ok(None)
                 }
                 Err(err) => {
@@ -125,75 +175,13 @@ impl FileLoaderSystemInternal {
             },
         }
     }
-}
 
-use downcast_rs::impl_downcast;
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
-
-pub(crate) static GLOBAL_FILE_LOADER: Lazy<Mutex<FileLoaderSystemInternal>> =
-    Lazy::new(|| Mutex::new(FileLoaderSystemInternal::new()));
-
-/// Static loader system that can be used by both the user and the engine
-/// Before loading a custom resource, it must be registered to this system
-pub struct FileLoaderSystem;
-
-impl FileLoaderSystem {
-    /// Casts a user defined resource id into its safe version
-    fn cast_resource_id(id: &FileResourceTypeId) -> FileResourceTypeId {
-        String::from("user.") + id
-    }
-
-    /// Registers a new resource type in the system
-    pub fn register<T: RonFileResource>(id: &FileResourceTypeId) -> Result<(), ErrorType> {
-        let correct_id = Self::cast_resource_id(id);
-        match GLOBAL_FILE_LOADER.lock() {
-            Ok(mut mutex) => mutex.register::<T>(&correct_id),
-            Err(err) => {
-                log_error!("Failed to register a file resource: {:?}", err);
-                Err(ErrorType::Unknown)
-            }
+    /// Gets the path of all currently loading files
+    pub fn get_loading_file_paths(&self) -> Vec<std::path::PathBuf> {
+        let mut keys = vec![];
+        for key in self.loading_files.keys() {
+            keys.push(std::path::PathBuf::from(key));
         }
-    }
-
-    /// Begin to load a file
-    pub fn start_load(id: &FileResourceTypeId, path: &std::path::Path) -> Result<(), ErrorType> {
-        let correct_id = Self::cast_resource_id(id);
-        match GLOBAL_FILE_LOADER.lock() {
-            Ok(mut mutex) => mutex.start_load(correct_id, path),
-            Err(err) => {
-                log_error!("Failed to start loading a file resource: {:?}", err);
-                Err(ErrorType::Unknown)
-            }
-        }
-    }
-
-    /// Check if the given file is done loading
-    pub fn end_load<T: FileResource>(
-        path: &std::path::Path,
-    ) -> Result<Option<std::sync::Arc<T>>, ErrorType> {
-        match GLOBAL_FILE_LOADER.lock() {
-            Ok(mut mutex) => {
-                if let Some(arc) = mutex.end_load(path)? {
-                    match std::sync::Arc::downcast::<T>(arc) {
-                        Ok(arc) => Ok(Some(arc)),
-                        Err(err) => {
-                            log_error!(
-                                "Failed to downcast an Arc when loading the `{:?}' file: {:?}",
-                                path,
-                                err
-                            );
-                            Err(ErrorType::Unknown)
-                        }
-                    }
-                } else {
-                    Ok(None)
-                }
-            }
-            Err(err) => {
-                log_error!("Failed to end loading a file resource: {:?}", err);
-                Err(ErrorType::Unknown)
-            }
-        }
+        keys
     }
 }

@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 #[allow(unused)]
 use crate::{config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::Event};
 use crate::{
+    core_layer::FileLoaderSystem,
     log_info,
     platform_layer::PlatformLayerImpl,
     rendering_layer::{RenderingLayer, RenderingLayerImpl, types::RendererBeginFrameOutput},
@@ -14,6 +15,9 @@ use super::Game;
 pub struct ApplicationSystem<'a> {
     /// The user defined game
     pub user_game: &'a mut dyn Game,
+
+    /// The file loader system
+    pub file_loader: FileLoaderSystem,
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -24,16 +28,23 @@ impl<'a> ApplicationSystem<'a> {
         platform_layer: &mut PlatformLayerImpl,
         rendering_layer: &mut RenderingLayerImpl,
     ) -> Result<Self, ErrorType> {
+        // Inits the file loader system
+        let file_loader = FileLoaderSystem::init();
+        log_info!("File loader system initialized");
+
+        let mut application = Self {
+            user_game,
+            file_loader,
+        };
+
         // Inits the user's game
-        let user_events = match user_game.on_start() {
+        let user_events = match application.user_game.on_start() {
             Ok(events) => events,
             Err(err) => {
                 log_error!("The user game failed to start: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
         };
-
-        let mut application = Self { user_game };
 
         // TODO: register engine level FileResourceId
 
@@ -64,6 +75,8 @@ impl<'a> ApplicationSystem<'a> {
         rendering_layer: &mut RenderingLayerImpl,
     ) -> Result<bool, ErrorType> {
         let mut user_events = VecDeque::new();
+
+        // Handle application events
         match self.handle_event(event) {
             Ok(mut events) => {
                 user_events.append(&mut events);
@@ -71,6 +84,20 @@ impl<'a> ApplicationSystem<'a> {
             Err(err) => {
                 log_error!(
                     "Failed to handle an event in the application layer: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        // Handle file loading
+        match self.handle_loading_files(platform_layer, rendering_layer) {
+            Ok(mut events) => {
+                user_events.append(&mut events);
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to handle loading files in the application layer: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -92,6 +119,7 @@ impl<'a> ApplicationSystem<'a> {
             }
         };
 
+        // Draw a frame
         if event == Event::Expose {
             match self.user_game.on_render(delta_time) {
                 Ok(mut events) => {
@@ -150,5 +178,39 @@ impl<'a> ApplicationSystem<'a> {
         log_info!("Application system shutted down");
 
         Ok(())
+    }
+
+    /// Check if any file have loaded
+    pub fn handle_loading_files(
+        &mut self,
+        _platform_layer: &mut PlatformLayerImpl,
+        _rendering_layer: &mut RenderingLayerImpl,
+    ) -> Result<VecDeque<crate::UserEventBuilder>, ErrorType> {
+        let mut user_events = VecDeque::new();
+        for path in &self.file_loader.get_loading_file_paths() {
+            match self.file_loader.end_load(path) {
+                Err(err) => {
+                    log_error!("Failed to end loading a file at `{:?}': {:?}", path, err);
+                    return Err(ErrorType::Unknown);
+                }
+                Ok(None) => {}
+                Ok(Some(arc)) => {
+                    match self.user_game.on_file_loaded(path, arc) {
+                        Err(err) => {
+                            log_error!(
+                                "The user game failed to handle loaded file ath `{:?}': {:?}",
+                                path,
+                                err
+                            );
+                            return Err(ErrorType::Unknown);
+                        }
+                        Ok(mut events) => {
+                            user_events.append(&mut events);
+                        }
+                    };
+                }
+            }
+        }
+        Ok(user_events)
     }
 }

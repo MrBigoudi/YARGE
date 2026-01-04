@@ -2,7 +2,7 @@ mod application;
 pub use application::ApplicationSystem;
 
 mod events;
-pub use events::user_events::UserEvent;
+pub use events::user_events::UserEventBuilder;
 
 mod game;
 pub use game::Game;

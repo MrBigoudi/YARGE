@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use yarge::{
-    Entry, Game, UserEvent,
+    Entry, Game, UserEventBuilder,
     error::ErrorType,
     keyboard::{KeyboardKey, Special},
     log_info,
@@ -17,16 +17,16 @@ impl TestBedGame {
 }
 
 impl Game for TestBedGame {
-    fn on_update(&mut self, _delta_time: f64) -> Result<VecDeque<UserEvent>, ErrorType> {
+    fn on_update(&mut self, _delta_time: f64) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         Ok(VecDeque::new())
     }
 
-    fn on_start(&mut self) -> Result<VecDeque<UserEvent>, ErrorType> {
+    fn on_start(&mut self) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         log_info!("Test bed starts");
         Ok(VecDeque::new())
     }
 
-    fn on_shutdown(&mut self) -> Result<VecDeque<UserEvent>, ErrorType> {
+    fn on_shutdown(&mut self) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         log_info!("Test bed ends");
         Ok(VecDeque::new())
     }
@@ -34,11 +34,11 @@ impl Game for TestBedGame {
     fn on_keyboard_key_pressed(
         &mut self,
         keyboard_key: KeyboardKey,
-    ) -> Result<VecDeque<UserEvent>, ErrorType> {
+    ) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         let mut events = VecDeque::new();
         log_info!("Keyboard's {:?} key pressed", keyboard_key);
         if keyboard_key == KeyboardKey::Special(Special::Escape) {
-            events.push_back(UserEvent::QuitApp);
+            events.push_back(UserEventBuilder::quit_app());
         }
         Ok(events)
     }
@@ -46,7 +46,7 @@ impl Game for TestBedGame {
     fn on_keyboard_key_released(
         &mut self,
         keyboard_key: KeyboardKey,
-    ) -> Result<VecDeque<UserEvent>, ErrorType> {
+    ) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         log_info!("Keyboard's {:?} key released", keyboard_key);
         Ok(VecDeque::new())
     }
@@ -54,7 +54,7 @@ impl Game for TestBedGame {
     fn on_mouse_button_pressed(
         &mut self,
         mouse_button: MouseButton,
-    ) -> Result<VecDeque<UserEvent>, ErrorType> {
+    ) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         log_info!("Mouse's {:?} button pressed", mouse_button);
         Ok(VecDeque::new())
     }
@@ -62,7 +62,7 @@ impl Game for TestBedGame {
     fn on_mouse_button_released(
         &mut self,
         mouse_button: MouseButton,
-    ) -> Result<VecDeque<UserEvent>, ErrorType> {
+    ) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         log_info!("Mouse's {:?} button released", mouse_button);
         Ok(VecDeque::new())
     }

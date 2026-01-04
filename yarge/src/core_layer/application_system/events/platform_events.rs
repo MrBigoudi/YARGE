@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::{
-    core_layer::{ApplicationSystem, application_system::UserEvent},
+    core_layer::{ApplicationSystem, application_system::UserEventBuilder},
     error::ErrorType,
     log_error,
     platform_layer::Event,
@@ -9,7 +9,10 @@ use crate::{
 
 impl<'a> ApplicationSystem<'a> {
     /// Event handling
-    pub(crate) fn handle_event(&mut self, event: Event) -> Result<VecDeque<UserEvent>, ErrorType> {
+    pub(crate) fn handle_event(
+        &mut self,
+        event: Event,
+    ) -> Result<VecDeque<UserEventBuilder>, ErrorType> {
         match event {
             crate::platform_layer::Event::KeyboardKeyPressed(keyboard_key) => {
                 match self.user_game.on_keyboard_key_pressed(keyboard_key) {

@@ -13,8 +13,8 @@ pub(crate) mod platform_layer;
 pub(crate) mod rendering_layer;
 
 pub use core_layer::{
-    Entry, FileLoaderSystem, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game,
-    RonFileResource, UserEvent, gamepad, keyboard,
+    Entry, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game, RonFileResource,
+    UserEventBuilder, gamepad, keyboard,
     logger_system::helpers::{LogLevel, LogTarget},
     mouse,
 };

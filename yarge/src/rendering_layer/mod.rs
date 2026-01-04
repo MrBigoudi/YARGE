@@ -11,3 +11,9 @@ pub use rendering_impl::RenderingLayerImpl;
 
 /// A module with different types declaration
 pub mod types;
+
+// /// A module to handle shaders and shaders operations
+// pub mod shaders;
+
+// /// A module to handle graphics pipelines
+// pub mod graphics_pipeline;
