@@ -24,3 +24,14 @@ pub fn derive_ron_file_resource(input: TokenStream) -> TokenStream {
     }
     .into()
 }
+
+#[proc_macro_derive(Component)]
+pub fn derive_component(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+
+    quote! {
+        impl ::yarge::Component for #name {}
+    }
+    .into()
+}

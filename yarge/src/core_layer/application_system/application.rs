@@ -18,6 +18,9 @@ pub struct ApplicationSystem<'a> {
 
     /// The file loader system
     pub file_loader: FileLoaderSystem,
+
+    /// The ECS
+    pub ecs: super::ecs::ECS,
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -32,9 +35,14 @@ impl<'a> ApplicationSystem<'a> {
         let file_loader = FileLoaderSystem::init();
         log_info!("File loader system initialized");
 
+        // Inits the ECS system
+        let ecs = super::ecs::ECS::init();
+        log_info!("ECS initialized");
+
         let mut application = Self {
             user_game,
             file_loader,
+            ecs,
         };
 
         // Inits the user's game

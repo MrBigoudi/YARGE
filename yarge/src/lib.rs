@@ -13,7 +13,7 @@ pub(crate) mod platform_layer;
 pub(crate) mod rendering_layer;
 
 pub use core_layer::{
-    Entry, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game, RonFileResource,
+    Component, Entry, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game, RonFileResource,
     UserEventBuilder, gamepad, keyboard,
     logger_system::helpers::{LogLevel, LogTarget},
     mouse,
@@ -21,4 +21,4 @@ pub use core_layer::{
 
 pub use platform_layer::{PlatformLayer, PlatformLayerImpl};
 
-pub use macros::{FileResource, RonFileResource};
+pub use macros::{Component, FileResource, RonFileResource};

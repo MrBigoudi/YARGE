@@ -29,6 +29,13 @@ pub(crate) enum UserEvent {
         /// The path to the resource to load
         path: std::path::PathBuf,
     },
+
+    /// To register a new component
+    RegisterCustomComponent {
+        /// The function to register the component
+        register_fct:
+            crate::core_layer::application_system::ecs::component::RegisterComponentFunction,
+    },
 }
 
 /// A public builder for UserEvent
@@ -68,6 +75,15 @@ impl UserEventBuilder {
             },
         }
     }
+
+    /// Creates an event to register a custom ECS component
+    pub fn register_custom_component<T: crate::Component>() -> Self {
+        Self {
+            event: UserEvent::RegisterCustomComponent {
+                register_fct: T::register,
+            },
+        }
+    }
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -91,7 +107,7 @@ impl<'a> ApplicationSystem<'a> {
                 } => {
                     if let Err(err) = self.file_loader.register(resource_id, *loader_fct) {
                         log_error!(
-                            "Failed to register the custom `{:?}' resource when handling user events in the application: {:?}",
+                            "Failed to register the custom `{:?}' resource when handling a `RegisterCustomFileResource' event in the application: {:?}",
                             resource_id,
                             err
                         );
@@ -102,7 +118,7 @@ impl<'a> ApplicationSystem<'a> {
                 UserEvent::StartLoadCustomFileResource { resource_id, path } => {
                     if let Err(err) = self.file_loader.start_load(resource_id, path) {
                         log_error!(
-                            "Failed to start loading the custom `{:?}' resource at `{:?}' when handling user events in the application: {:?}",
+                            "Failed to start loading the custom `{:?}' resource at `{:?}' when handling a `StartLoadCustomFileResource' event in the application: {:?}",
                             resource_id,
                             path,
                             err
@@ -114,6 +130,16 @@ impl<'a> ApplicationSystem<'a> {
                         resource_id,
                         path
                     );
+                }
+                UserEvent::RegisterCustomComponent { register_fct } => {
+                    if let Err(err) = register_fct(&mut self.ecs.components) {
+                        log_error!(
+                            "Failed to register a custom component when handling a `RegisterCustomComponent' event in the application: {:?}",
+                            err
+                        );
+                        return Err(ErrorType::Unknown);
+                    }
+                    log_debug!("Custom component registered")
                 }
             }
         }
