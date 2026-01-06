@@ -5,8 +5,6 @@ use crate::{error::ErrorType, log_error, log_info, log_warn};
 
 pub type ComponentMap<T> = super::generational::GenerationalVec<T>;
 
-pub type ComponentId<T> = std::marker::PhantomData<T>;
-
 pub trait ComponentStorage {
     fn type_name(&self) -> &'static str;
     fn len(&self) -> usize;
@@ -41,7 +39,8 @@ pub trait Component: Send + Sized + 'static {
 
     /// Tries to register a component type into a manager
     fn register(manager: &mut ComponentManager) -> Result<(), ErrorType> {
-        if manager.components_ids.contains::<ComponentId<Self>>() {
+        let type_id = std::any::TypeId::of::<Self>();
+        if manager.component_storages.contains_key(&type_id) {
             log_error!(
                 "Failed to add the `{:?}' component to the ECS: the component already exists",
                 std::any::type_name::<Self>()
@@ -51,18 +50,12 @@ pub trait Component: Send + Sized + 'static {
             )));
         }
 
-        // Creates the phantom data for the type
-        manager
-            .components_ids
-            .insert::<ComponentId<Self>>(std::marker::PhantomData);
-
         // Creates the real data in the hashmap
         match ComponentMap::<Self>::init_filled_with_empty_entries(manager.length) {
             Ok(new_map) => {
-                manager.component_storages.insert(
-                    std::any::TypeId::of::<ComponentId<Self>>(),
-                    Box::new(new_map),
-                );
+                manager
+                    .component_storages
+                    .insert(type_id, Box::new(new_map));
             }
             Err(err) => {
                 log_error!(
@@ -72,6 +65,8 @@ pub trait Component: Send + Sized + 'static {
                 return Err(ErrorType::Unknown);
             }
         }
+
+        // log_warn!("Component `{:?}' registered", std::any::type_name::<Self>());
 
         Ok(())
     }
@@ -101,8 +96,6 @@ impl Component for DefaultComponent {
 
 /// A struct to manage components
 pub struct ComponentManager {
-    /// Ensure each component is only registered once
-    pub components_ids: anymap::AnyMap,
     /// The real components storages
     pub component_storages: std::collections::HashMap<std::any::TypeId, Box<dyn ComponentStorage>>,
     /// The common length for all components storages
@@ -113,7 +106,6 @@ impl ComponentManager {
     /// Initializes the component manager
     pub fn init() -> Result<Self, ErrorType> {
         let mut new_manager = Self {
-            components_ids: anymap::AnyMap::new(),
             component_storages: std::collections::HashMap::new(),
             length: 0,
         };
@@ -130,7 +122,7 @@ impl ComponentManager {
 
     /// Checks the common length of each component maps
     pub fn check_length(&mut self) -> Result<(), ErrorType> {
-        let default_component_id = std::any::TypeId::of::<ComponentId<DefaultComponent>>();
+        let default_component_id = std::any::TypeId::of::<DefaultComponent>();
         self.length = match self.component_storages.get(&default_component_id) {
             Some(default_component) => default_component.len(),
             None => {

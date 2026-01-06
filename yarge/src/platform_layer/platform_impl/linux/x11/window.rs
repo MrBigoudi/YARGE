@@ -818,7 +818,7 @@ impl Window for LinuxX11Window {
 
                 // TODO: other events
                 _ => {
-                    log_debug!("Unknown X11 linux window event");
+                    // log_debug!("Unknown X11 linux window event");
                     Ok(Event::Unrecognized)
                 }
             },
