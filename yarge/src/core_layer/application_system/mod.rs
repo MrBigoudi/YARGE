@@ -8,4 +8,4 @@ mod game;
 pub use game::Game;
 
 mod ecs;
-pub use ecs::Component;
+pub use ecs::{Component, ECS, UserEntity};

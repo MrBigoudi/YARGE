@@ -36,7 +36,16 @@ impl<'a> ApplicationSystem<'a> {
         log_info!("File loader system initialized");
 
         // Inits the ECS system
-        let ecs = super::ecs::ECS::init();
+        let ecs = match super::ecs::ECS::init() {
+            Ok(ecs) => ecs,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the ECS system when initializing the application: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
         log_info!("ECS initialized");
 
         let mut application = Self {

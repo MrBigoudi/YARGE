@@ -95,6 +95,15 @@ impl<'a> ApplicationSystem<'a> {
         _platform_layer: &mut PlatformLayerImpl,
         _rendering_layer: &mut RenderingLayerImpl,
     ) -> Result<bool, ErrorType> {
+        // TODO: check if need to create new entities
+        if let Err(err) = self.ecs.spawn_real_entities() {
+            log_error!(
+                "Failed to spawn entities in the ECS from the application layer: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+
         let mut should_quit = false;
         for event_builder in &events {
             match &event_builder.event {
@@ -132,7 +141,7 @@ impl<'a> ApplicationSystem<'a> {
                     );
                 }
                 UserEvent::RegisterCustomComponent { register_fct } => {
-                    if let Err(err) = register_fct(&mut self.ecs.components) {
+                    if let Err(err) = self.ecs.register_component(register_fct) {
                         log_error!(
                             "Failed to register a custom component when handling a `RegisterCustomComponent' event in the application: {:?}",
                             err

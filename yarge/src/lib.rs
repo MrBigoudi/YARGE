@@ -13,8 +13,8 @@ pub(crate) mod platform_layer;
 pub(crate) mod rendering_layer;
 
 pub use core_layer::{
-    Component, Entry, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game, RonFileResource,
-    UserEventBuilder, gamepad, keyboard,
+    Component, ECS, Entry, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game, RonFileResource,
+    UserEntity as Entity, UserEventBuilder, gamepad, keyboard,
     logger_system::helpers::{LogLevel, LogTarget},
     mouse,
 };

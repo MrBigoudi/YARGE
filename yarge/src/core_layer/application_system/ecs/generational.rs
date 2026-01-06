@@ -1,4 +1,4 @@
-use crate::log_warn;
+use crate::{error::ErrorType, log_error, log_warn};
 
 /// The representation of an index in a generational indices structure
 pub(crate) type GenerationalIndex = usize;
@@ -7,7 +7,7 @@ pub(crate) type GenerationalIndex = usize;
 pub(crate) type GenerationalGeneration = u64;
 
 /// The representation of a generational index
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GenerationalKey {
     /// The index
     pub index: GenerationalIndex,
@@ -17,7 +17,7 @@ pub struct GenerationalKey {
 
 pub enum Entry<T> {
     Free { next_free: GenerationalIndex },
-    Occupied { value: T },
+    Occupied { value: Option<T> },
 }
 
 /// The representation of a generational structure entry
@@ -37,16 +37,111 @@ pub struct GenerationalVec<T> {
 }
 
 impl<T> GenerationalVec<T> {
-    /// Initiates a generational indices list
-    pub fn new() -> Self {
+    /// Initializes an generational indices list
+    pub fn init_empty() -> Self {
         Self {
             entries: Vec::new(),
             free_head: 0,
         }
     }
 
+    /// Initializes a generational indices list filled with empty entries
+    pub fn init_filled_with_empty_entries(nb_new_entries: usize) -> Result<Self, ErrorType> {
+        let mut new_list = Self::init_empty();
+        if nb_new_entries > 0
+            && let Err(err) = new_list.insert_empty_entries(nb_new_entries, false)
+        {
+            log_error!(
+                "Failed to initialize a new filled generational indices list: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+        Ok(new_list)
+    }
+
+    /// Inserts many empty elements to the list
+    pub fn insert_empty_entries(
+        &mut self,
+        nb_new_entries: usize,
+        should_return_new_keys: bool,
+    ) -> Result<Option<Vec<GenerationalKey>>, ErrorType> {
+        if nb_new_entries == 0 {
+            log_error!("Can't create 0 new empty entries in a generational list");
+            return Err(ErrorType::WrongArgument(String::from(
+                "Valid parameter must be greater or equal to 1",
+            )));
+        }
+        let mut next_free = self.free_head;
+        let mut new_keys = vec![];
+        let mut nb_added_entries = 0;
+        // Fill up the holes
+        'loop_on_free: while nb_added_entries < nb_new_entries
+            && let Some(GenerationalEntry { entry, generation }) = self.entries.get_mut(next_free)
+        {
+            if let Entry::Free {
+                next_free: next_next_free,
+            } = entry
+            {
+                let next_next_free = *next_next_free;
+                *entry = Entry::Occupied { value: None };
+                *generation += 1;
+                if should_return_new_keys {
+                    let new_key = GenerationalKey {
+                        index: next_free,
+                        generation: *generation,
+                    };
+                    new_keys.push(new_key);
+                }
+                next_free = next_next_free;
+                nb_added_entries += 1;
+            } else {
+                break 'loop_on_free;
+            }
+        }
+
+        // Sanity check
+        if self.entries.len() < next_free {
+            log_error!(
+                "Failed to insert empty entries in a generational list: expected at most `{:?}' for the next free, got `{:?}'",
+                self.entries.len(),
+                next_free
+            );
+            return Err(ErrorType::Unknown);
+        }
+
+        // Add the other entries
+        let mut new_entries: Vec<GenerationalEntry<T>> = (nb_added_entries..nb_new_entries)
+            .map(|_| {
+                let new_entry = GenerationalEntry {
+                    entry: Entry::Occupied { value: None },
+                    generation: 0,
+                };
+                if should_return_new_keys {
+                    let new_key = GenerationalKey {
+                        index: next_free,
+                        generation: 0,
+                    };
+                    new_keys.push(new_key);
+                }
+                next_free += 1;
+                new_entry
+            })
+            .collect();
+
+        self.entries.append(&mut new_entries);
+
+        self.free_head = next_free;
+
+        if should_return_new_keys {
+            Ok(Some(new_keys))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Inserts a new element to the list
-    pub fn insert(&mut self, value: T) -> GenerationalKey {
+    pub fn insert(&mut self, value: T) -> Result<GenerationalKey, ErrorType> {
         match self.entries.get_mut(self.free_head) {
             Some(GenerationalEntry { entry, generation }) => {
                 // Update
@@ -56,10 +151,11 @@ impl<T> GenerationalVec<T> {
                         generation: *generation,
                     };
                     self.free_head = *next_free;
-                    *entry = Entry::Occupied { value };
-                    key
+                    *entry = Entry::Occupied { value: Some(value) };
+                    Ok(key)
                 } else {
-                    panic!("Failed to insert a new entry in a generational indices list");
+                    log_error!("Failed to insert a new entry in a generational indices list");
+                    Err(ErrorType::Unknown)
                 }
             }
             None => {
@@ -69,11 +165,11 @@ impl<T> GenerationalVec<T> {
                     index: self.entries.len(),
                     generation,
                 };
-                let entry = Entry::Occupied { value };
+                let entry = Entry::Occupied { value: Some(value) };
                 let gen_entry = GenerationalEntry { entry, generation };
                 self.entries.push(gen_entry);
                 self.free_head = key.index + 1;
-                key
+                Ok(key)
             }
         }
     }
@@ -110,29 +206,29 @@ impl<T> GenerationalVec<T> {
     }
 
     /// Gets an element in the list
-    pub fn get(&self, key: &GenerationalKey) -> Option<&T> {
+    pub fn get(&self, key: &GenerationalKey) -> Result<Option<&T>, ErrorType> {
         match self.entries.get(key.index) {
             None => {
-                log_warn!(
+                log_error!(
                     "Trying to access a non existing entry in a generational indices structure"
                 );
-                None
+                Err(ErrorType::InvalidIndex)
             }
             Some(GenerationalEntry { entry, generation }) => match entry {
                 Entry::Free { .. } => {
-                    log_warn!(
+                    log_error!(
                         "Trying to access an empty entry in a generational indices structure"
                     );
-                    None
+                    Err(ErrorType::InvalidIndex)
                 }
                 Entry::Occupied { value } => {
                     if *generation != key.generation {
-                        log_warn!(
+                        log_error!(
                             "Trying to access an older generation entry in a generational indices structure"
                         );
-                        None
+                        Err(ErrorType::InvalidIndex)
                     } else {
-                        Some(value)
+                        Ok(value.as_ref())
                     }
                 }
             },
@@ -140,32 +236,34 @@ impl<T> GenerationalVec<T> {
     }
 
     /// Mutable getter
-    pub fn get_mut(&mut self, key: &GenerationalKey) -> Option<&mut T> {
+    pub fn get_mut(&mut self, key: &GenerationalKey) -> Result<Option<&mut T>, ErrorType> {
         match self.entries.get_mut(key.index) {
             None => {
-                log_warn!(
+                log_error!(
                     "Trying to access a non existing entry in a generational indices structure"
                 );
-                None
+                Err(ErrorType::InvalidIndex)
             }
             Some(GenerationalEntry { entry, generation }) => match entry {
                 Entry::Free { .. } => {
-                    log_warn!(
+                    log_error!(
                         "Trying to access an empty entry in a generational indices structure"
                     );
-                    None
+                    Err(ErrorType::InvalidIndex)
                 }
                 Entry::Occupied { value } => {
                     if *generation != key.generation {
-                        log_warn!(
+                        log_error!(
                             "Trying to access an older generation entry in a generational indices structure"
                         );
-                        None
+                        Err(ErrorType::InvalidIndex)
                     } else {
-                        Some(value)
+                        Ok(value.as_mut())
                     }
                 }
             },
         }
     }
 }
+
+// TODO: add tests for generational lists

@@ -1,7 +1,9 @@
 //! The core layer of the engine
 
 mod application_system;
-pub use application_system::{ApplicationSystem, Component, Game, UserEventBuilder};
+pub use application_system::{
+    ApplicationSystem, Component, ECS, Game, UserEntity, UserEventBuilder,
+};
 
 pub(crate) mod logger_system;
 pub use logger_system::GLOBAL_LOGGER;

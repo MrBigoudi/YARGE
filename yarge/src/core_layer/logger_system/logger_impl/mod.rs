@@ -11,7 +11,7 @@ use super::{
 pub mod macros;
 
 impl LoggerSystem {
-    /// Initiates the logger systems
+    /// Initializes the logger systems
     pub fn init(config: &Config) -> Result<Self, ErrorType> {
         let mut logger = match GLOBAL_LOGGER.write() {
             Ok(logger) => logger,

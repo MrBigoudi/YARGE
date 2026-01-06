@@ -35,4 +35,7 @@ pub enum ErrorType {
 
     /// Thrown when something is not yet implemented
     NotImplemented,
+
+    /// Thrown when an invalid index is used inside a data structure
+    InvalidIndex,
 }

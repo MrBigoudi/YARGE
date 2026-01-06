@@ -20,11 +20,11 @@ impl Entry {
         // Reads the configuration file
         let config = match Config::init(config_file) {
             Ok(config) => {
-                log_info!("Configuration initialized");
+                println!("Configuration initialized");
                 config
             }
             Err(err) => {
-                // TODO: add better logging messages
+                // TODO: add better logging messages when the logging system is not available
                 eprintln!("Failed to initialize the config: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
@@ -37,7 +37,7 @@ impl Entry {
                 core_layer
             }
             Err(err) => {
-                // TODO: add logging messages
+                // TODO: add better logging messages when the logging system is not available
                 eprintln!("Failed to initialize the core layer: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
@@ -74,12 +74,13 @@ impl Entry {
 
         // Shuts down the core layer
         if let Err(err) = core_layer.shutdown() {
-            // TODO: add logging messages
-            log_error!("Failed to shutdown the core layer: {:?}", err);
+            // TODO: add better logging messages when the logging system is not available
+            eprintln!("Failed to shutdown the core layer: {:?}", err);
             return Err(ErrorType::Unknown);
         }
 
-        log_info!("Core layer shutted down");
+        // TODO: add better logging messages when the logging system is not available
+        println!("Core layer shutted down");
 
         Ok(())
     }
