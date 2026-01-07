@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::{
+    ECS,
     core_layer::{ApplicationSystem, FileLoaderSystem},
     error::ErrorType,
     log_debug, log_error,
@@ -74,6 +75,18 @@ pub(crate) enum UserEvent {
         update_for_entity_fct:
             crate::core_layer::application_system::ecs::component::UpdateComponentForEntityFunction,
     },
+
+    /// Gets the value of a component for an entity
+    GetComponentValueForEntity {
+        /// The user entity from which to get the component value
+        user_entity: crate::core_layer::UserEntity,
+        /// The function to get a component value from an entity
+        get_value_for_entity_fct:
+            crate::core_layer::application_system::ecs::component::GetComponentValueForEntityFunction,
+        /// The callback function for the query
+        query_callback:
+            crate::core_layer::application_system::ecs::query::OnGetComponentValueQueryCallback,
+    }
 }
 
 /// A public builder for UserEvent
@@ -126,42 +139,80 @@ impl UserEventBuilder {
     /// Creates an event to remove a custom ECS component
     pub fn remove_custom_component<T: crate::Component>() -> Self {
         Self {
-            event: UserEvent::RemoveCustomComponent { 
+            event: UserEvent::RemoveCustomComponent {
                 remove_fct: T::remove,
             },
         }
     }
 
     /// Creates an event to add a component to an entity
-    pub fn add_component_to_entity<T: crate::Component>(entity: crate::core_layer::UserEntity, value: T) -> Self {
+    pub fn add_component_to_entity<T: crate::Component>(
+        entity: crate::core_layer::UserEntity,
+        value: T,
+    ) -> Self {
         Self {
             event: UserEvent::AddComponentToEntity {
                 user_entity: entity,
                 value: Box::new(value),
                 add_to_entity_fct: T::add_to_entity,
-            }
+            },
         }
     }
 
     /// Creates an event to remove a component from an entity
-    pub fn remove_component_from_entity<T: crate::Component>(entity: crate::core_layer::UserEntity) -> Self {
+    pub fn remove_component_from_entity<T: crate::Component>(
+        entity: crate::core_layer::UserEntity,
+    ) -> Self {
         Self {
             event: UserEvent::RemoveComponentFromEntity {
                 user_entity: entity,
                 remove_from_entity_fct: T::remove_from_entity,
-            }
+            },
         }
     }
 
     /// Creates an event to update a component for an entity
-    pub fn update_component_for_entity<T: crate::Component>(entity: crate::core_layer::UserEntity, value: T) -> Self {
+    pub fn update_component_for_entity<T: crate::Component>(
+        entity: crate::core_layer::UserEntity,
+        value: T,
+    ) -> Self {
         Self {
             event: UserEvent::UpdateComponentForEntity {
                 user_entity: entity,
                 value: Box::new(value),
                 update_for_entity_fct: T::updates_for_entity,
-            }
+            },
         }
+    }
+
+    /// Creates an event to get the value of an entity's component
+    /// Returns the query from which to get the wanted value
+    pub fn get_component_value_from_entity<G, T>(
+        entity: crate::core_layer::UserEntity,
+        callback: crate::core_layer::application_system::ecs::query::UserOnGetComponentValueQueryCallback<G, T>,
+    ) -> Result<Self, ErrorType>
+    where
+        G: crate::Game + 'static,
+        T: crate::Component + 'static,
+    {
+        let _new_query = match ECS::generate_queries(1) {
+            Ok(queries) => queries[0],
+            Err(err) => {
+                log_error!(
+                    "Failed to generate queries when building an event to query a component value from an entity: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        Ok(Self {
+                event: UserEvent::GetComponentValueForEntity {user_entity: entity,
+                    get_value_for_entity_fct: T::get_value_from_entity,
+                    query_callback:
+                        crate::core_layer::application_system::ecs::query::UserQueryCallbackBuilder::on_get_component_value::<G,T>(callback),
+                }
+            })
     }
 }
 
@@ -238,34 +289,88 @@ impl<'a> ApplicationSystem<'a> {
                         return Err(ErrorType::Unknown);
                     }
                     log_debug!("Custom component removed");
-                },
-                UserEvent::AddComponentToEntity { user_entity, value, add_to_entity_fct } => {
-                    if let Err(err) = self.ecs.add_component_to_entity(&user_entity, value, &add_to_entity_fct) {
-                        log_error!("Failed to add a component to an entity when handling a `AddComponentToEntity' event in the application: {:?}",
+                }
+                UserEvent::AddComponentToEntity {
+                    user_entity,
+                    value,
+                    add_to_entity_fct,
+                } => {
+                    if let Err(err) =
+                        self.ecs
+                            .add_component_to_entity(&user_entity, value, &add_to_entity_fct)
+                    {
+                        log_error!(
+                            "Failed to add a component to an entity when handling a `AddComponentToEntity' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
                     }
                     log_debug!("Added component to entity `{:?}'", user_entity);
-                },
-                UserEvent::RemoveComponentFromEntity { user_entity, remove_from_entity_fct }  => {
-                    if let Err(err) = self.ecs.remove_component_from_entity(&user_entity, &remove_from_entity_fct) {
-                        log_error!("Failed to remove a component from an entity when handling a `RemoveComponentFromEntity' event in the application: {:?}",
+                }
+                UserEvent::RemoveComponentFromEntity {
+                    user_entity,
+                    remove_from_entity_fct,
+                } => {
+                    if let Err(err) = self
+                        .ecs
+                        .remove_component_from_entity(&user_entity, &remove_from_entity_fct)
+                    {
+                        log_error!(
+                            "Failed to remove a component from an entity when handling a `RemoveComponentFromEntity' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
                     }
                     log_debug!("Removed component to entity `{:?}'", user_entity);
-                },
-                UserEvent::UpdateComponentForEntity { user_entity, value, update_for_entity_fct } => {
-                    if let Err(err) = self.ecs.update_component_for_entity(&user_entity, value, &update_for_entity_fct) {
-                        log_error!("Failed to update a component for an entity when handling a `UpdateComponentForEntity' event in the application: {:?}",
+                }
+                UserEvent::UpdateComponentForEntity {
+                    user_entity,
+                    value,
+                    update_for_entity_fct,
+                } => {
+                    if let Err(err) = self.ecs.update_component_for_entity(
+                        &user_entity,
+                        value,
+                        &update_for_entity_fct,
+                    ) {
+                        log_error!(
+                            "Failed to update a component for an entity when handling a `UpdateComponentForEntity' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
                     }
                     log_debug!("Updated component for entity `{:?}'", user_entity);
-                },
+                }
+                UserEvent::GetComponentValueForEntity {
+                    user_entity,
+                    get_value_for_entity_fct,
+                    query_callback,
+                } => {
+                    let value = match self
+                        .ecs
+                        .get_component_value_from_entity(&user_entity, &get_value_for_entity_fct)
+                    {
+                        Err(err) => {
+                            log_error!(
+                                "Failed to query a component value from an entity when handling a `GetComponentValueForEntity' event in the application: {:?}",
+                                err
+                            );
+                            return Err(ErrorType::Unknown);
+                        }
+                        Ok(value) => value,
+                    };
+
+                    // Call user on_get_component_query_resolved(id: Query, value: Box<dyn Component>) function
+                    if let Err(err) = query_callback(self.user_game, value) {
+                        log_error!(
+                            "Failed to call the user callback when handling a `GetComponentValueForEntity' event in the application: {:?}",
+                            err
+                        );
+                        return Err(ErrorType::Unknown);
+                    }
+
+                    log_debug!("Updated component for entity `{:?}'", user_entity);
+                }
             }
         }
 

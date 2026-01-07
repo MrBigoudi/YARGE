@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[allow(unused)]
 use crate::{error::ErrorType, log_error, log_warn};
 
 /// A real entity in the ECS system
@@ -34,12 +35,12 @@ impl EntityGenerator {
     pub fn spawn_empty_entities(&mut self, nb_entities: usize) -> Vec<UserEntity> {
         let mut new_entities = vec![];
         for _ in 0..nb_entities {
-            match self.nb_entities_total.checked_add(1){
+            match self.nb_entities_total.checked_add(1) {
                 Some(res) => self.nb_entities_total = res,
                 None => {
                     self.nb_entities_total = 0;
                     self.generation += 1;
-                },
+                }
             }
             let new_entity = UserEntity {
                 index: self.nb_entities_total,
@@ -93,3 +94,10 @@ impl EntityGenerator {
         Ok(())
     }
 }
+
+use crate::platform_layer::PlatformLayerRwLock;
+use once_cell::sync::Lazy;
+
+/// The global entity generator to interface between user request and real entities
+pub(crate) static GLOBAL_ENTITY_GENERATOR: Lazy<PlatformLayerRwLock<EntityGenerator>> =
+    Lazy::new(|| PlatformLayerRwLock::new(EntityGenerator::init()));

@@ -7,7 +7,7 @@
 
 ## ECS
 
-- Create getters to the components values of an entity
+- Refactor getters to the components values of an entity, very ugly for now !
 - Create systems
 
 ## Graphics

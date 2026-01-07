@@ -2,7 +2,7 @@
 
 mod application_system;
 pub use application_system::{
-    ApplicationSystem, Component, ECS, Game, UserEntity, UserEventBuilder,
+    ApplicationSystem, Component, ECS, Game, Query, UserEntity, UserEventBuilder,
 };
 
 pub(crate) mod logger_system;

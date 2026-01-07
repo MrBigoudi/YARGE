@@ -1,12 +1,15 @@
 use std::collections::VecDeque;
 
+#[allow(unused)]
+use crate::{log_debug, log_error, log_info, log_warn};
+
 use crate::{
     core_layer::application_system::UserEventBuilder, error::ErrorType, gamepad::GamepadButton,
     keyboard::KeyboardKey, mouse::MouseButton,
 };
 
 /// The game trait that can be ovveride by the user
-pub trait Game {
+pub trait Game: std::any::Any + 'static {
     /// Runs when the application starts
     /// Default behavior: don't do anything
     fn on_start(&mut self) -> Result<VecDeque<UserEventBuilder>, ErrorType> {

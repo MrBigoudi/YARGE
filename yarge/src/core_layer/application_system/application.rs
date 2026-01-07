@@ -1,13 +1,14 @@
 use std::collections::VecDeque;
 
-#[allow(unused)]
-use crate::{config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::Event};
 use crate::{
+    ECS,
     core_layer::FileLoaderSystem,
     log_info,
     platform_layer::PlatformLayerImpl,
     rendering_layer::{RenderingLayer, RenderingLayerImpl, types::RendererBeginFrameOutput},
 };
+#[allow(unused)]
+use crate::{config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::Event};
 
 use super::Game;
 
@@ -20,7 +21,7 @@ pub struct ApplicationSystem<'a> {
     pub file_loader: FileLoaderSystem,
 
     /// The ECS
-    pub ecs: super::ecs::ECS,
+    pub ecs: ECS,
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -36,7 +37,7 @@ impl<'a> ApplicationSystem<'a> {
         log_info!("File loader system initialized");
 
         // Inits the ECS system
-        let ecs = match super::ecs::ECS::init() {
+        let ecs = match ECS::init() {
             Ok(ecs) => ecs,
             Err(err) => {
                 log_error!(

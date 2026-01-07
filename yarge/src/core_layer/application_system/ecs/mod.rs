@@ -2,15 +2,18 @@
 /// See https://lucassardois.medium.com/generational-indices-guide-8e3c5f7fd594
 pub mod generational;
 
+/// A module representing components in the ECS
 pub mod component;
 /// A module representing entities in the ECS
 /// See https://austinmorlan.com/posts/entity_component_system/
 /// See https://kyren.github.io/2018/09/14/rustconf-talk.html
 pub mod entity;
+pub mod query;
 pub mod system;
 
 pub use component::Component;
 pub use entity::UserEntity;
+pub use query::Query;
 
 use crate::error::ErrorType;
 
@@ -43,9 +46,9 @@ impl ECS {
     }
 
     /// Creates empty entities
-    /// This function is for the User
+    /// This method is for the User
     pub fn spawn_empty_entities(nb_entities: usize) -> Result<Vec<entity::UserEntity>, ErrorType> {
-        match GLOBAL_ENTITY_GENERATOR.write() {
+        match entity::GLOBAL_ENTITY_GENERATOR.write() {
             Ok(mut generator) => Ok(generator.spawn_empty_entities(nb_entities)),
             Err(err) => {
                 log_error!(
@@ -57,9 +60,23 @@ impl ECS {
         }
     }
 
+    /// Creates a new query
+    pub fn generate_queries(nb_entities: usize) -> Result<Vec<Query>, ErrorType> {
+        match query::GLOBAL_QUERY_GENERATOR.write() {
+            Ok(mut generator) => Ok(generator.generate_queries(nb_entities)),
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global query generator when generating new queries in the ECS: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
     /// Creates real entities
     pub(crate) fn spawn_real_entities(&mut self) -> Result<(), ErrorType> {
-        let nb_new_entities_to_spawn = match GLOBAL_ENTITY_GENERATOR.read() {
+        let nb_new_entities_to_spawn = match entity::GLOBAL_ENTITY_GENERATOR.read() {
             Ok(generator) => {
                 generator.entity_to_generate.len()
                 // log_warn!("Nb real entities to generate: {:?}", nb_entities);
@@ -97,7 +114,7 @@ impl ECS {
                             new_generated_entities.len()
                         )));
                     }
-                    match GLOBAL_ENTITY_GENERATOR.write() {
+                    match entity::GLOBAL_ENTITY_GENERATOR.write() {
                         Ok(mut generator) => {
                             if let Err(err) = generator.update_table(new_generated_entities) {
                                 log_error!(
@@ -151,20 +168,22 @@ impl ECS {
     }
 
     pub(crate) fn add_component_to_entity(
-        &mut self, 
+        &mut self,
         user_entity: &UserEntity,
-        value: Box<dyn component::RealComponent>, 
-        add_to_entity_fct: &component::AddComponentToEntityFunction) -> Result<(), ErrorType> {
-        let real_entity = match GLOBAL_ENTITY_GENERATOR.read() {
-            Ok(generator) => {
-                match generator.get_real_entity(user_entity){
-                    Ok(entity) => entity,
-                    Err(err) => {
-                        log_error!("Failed to get the real entity from the global entity generator when adding a component to an entity in the ECS: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
+        value: Box<dyn component::RealComponent>,
+        add_to_entity_fct: &component::AddComponentToEntityFunction,
+    ) -> Result<(), ErrorType> {
+        let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => match generator.get_real_entity(user_entity) {
+                Ok(entity) => entity,
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the real entity from the global entity generator when adding a component to an entity in the ECS: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
                 }
-            }
+            },
             Err(err) => {
                 log_error!(
                     "Failed to access the global the entity generator when adding a component to an entity in the ECS: {:?}",
@@ -174,7 +193,10 @@ impl ECS {
             }
         };
         if let Err(err) = add_to_entity_fct(&mut self.component_manager, &real_entity, value) {
-            log_error!("Failed to add a component to an entity in the ECS: {:?}", err);
+            log_error!(
+                "Failed to add a component to an entity in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -182,19 +204,21 @@ impl ECS {
     }
 
     pub(crate) fn remove_component_from_entity(
-        &mut self, 
-        user_entity: &UserEntity, 
-        remove_from_entity: &component::RemoveComponentFromEntityFunction) -> Result<(), ErrorType> {
-        let real_entity = match GLOBAL_ENTITY_GENERATOR.read() {
-            Ok(generator) => {
-                match generator.get_real_entity(user_entity){
-                    Ok(entity) => entity,
-                    Err(err) => {
-                        log_error!("Failed to get the real entity from the global entity generator when removing a component from an entity in the ECS: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
+        &mut self,
+        user_entity: &UserEntity,
+        remove_from_entity: &component::RemoveComponentFromEntityFunction,
+    ) -> Result<(), ErrorType> {
+        let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => match generator.get_real_entity(user_entity) {
+                Ok(entity) => entity,
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the real entity from the global entity generator when removing a component from an entity in the ECS: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
                 }
-            }
+            },
             Err(err) => {
                 log_error!(
                     "Failed to access the global the entity generator when removing a component from an entity in the ECS: {:?}",
@@ -204,7 +228,10 @@ impl ECS {
             }
         };
         if let Err(err) = remove_from_entity(&mut self.component_manager, &real_entity) {
-            log_error!("Failed to remove a component to an entity in the ECS: {:?}", err);
+            log_error!(
+                "Failed to remove a component to an entity in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -212,20 +239,22 @@ impl ECS {
     }
 
     pub(crate) fn update_component_for_entity(
-        &mut self, 
+        &mut self,
         user_entity: &UserEntity,
-        value: Box<dyn component::RealComponent>, 
-        update_for_entity_fct: &component::UpdateComponentForEntityFunction) -> Result<(), ErrorType> {
-        let real_entity = match GLOBAL_ENTITY_GENERATOR.read() {
-            Ok(generator) => {
-                match generator.get_real_entity(user_entity){
-                    Ok(entity) => entity,
-                    Err(err) => {
-                        log_error!("Failed to get the real entity from the global entity generator when updating a component for an entity in the ECS: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
+        value: Box<dyn component::RealComponent>,
+        update_for_entity_fct: &component::UpdateComponentForEntityFunction,
+    ) -> Result<(), ErrorType> {
+        let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => match generator.get_real_entity(user_entity) {
+                Ok(entity) => entity,
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the real entity from the global entity generator when updating a component for an entity in the ECS: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
                 }
-            }
+            },
             Err(err) => {
                 log_error!(
                     "Failed to access the global the entity generator when updating a component for an entity in the ECS: {:?}",
@@ -235,17 +264,49 @@ impl ECS {
             }
         };
         if let Err(err) = update_for_entity_fct(&mut self.component_manager, &real_entity, value) {
-            log_error!("Failed to update a component for an entity in the ECS: {:?}", err);
+            log_error!(
+                "Failed to update a component for an entity in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
         Ok(())
     }
+
+    pub(crate) fn get_component_value_from_entity(
+        &mut self,
+        user_entity: &UserEntity,
+        get_value_for_entity_fct: &component::GetComponentValueForEntityFunction,
+    ) -> Result<Box<dyn component::RealComponent>, ErrorType> {
+        let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => match generator.get_real_entity(user_entity) {
+                Ok(entity) => entity,
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the real entity from the global entity generator when querying a component value from an entity in the ECS: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            },
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global the entity generator when querying a component value from an entity in the ECS: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        match get_value_for_entity_fct(&mut self.component_manager, &real_entity) {
+            Err(err) => {
+                log_error!(
+                    "Failed to query a component value from an entity in the ECS: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+            Ok(value) => Ok(value),
+        }
+    }
 }
-
-use crate::platform_layer::PlatformLayerRwLock;
-use once_cell::sync::Lazy;
-
-/// The global entity generator to interface between user request and real entities
-pub(crate) static GLOBAL_ENTITY_GENERATOR: Lazy<PlatformLayerRwLock<entity::EntityGenerator>> =
-    Lazy::new(|| PlatformLayerRwLock::new(entity::EntityGenerator::init()));
