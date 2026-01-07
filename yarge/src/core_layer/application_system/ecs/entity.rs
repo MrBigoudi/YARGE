@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{error::ErrorType, log_error};
+use crate::{error::ErrorType, log_error, log_warn};
 
 /// A real entity in the ECS system
 pub type Entity = super::generational::GenerationalKey;
@@ -32,28 +32,28 @@ impl EntityGenerator {
 
     /// Creates empty entities
     pub fn spawn_empty_entities(&mut self, nb_entities: usize) -> Vec<UserEntity> {
-        let mut new_entities: Vec<UserEntity> = (0..nb_entities)
-            .map(|_| {
-                match self.nb_entities_total.checked_add(1) {
-                    Some(res) => self.nb_entities_total = res,
-                    None => {
-                        self.nb_entities_total = 0;
-                        self.generation += 1;
-                    }
-                }
-                UserEntity {
-                    index: self.nb_entities_total,
-                    generation: self.generation,
-                }
-            })
-            .collect();
-        self.entity_to_generate.append(&mut new_entities);
+        let mut new_entities = vec![];
+        for _ in 0..nb_entities {
+            match self.nb_entities_total.checked_add(1){
+                Some(res) => self.nb_entities_total = res,
+                None => {
+                    self.nb_entities_total = 0;
+                    self.generation += 1;
+                },
+            }
+            let new_entity = UserEntity {
+                index: self.nb_entities_total,
+                generation: self.generation,
+            };
+            self.entity_to_generate.push(new_entity);
+            new_entities.push(new_entity);
+        }
         new_entities
     }
 
     /// Gets the real entity given the UserEntity
-    pub fn get_real_entity(&self, user_entity: UserEntity) -> Result<Entity, ErrorType> {
-        match self.table.get(&user_entity) {
+    pub fn get_real_entity(&self, user_entity: &UserEntity) -> Result<Entity, ErrorType> {
+        match self.table.get(user_entity) {
             Some(entity) => Ok(*entity),
             None => {
                 log_error!("Failed to retrieve the real entity from user entity");

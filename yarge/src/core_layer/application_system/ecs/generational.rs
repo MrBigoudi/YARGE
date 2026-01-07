@@ -205,8 +205,8 @@ impl<T> GenerationalVec<T> {
         }
     }
 
-    /// Gets an element in the list
-    pub fn get(&self, key: &GenerationalKey) -> Result<Option<&T>, ErrorType> {
+    /// Gets the value of an entry in the list
+    pub fn get_value(&self, key: &GenerationalKey) -> Result<Option<&T>, ErrorType> {
         match self.entries.get(key.index) {
             None => {
                 log_error!(
@@ -235,8 +235,8 @@ impl<T> GenerationalVec<T> {
         }
     }
 
-    /// Mutable getter
-    pub fn get_mut(&mut self, key: &GenerationalKey) -> Result<Option<&mut T>, ErrorType> {
+    /// Mutable getter to a value of an entry in the list
+    pub fn get_mut_value(&mut self, key: &GenerationalKey) -> Result<Option<&mut T>, ErrorType> {
         match self.entries.get_mut(key.index) {
             None => {
                 log_error!(
@@ -262,6 +262,32 @@ impl<T> GenerationalVec<T> {
                     }
                 }
             },
+        }
+    }
+
+    /// Gets an entry in the list
+    pub fn get_entry(&self, key: &GenerationalKey) -> Result<&Entry<T>, ErrorType> {
+        match self.entries.get(key.index) {
+            None => {
+                log_error!(
+                    "Trying to access a non existing entry in a generational indices structure"
+                );
+                Err(ErrorType::InvalidIndex)
+            }
+            Some(GenerationalEntry { entry, .. }) => Ok(entry),
+        }
+    }
+
+    /// Mutable getter to an entry in the list
+    pub fn get_mut_entry(&mut self, key: &GenerationalKey) -> Result<&mut Entry<T>, ErrorType> {
+        match self.entries.get_mut(key.index) {
+            None => {
+                log_error!(
+                    "Trying to access a non existing entry in a generational indices structure"
+                );
+                Err(ErrorType::InvalidIndex)
+            }
+            Some(GenerationalEntry { entry, .. }) => Ok(entry),
         }
     }
 }

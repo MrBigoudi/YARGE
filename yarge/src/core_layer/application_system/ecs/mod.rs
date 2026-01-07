@@ -136,6 +136,111 @@ impl ECS {
 
         Ok(())
     }
+
+    /// Removes a component
+    pub(crate) fn remove_component(
+        &mut self,
+        remove_fct: &component::RemoveComponentFunction,
+    ) -> Result<(), ErrorType> {
+        if let Err(err) = remove_fct(&mut self.component_manager) {
+            log_error!("Failed to remove a component in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn add_component_to_entity(
+        &mut self, 
+        user_entity: &UserEntity,
+        value: Box<dyn component::RealComponent>, 
+        add_to_entity_fct: &component::AddComponentToEntityFunction) -> Result<(), ErrorType> {
+        let real_entity = match GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => {
+                match generator.get_real_entity(user_entity){
+                    Ok(entity) => entity,
+                    Err(err) => {
+                        log_error!("Failed to get the real entity from the global entity generator when adding a component to an entity in the ECS: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global the entity generator when adding a component to an entity in the ECS: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        if let Err(err) = add_to_entity_fct(&mut self.component_manager, &real_entity, value) {
+            log_error!("Failed to add a component to an entity in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn remove_component_from_entity(
+        &mut self, 
+        user_entity: &UserEntity, 
+        remove_from_entity: &component::RemoveComponentFromEntityFunction) -> Result<(), ErrorType> {
+        let real_entity = match GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => {
+                match generator.get_real_entity(user_entity){
+                    Ok(entity) => entity,
+                    Err(err) => {
+                        log_error!("Failed to get the real entity from the global entity generator when removing a component from an entity in the ECS: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global the entity generator when removing a component from an entity in the ECS: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        if let Err(err) = remove_from_entity(&mut self.component_manager, &real_entity) {
+            log_error!("Failed to remove a component to an entity in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn update_component_for_entity(
+        &mut self, 
+        user_entity: &UserEntity,
+        value: Box<dyn component::RealComponent>, 
+        update_for_entity_fct: &component::UpdateComponentForEntityFunction) -> Result<(), ErrorType> {
+        let real_entity = match GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => {
+                match generator.get_real_entity(user_entity){
+                    Ok(entity) => entity,
+                    Err(err) => {
+                        log_error!("Failed to get the real entity from the global entity generator when updating a component for an entity in the ECS: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global the entity generator when updating a component for an entity in the ECS: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        if let Err(err) = update_for_entity_fct(&mut self.component_manager, &real_entity, value) {
+            log_error!("Failed to update a component for an entity in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
+        Ok(())
+    }
 }
 
 use crate::platform_layer::PlatformLayerRwLock;

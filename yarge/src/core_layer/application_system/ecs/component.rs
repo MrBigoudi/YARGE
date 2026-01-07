@@ -12,6 +12,9 @@ pub trait ComponentStorage {
         &mut self,
         nb_entities: usize,
     ) -> Result<Option<Vec<Entity>>, ErrorType>;
+    fn add_to_entity(&mut self, entity: &Entity, value: Box<dyn RealComponent>) -> Result<(), ErrorType>;
+    fn remove_from_entity(&mut self, entity: &Entity) -> Result<(), ErrorType>;
+    fn updates_for_entity(&mut self, entity: &Entity, value: Box<dyn RealComponent>) -> Result<(), ErrorType>;
 }
 
 impl<T: Component> ComponentStorage for ComponentMap<T> {
@@ -29,6 +32,119 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
     ) -> Result<Option<Vec<Entity>>, ErrorType> {
         self.insert_empty_entries(nb_entities, T::IS_DEFAULT)
     }
+
+    fn add_to_entity(&mut self, entity: &Entity, value: Box<dyn RealComponent>) -> Result<(), ErrorType> {
+        let new_value = match value.into_any().downcast::<T>() {
+            Ok(value) => {
+                value
+            },
+            Err(err) => {
+                log_error!("Failed to downcast a value when adding the `{:?}' component to an entity in a component storage: {:?}", 
+                    std::any::type_name::<Self>(),
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        match self.get_mut_entry(entity) {
+            Ok(entry) => {
+                if let super::generational::Entry::Free { .. } = entry {
+                    log_error!("Failed to get a non free entity when adding a component to an entity in a component storage");
+                    return Err(ErrorType::DoesNotExist);
+                }
+                
+                if let super::generational::Entry::Occupied { value: Some(..) } = entry {
+                    log_error!("Failed to get a non occupied entity when adding a component to an entity in a component storage");
+                    return Err(ErrorType::Unknown);
+                }
+
+                *entry = super::generational::Entry::Occupied { value: Some(*new_value) };
+            },
+            Err(err) => {
+                log_error!("Failed to get an entity when adding a component to an entity in a component storage: {:?}", err);
+                return Err(ErrorType::DoesNotExist);
+            },
+        }
+
+        Ok(())
+    }
+
+    fn remove_from_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
+        match self.get_mut_entry(entity) {
+            Ok(entry) => {
+                if let super::generational::Entry::Free { .. } = entry {
+                    log_error!("Failed to get a non free entity when removing a component to an entity in a component storage");
+                    return Err(ErrorType::DoesNotExist);
+                }
+                
+                if let super::generational::Entry::Occupied { value: None } = entry {
+                    log_error!("Failed to get a non empty entity when removing a component to an entity in a component storage");
+                    return Err(ErrorType::Unknown);
+                }
+
+                *entry = super::generational::Entry::Occupied { value: None };
+            },
+            Err(err) => {
+                log_error!("Failed to get an entity when removing a component to an entity in a component storage: {:?}", err);
+                return Err(ErrorType::DoesNotExist);
+            },
+        }
+
+        Ok(())
+    }
+
+    fn updates_for_entity(&mut self, entity: &Entity, value: Box<dyn RealComponent>) -> Result<(), ErrorType> {
+        let new_value = match value.into_any().downcast::<T>() {
+            Ok(value) => {
+                value
+            },
+            Err(err) => {
+                log_error!("Failed to downcast a value when updating the `{:?}' component for an entity in a component storage: {:?}", 
+                    std::any::type_name::<Self>(),
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        match self.get_mut_entry(entity) {
+            Ok(entry) => {
+                if let super::generational::Entry::Free { .. } = entry {
+                    log_error!("Failed to get a non free entity when updating a component for an entity in a component storage");
+                    return Err(ErrorType::DoesNotExist);
+                }
+                
+                if let super::generational::Entry::Occupied { value: None } = entry {
+                    log_error!("Failed to get a non empty entity when updating a component for an entity in a component storage");
+                    return Err(ErrorType::Unknown);
+                }
+
+                *entry = super::generational::Entry::Occupied { value: Some(*new_value) };
+            },
+            Err(err) => {
+                log_error!("Failed to get an entity when updating a component for an entity in a component storage: {:?}", err);
+                return Err(ErrorType::DoesNotExist);
+            },
+        }
+
+        Ok(())
+    }
+}
+
+pub trait RealComponent: Send + 'static {
+    fn type_id(&self) -> std::any::TypeId;
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any>; 
+}
+
+impl<T: Component> RealComponent for T {
+    fn type_id(&self) -> std::any::TypeId {
+        Self::get_type_id()
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+        self
+    }
 }
 
 /// A component
@@ -36,10 +152,11 @@ pub trait Component: Send + Sized + 'static {
     /// Tells if this component is a default component
     /// Should not be used by the user
     const IS_DEFAULT: bool = false;
-
-    /// Tries to register a component type into a manager
+    
+    /// Registers a component type into a manager
     fn register(manager: &mut ComponentManager) -> Result<(), ErrorType> {
-        let type_id = std::any::TypeId::of::<Self>();
+        let type_id = Self::get_type_id();
+
         if manager.component_storages.contains_key(&type_id) {
             log_error!(
                 "Failed to add the `{:?}' component to the ECS: the component already exists",
@@ -66,25 +183,105 @@ pub trait Component: Send + Sized + 'static {
             }
         }
 
-        // log_warn!("Component `{:?}' registered", std::any::type_name::<Self>());
+        log_warn!("Component `{:?}' registered", std::any::type_name::<Self>());
 
         Ok(())
     }
 
-    /// Tries to add a component to an entity
-    fn add_to_entity(
-        self,
-        manager: &mut ComponentManager,
-        entity: Entity,
-    ) -> Result<(), ErrorType> {
-        // TODO:
-        todo!()
+
+    /// Removes a component type from the manager
+    fn remove(manager: &mut ComponentManager) -> Result<(), ErrorType> {
+        let type_id = Self::get_type_id();
+
+        if manager.component_storages.remove(&type_id).is_none() {
+            log_error!(
+                "Failed to remove the `{:?}' component to the ECS: the component doesn't exist",
+                std::any::type_name::<Self>()
+            );
+            return Err(ErrorType::DoesNotExist);
+        }
+
+        log_warn!("Component `{:?}' removed", std::any::type_name::<Self>());
+
+        Ok(())
     }
 
-    /// Tries to remove a component to an entity
-    fn remove_from_entity(manager: &mut ComponentManager, entity: Entity) -> Result<(), ErrorType> {
-        // TODO:
-        todo!()
+
+    /// Gets the type id of the component
+    fn get_type_id() -> std::any::TypeId {
+        std::any::TypeId::of::<Self>()
+    }
+
+    /// Adds a component to an entity
+    fn add_to_entity(manager: &mut ComponentManager, entity: &Entity, value: Box<dyn RealComponent>) -> Result<(), ErrorType> {
+        let type_id = Self::get_type_id();
+
+        match manager.component_storages.get_mut(&type_id) {
+            Some(storage) => {
+                if let Err(err) = storage.add_to_entity(entity, value) {
+                    log_error!("Failed to add the `{:?}' component to an entity: {:?}", 
+                        std::any::type_name::<Self>(), err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            },
+            None => {
+                log_error!("Can't find the `{:?}' component when adding it to an entity: component not yet registered", 
+                    std::any::type_name::<Self>()
+                );
+                return Err(ErrorType::DoesNotExist);
+            },
+        }
+
+        Ok(())
+    }
+
+    /// Removes a component from an entity
+    fn remove_from_entity(manager: &mut ComponentManager, entity: &Entity) -> Result<(), ErrorType> {
+        let type_id = Self::get_type_id();
+
+        match manager.component_storages.get_mut(&type_id) {
+            Some(storage) => {
+                if let Err(err) = storage.remove_from_entity(entity) {
+                    log_error!("Failed to remove the `{:?}' component from an entity: {:?}", 
+                        std::any::type_name::<Self>(), err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            },
+            None => {
+                log_error!("Can't find the `{:?}' component when removing it to an entity: component not yet registered", 
+                    std::any::type_name::<Self>()
+                );
+                return Err(ErrorType::DoesNotExist);
+            },
+        }
+
+        Ok(())
+    }
+
+    /// Updates a component for an entity
+    fn updates_for_entity(manager: &mut ComponentManager, entity: &Entity, value: Box<dyn RealComponent>) -> Result<(), ErrorType> {
+        let type_id = Self::get_type_id();
+
+        match manager.component_storages.get_mut(&type_id) {
+            Some(storage) => {
+                if let Err(err) = storage.updates_for_entity(entity, value) {
+                    log_error!("Failed to add the `{:?}' component to an entity: {:?}", 
+                        std::any::type_name::<Self>(), err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            },
+            None => {
+                log_error!("Can't find the `{:?}' component when adding it to an entity: component not yet registered", 
+                    std::any::type_name::<Self>()
+                );
+                return Err(ErrorType::DoesNotExist);
+            },
+        }
+
+        Ok(())
     }
 }
 
@@ -122,7 +319,7 @@ impl ComponentManager {
 
     /// Checks the common length of each component maps
     pub fn check_length(&mut self) -> Result<(), ErrorType> {
-        let default_component_id = std::any::TypeId::of::<DefaultComponent>();
+        let default_component_id = DefaultComponent::get_type_id();
         self.length = match self.component_storages.get(&default_component_id) {
             Some(default_component) => default_component.len(),
             None => {
@@ -181,3 +378,7 @@ impl ComponentManager {
 }
 
 pub(crate) type RegisterComponentFunction = fn(&mut ComponentManager) -> Result<(), ErrorType>;
+pub(crate) type RemoveComponentFunction = fn(&mut ComponentManager) -> Result<(), ErrorType>;
+pub(crate) type AddComponentToEntityFunction = fn(&mut ComponentManager, &Entity, Box<dyn RealComponent>) -> Result<(), ErrorType>;
+pub(crate) type RemoveComponentFromEntityFunction = fn(&mut ComponentManager, &Entity) -> Result<(), ErrorType>;
+pub(crate) type UpdateComponentForEntityFunction = fn(&mut ComponentManager, &Entity, Box<dyn RealComponent>) -> Result<(), ErrorType>;
