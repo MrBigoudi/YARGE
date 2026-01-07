@@ -63,6 +63,15 @@ impl EntityGenerator {
         }
     }
 
+    /// Gets the real entities given a list of UserEntity
+    pub fn get_real_entities(&self, user_entity: &[UserEntity]) -> Result<Vec<Entity>, ErrorType> {
+        let mut output = Vec::with_capacity(user_entity.len());
+        for entity in user_entity {
+            output.push(self.get_real_entity(entity)?);
+        }
+        Ok(output)
+    }
+
     /// Updates the user entities to real entities table
     pub fn update_table(&mut self, real_entities: Vec<Entity>) -> Result<(), ErrorType> {
         if self.entity_to_generate.len() != real_entities.len() {

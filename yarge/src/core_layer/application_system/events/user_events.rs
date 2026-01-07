@@ -15,7 +15,6 @@ pub(crate) enum UserEvent {
     QuitApp,
 
     /// To register a new user defined file resource
-    /// Should never be created directly by the user, instead use the UserEvent methods
     RegisterCustomFileResource {
         /// The id of the new resource type
         resource_id: crate::FileResourceTypeId,
@@ -30,6 +29,18 @@ pub(crate) enum UserEvent {
         /// The path to the resource to load
         path: std::path::PathBuf,
     },
+
+    /// To remove a single entity
+    RemoveEntity {
+        /// The entity to remove
+        user_entity: crate::core_layer::UserEntity,
+    },
+
+    /// To remove entities
+    RemoveEntities {
+        /// The entities to remove
+        user_entities: Vec<crate::core_layer::UserEntity>,
+    },    
 
     /// To register a new component
     RegisterCustomComponent {
@@ -124,6 +135,22 @@ impl UserEventBuilder {
                 resource_id: FileLoaderSystem::cast_resource_id(resource_id),
                 path: std::path::PathBuf::from(path),
             },
+        }
+    }
+
+    /// Creates an event to remove a single entity from the ECS
+    pub fn remove_entity(user_entity: crate::core_layer::UserEntity) -> Self {
+        Self {
+            event: UserEvent::RemoveEntity { user_entity }
+        }
+    }
+
+    /// Creates an event to remove entities from the ECS
+    pub fn remove_entities(user_entities: Vec<crate::core_layer::UserEntity>) -> Self {
+        Self {
+            event: UserEvent::RemoveEntities { 
+                user_entities
+            }
         }
     }
 
@@ -269,6 +296,24 @@ impl<'a> ApplicationSystem<'a> {
                         resource_id,
                         path
                     );
+                }
+                UserEvent::RemoveEntity { user_entity } => {
+                    if let Err(err) = self.ecs.remove_entity(&user_entity) {
+                        log_error!("Failed to remove an entity when handling a `RemoveEntity' event in the application: {:?}", 
+                            err
+                        );
+                        return Err(ErrorType::Unknown);
+                    }
+                    log_debug!("One entity removed");
+                }
+                UserEvent::RemoveEntities { user_entities } => {
+                    if let Err(err) = self.ecs.remove_entities(&user_entities) {
+                        log_error!("Failed to remove entities when handling a `RemoveEntities' event in the application: {:?}", 
+                            err
+                        );
+                        return Err(ErrorType::Unknown);
+                    }
+                    log_debug!("`{:?}' entities removed", user_entities.len());
                 }
                 UserEvent::RegisterCustomComponent { register_fct } => {
                     if let Err(err) = self.ecs.register_component(&register_fct) {

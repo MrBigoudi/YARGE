@@ -83,7 +83,7 @@ impl ECS {
             }
             Err(err) => {
                 log_error!(
-                    "Failed to access the global the entity generator when spawning real entities in the ECS: {:?}",
+                    "Failed to access the global entity generator when spawning real entities in the ECS: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -141,7 +141,69 @@ impl ECS {
         Ok(())
     }
 
-    /// Register a new component
+    /// Removes an entity
+    pub(crate) fn remove_entity(&mut self, user_entity: &UserEntity) -> Result<(), ErrorType> {
+        let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => {
+                match generator.get_real_entity(user_entity){
+                    Ok(entity) => entity,
+                    Err(err) => {
+                        log_error!("Failed to get the real entity from the entity generator when removing an entity in the ECS: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global entity generator when removing an entity in the ECS: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        
+        if let Err(err) = self.component_manager.remove_entity(&real_entity){
+            log_error!(
+                "Failed to remove an entity in the component manager: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }   
+        Ok(())
+    }
+
+    /// Removes entities
+    pub(crate) fn remove_entities(&mut self, user_entities: &[UserEntity]) -> Result<(), ErrorType> {
+        let real_entities = match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => {
+                match generator.get_real_entities(user_entities){
+                    Ok(entities) => entities,
+                    Err(err) => {
+                        log_error!("Failed to get the real entities from the entity generator when removing entities in the ECS: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global entity generator when removing entities in the ECS: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        
+        if let Err(err) = self.component_manager.remove_entities(&real_entities){
+            log_error!(
+                "Failed to remove entities in the component manager: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }   
+        Ok(())
+    }
+
+    /// Registers a new component
     pub(crate) fn register_component(
         &mut self,
         register_fct: &component::RegisterComponentFunction,
@@ -186,7 +248,7 @@ impl ECS {
             },
             Err(err) => {
                 log_error!(
-                    "Failed to access the global the entity generator when adding a component to an entity in the ECS: {:?}",
+                    "Failed to access the global entity generator when adding a component to an entity in the ECS: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -221,7 +283,7 @@ impl ECS {
             },
             Err(err) => {
                 log_error!(
-                    "Failed to access the global the entity generator when removing a component from an entity in the ECS: {:?}",
+                    "Failed to access the global entity generator when removing a component from an entity in the ECS: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -257,7 +319,7 @@ impl ECS {
             },
             Err(err) => {
                 log_error!(
-                    "Failed to access the global the entity generator when updating a component for an entity in the ECS: {:?}",
+                    "Failed to access the global entity generator when updating a component for an entity in the ECS: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -292,7 +354,7 @@ impl ECS {
             },
             Err(err) => {
                 log_error!(
-                    "Failed to access the global the entity generator when querying a component value from an entity in the ECS: {:?}",
+                    "Failed to access the global entity generator when querying a component value from an entity in the ECS: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);

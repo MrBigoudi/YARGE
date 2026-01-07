@@ -27,6 +27,7 @@ pub trait ComponentStorage {
         &mut self,
         entity: &Entity,
     ) -> Result<Box<dyn RealComponent>, ErrorType>;
+    fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType>;
 }
 
 impl<T: Component> ComponentStorage for ComponentMap<T> {
@@ -194,6 +195,17 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
                 Err(ErrorType::DoesNotExist)
             }
         }
+    }
+    
+    fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
+        if let Err(err) = self.remove(entity) {
+            log_error!(
+                "Failed to remove an entity in a component storage: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+        Ok(())
     }
 }
 
@@ -482,6 +494,25 @@ impl ComponentManager {
         }
 
         Ok(new_entities)
+    }
+
+    /// Removes a given entity from every component
+    pub fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
+        for (type_id, storages) in &mut self.component_storages {
+            if let Err(err) = storages.remove_entity(entity) {
+                log_error!("Failed to remove an entity in the `{:?}' component: {:?}", type_id, err);
+                return Err(ErrorType::Unknown);
+            }
+        }
+        Ok(())
+    }
+    
+    /// Removes a list of entities from every component
+    pub fn remove_entities(&mut self, entities: &[Entity]) -> Result<(), ErrorType> {
+        for entity in entities {
+            self.remove_entity(entity)?
+        }
+        Ok(())
     }
 }
 

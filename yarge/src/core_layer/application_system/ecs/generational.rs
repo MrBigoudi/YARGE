@@ -175,30 +175,34 @@ impl<T> GenerationalVec<T> {
     }
 
     /// Removes an element from the list
-    pub fn remove(&mut self, key: &GenerationalKey) {
+    pub fn remove(&mut self, key: &GenerationalKey) -> Result<(), ErrorType> {
         match self.entries.get_mut(key.index) {
             None => {
                 log_warn!(
                     "Trying to remove a non existing entry in a generational indices structure"
                 );
+                Err(ErrorType::DoesNotExist)
             }
             Some(GenerationalEntry { entry, generation }) => match entry {
                 Entry::Free { .. } => {
                     log_warn!(
                         "Trying to remove an already removed entry in a generational indices structure"
                     );
+                    Err(ErrorType::DoesNotExist)
                 }
                 Entry::Occupied { .. } => {
                     if *generation != key.generation {
                         log_warn!(
                             "Trying to remove an older generation in a generational indices structure"
                         );
+                        Err(ErrorType::DoesNotExist)
                     } else {
                         *generation += 1;
                         *entry = Entry::Free {
                             next_free: self.free_head,
                         };
                         self.free_head = key.index;
+                        Ok(())
                     }
                 }
             },
