@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
 use crate::{
-    ECS,
     core_layer::{ApplicationSystem, FileLoaderSystem},
     error::ErrorType,
     log_debug, log_error,
@@ -40,7 +39,7 @@ pub(crate) enum UserEvent {
     RemoveEntities {
         /// The entities to remove
         user_entities: Vec<crate::core_layer::UserEntity>,
-    },    
+    },
 
     /// To register a new component
     RegisterCustomComponent {
@@ -87,17 +86,20 @@ pub(crate) enum UserEvent {
             crate::core_layer::application_system::ecs::component::UpdateComponentForEntityFunction,
     },
 
-    /// Gets the value of a component for an entity
-    GetComponentValueForEntity {
-        /// The user entity from which to get the component value
-        user_entity: crate::core_layer::UserEntity,
-        /// The function to get a component value from an entity
-        get_value_for_entity_fct:
-            crate::core_layer::application_system::ecs::component::GetComponentValueForEntityFunction,
-        /// The callback function for the query
-        query_callback:
-            crate::core_layer::application_system::ecs::query::OnGetComponentValueQueryCallback,
-    }
+    // TODO: Add schedule + if condition
+    RegisterSystem {
+        name: std::any::TypeId,
+        with: Vec<std::any::TypeId>,
+        without: Vec<std::any::TypeId>,
+        callback: crate::core_layer::application_system::ecs::system::SystemCallback,
+    },
+
+    RegisterSystemMut {
+        name: std::any::TypeId,
+        with: Vec<std::any::TypeId>,
+        without: Vec<std::any::TypeId>,
+        callback_mut: crate::core_layer::application_system::ecs::system::SystemMutCallback,
+    },
 }
 
 /// A public builder for UserEvent
@@ -141,16 +143,14 @@ impl UserEventBuilder {
     /// Creates an event to remove a single entity from the ECS
     pub fn remove_entity(user_entity: crate::core_layer::UserEntity) -> Self {
         Self {
-            event: UserEvent::RemoveEntity { user_entity }
+            event: UserEvent::RemoveEntity { user_entity },
         }
     }
 
     /// Creates an event to remove entities from the ECS
     pub fn remove_entities(user_entities: Vec<crate::core_layer::UserEntity>) -> Self {
         Self {
-            event: UserEvent::RemoveEntities { 
-                user_entities
-            }
+            event: UserEvent::RemoveEntities { user_entities },
         }
     }
 
@@ -212,34 +212,46 @@ impl UserEventBuilder {
         }
     }
 
-    /// Creates an event to get the value of an entity's component
-    /// Returns the query from which to get the wanted value
-    pub fn get_component_value_from_entity<G, T>(
-        entity: crate::core_layer::UserEntity,
-        callback: crate::core_layer::application_system::ecs::query::UserOnGetComponentValueQueryCallback<G, T>,
-    ) -> Result<Self, ErrorType>
+    /// Creates an event to register a new system in the ECS
+    pub fn register_system<G, T, With, Without>(
+        callback: crate::core_layer::application_system::ecs::system::UserSystemCallback<G, T>,
+    ) -> Self
     where
         G: crate::Game + 'static,
         T: crate::Component + 'static,
+        With: crate::core_layer::application_system::ecs::system::ComponentList,
+        Without: crate::core_layer::application_system::ecs::system::ComponentList,
     {
-        let _new_query = match ECS::generate_queries(1) {
-            Ok(queries) => queries[0],
-            Err(err) => {
-                log_error!(
-                    "Failed to generate queries when building an event to query a component value from an entity: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+        Self {
+            event: UserEvent::RegisterSystem {
+                name: T::get_type_id(),
+                with: With::get_ids(),
+                without: Without::get_ids(),
+                callback:
+                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system::<G, T>(callback),
             }
-        };
+        }
+    }
 
-        Ok(Self {
-                event: UserEvent::GetComponentValueForEntity {user_entity: entity,
-                    get_value_for_entity_fct: T::get_value_from_entity,
-                    query_callback:
-                        crate::core_layer::application_system::ecs::query::UserQueryCallbackBuilder::on_get_component_value::<G,T>(callback),
-                }
-            })
+    /// Creates an event to register a new mutable system in the ECS
+    pub fn register_system_mut<G, T, With, Without>(
+        callback: crate::core_layer::application_system::ecs::system::UserSystemMutCallback<G, T>,
+    ) -> Self
+    where
+        G: crate::Game + 'static,
+        T: crate::Component + 'static,
+        With: crate::core_layer::application_system::ecs::system::ComponentList,
+        Without: crate::core_layer::application_system::ecs::system::ComponentList,
+    {
+        Self {
+            event: UserEvent::RegisterSystemMut {
+                name: T::get_type_id(),
+                with: With::get_ids(),
+                without: Without::get_ids(),
+                callback_mut:
+                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system_mut::<G, T>(callback),
+            }
+        }
     }
 }
 
@@ -299,7 +311,8 @@ impl<'a> ApplicationSystem<'a> {
                 }
                 UserEvent::RemoveEntity { user_entity } => {
                     if let Err(err) = self.ecs.remove_entity(&user_entity) {
-                        log_error!("Failed to remove an entity when handling a `RemoveEntity' event in the application: {:?}", 
+                        log_error!(
+                            "Failed to remove an entity when handling a `RemoveEntity' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
@@ -308,7 +321,8 @@ impl<'a> ApplicationSystem<'a> {
                 }
                 UserEvent::RemoveEntities { user_entities } => {
                     if let Err(err) = self.ecs.remove_entities(&user_entities) {
-                        log_error!("Failed to remove entities when handling a `RemoveEntities' event in the application: {:?}", 
+                        log_error!(
+                            "Failed to remove entities when handling a `RemoveEntities' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
@@ -386,37 +400,46 @@ impl<'a> ApplicationSystem<'a> {
                     }
                     log_debug!("Updated component for entity `{:?}'", user_entity);
                 }
-                UserEvent::GetComponentValueForEntity {
-                    user_entity,
-                    get_value_for_entity_fct,
-                    query_callback,
-                } => {
-                    let value = match self
-                        .ecs
-                        .get_component_value_from_entity(&user_entity, &get_value_for_entity_fct)
-                    {
-                        Err(err) => {
-                            log_error!(
-                                "Failed to query a component value from an entity when handling a `GetComponentValueForEntity' event in the application: {:?}",
-                                err
-                            );
-                            return Err(ErrorType::Unknown);
-                        }
-                        Ok(value) => value,
-                    };
 
-                    // Call user on_get_component_query_resolved(id: Query, value: Box<dyn Component>) function
-                    if let Err(err) = query_callback(self.user_game, value) {
+                UserEvent::RegisterSystem {
+                    name,
+                    with,
+                    without,
+                    callback,
+                } => {
+                    if let Err(err) = self.ecs.register_system(name, with, without, callback) {
                         log_error!(
-                            "Failed to call the user callback when handling a `GetComponentValueForEntity' event in the application: {:?}",
+                            "Failed to register a new system when handling a `RegisterSystem' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
                     }
-
-                    log_debug!("Updated component for entity `{:?}'", user_entity);
+                    log_debug!("Added new system");
+                }
+                UserEvent::RegisterSystemMut {
+                    name,
+                    with,
+                    without,
+                    callback_mut,
+                } => {
+                    if let Err(err) =
+                        self.ecs
+                            .register_system_mut(name, with, without, callback_mut)
+                    {
+                        log_error!(
+                            "Failed to register a new system when handling a `RegisterSystemMut' event in the application: {:?}",
+                            err
+                        );
+                        return Err(ErrorType::Unknown);
+                    }
+                    log_debug!("Added new system mut");
                 }
             }
+        }
+
+        if let Err(err) = self.run_systems() {
+            log_error!("Failed to run the user systems: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         Ok(should_quit)

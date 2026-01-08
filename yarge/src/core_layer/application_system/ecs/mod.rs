@@ -8,14 +8,13 @@ pub mod component;
 /// See https://austinmorlan.com/posts/entity_component_system/
 /// See https://kyren.github.io/2018/09/14/rustconf-talk.html
 pub mod entity;
-pub mod query;
 pub mod system;
 
 pub use component::Component;
 pub use entity::UserEntity;
-pub use query::Query;
+pub use system::{SystemCons, SystemNil};
 
-use crate::error::ErrorType;
+use crate::{core_layer::ApplicationSystem, error::ErrorType};
 
 #[allow(unused)]
 use crate::{log_error, log_info, log_warn};
@@ -23,9 +22,14 @@ use crate::{log_error, log_info, log_warn};
 #[allow(clippy::upper_case_acronyms)]
 /// An entity component system
 pub struct ECS {
+    /// The list of entities
+    pub(crate) entities: Vec<entity::Entity>,
+
     /// Full of types like EntityMap<T>
     /// Each collections should be of the same size
     pub(crate) component_manager: component::ComponentManager,
+
+    pub(crate) system_manager: system::SystemManager,
 }
 
 impl ECS {
@@ -42,7 +46,13 @@ impl ECS {
             }
         };
 
-        Ok(ECS { component_manager })
+        let system_manager = system::SystemManager::init();
+
+        Ok(ECS {
+            entities: vec![],
+            component_manager,
+            system_manager,
+        })
     }
 
     /// Creates empty entities
@@ -53,20 +63,6 @@ impl ECS {
             Err(err) => {
                 log_error!(
                     "Failed to access the global entity generator when spawning user entities in the ECS: {:?}",
-                    err
-                );
-                Err(ErrorType::Unknown)
-            }
-        }
-    }
-
-    /// Creates a new query
-    pub fn generate_queries(nb_entities: usize) -> Result<Vec<Query>, ErrorType> {
-        match query::GLOBAL_QUERY_GENERATOR.write() {
-            Ok(mut generator) => Ok(generator.generate_queries(nb_entities)),
-            Err(err) => {
-                log_error!(
-                    "Failed to access the global query generator when generating new queries in the ECS: {:?}",
                     err
                 );
                 Err(ErrorType::Unknown)
@@ -102,7 +98,7 @@ impl ECS {
                     );
                     return Err(ErrorType::Unknown);
                 }
-                Ok(new_generated_entities) => {
+                Ok(mut new_generated_entities) => {
                     // Sync entities with the GLOBAL_ENTITY_GENERATOR
                     if new_generated_entities.len() != nb_new_entities_to_spawn {
                         log_error!(
@@ -116,7 +112,7 @@ impl ECS {
                     }
                     match entity::GLOBAL_ENTITY_GENERATOR.write() {
                         Ok(mut generator) => {
-                            if let Err(err) = generator.update_table(new_generated_entities) {
+                            if let Err(err) = generator.update_table(&new_generated_entities) {
                                 log_error!(
                                     "Failed to update the global entity generator table: {:?}",
                                     err
@@ -132,6 +128,7 @@ impl ECS {
                             return Err(ErrorType::Unknown);
                         }
                     }
+                    self.entities.append(&mut new_generated_entities);
                 }
             }
         }
@@ -144,15 +141,16 @@ impl ECS {
     /// Removes an entity
     pub(crate) fn remove_entity(&mut self, user_entity: &UserEntity) -> Result<(), ErrorType> {
         let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
-            Ok(generator) => {
-                match generator.get_real_entity(user_entity){
-                    Ok(entity) => entity,
-                    Err(err) => {
-                        log_error!("Failed to get the real entity from the entity generator when removing an entity in the ECS: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
+            Ok(generator) => match generator.get_real_entity(user_entity) {
+                Ok(entity) => entity,
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the real entity from the entity generator when removing an entity in the ECS: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
                 }
-            }
+            },
             Err(err) => {
                 log_error!(
                     "Failed to access the global entity generator when removing an entity in the ECS: {:?}",
@@ -161,29 +159,49 @@ impl ECS {
                 return Err(ErrorType::Unknown);
             }
         };
-        
-        if let Err(err) = self.component_manager.remove_entity(&real_entity){
+
+        if let Err(err) = self.component_manager.remove_entity(&real_entity) {
             log_error!(
                 "Failed to remove an entity in the component manager: {:?}",
                 err
             );
             return Err(ErrorType::Unknown);
-        }   
+        }
+
+        let indices_to_remove: Vec<usize> = self
+            .entities
+            .iter()
+            .enumerate()
+            .filter(|&(_, val)| *val == real_entity)
+            .map(|(index, _)| index)
+            .collect();
+        for index in indices_to_remove.into_iter().rev() {
+            self.entities.drain(index..index + 1);
+        }
+
         Ok(())
     }
 
     /// Removes entities
-    pub(crate) fn remove_entities(&mut self, user_entities: &[UserEntity]) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entities(
+        &mut self,
+        user_entities: &[UserEntity],
+    ) -> Result<(), ErrorType> {
+        if user_entities.is_empty() {
+            log_warn!("Trying to remove 0 entities");
+            return Ok(());
+        }
         let real_entities = match entity::GLOBAL_ENTITY_GENERATOR.read() {
-            Ok(generator) => {
-                match generator.get_real_entities(user_entities){
-                    Ok(entities) => entities,
-                    Err(err) => {
-                        log_error!("Failed to get the real entities from the entity generator when removing entities in the ECS: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
+            Ok(generator) => match generator.get_real_entities(user_entities) {
+                Ok(entities) => entities,
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the real entities from the entity generator when removing entities in the ECS: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
                 }
-            }
+            },
             Err(err) => {
                 log_error!(
                     "Failed to access the global entity generator when removing entities in the ECS: {:?}",
@@ -192,14 +210,26 @@ impl ECS {
                 return Err(ErrorType::Unknown);
             }
         };
-        
-        if let Err(err) = self.component_manager.remove_entities(&real_entities){
+
+        if let Err(err) = self.component_manager.remove_entities(&real_entities) {
             log_error!(
                 "Failed to remove entities in the component manager: {:?}",
                 err
             );
             return Err(ErrorType::Unknown);
-        }   
+        }
+
+        let indices_to_remove: Vec<usize> = self
+            .entities
+            .iter()
+            .enumerate()
+            .filter(|&(_, val)| real_entities.contains(val))
+            .map(|(index, _)| index)
+            .collect();
+        for index in indices_to_remove.into_iter().rev() {
+            self.entities.drain(index..index + 1);
+        }
+
         Ok(())
     }
 
@@ -336,39 +366,151 @@ impl ECS {
         Ok(())
     }
 
-    pub(crate) fn get_component_value_from_entity(
+    pub(crate) fn register_system(
         &mut self,
-        user_entity: &UserEntity,
-        get_value_for_entity_fct: &component::GetComponentValueForEntityFunction,
-    ) -> Result<Box<dyn component::RealComponent>, ErrorType> {
-        let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
-            Ok(generator) => match generator.get_real_entity(user_entity) {
-                Ok(entity) => entity,
-                Err(err) => {
-                    log_error!(
-                        "Failed to get the real entity from the global entity generator when querying a component value from an entity in the ECS: {:?}",
-                        err
-                    );
-                    return Err(ErrorType::Unknown);
-                }
-            },
-            Err(err) => {
+        name: std::any::TypeId,
+        with: Vec<std::any::TypeId>,
+        without: Vec<std::any::TypeId>,
+        callback: system::SystemCallback,
+    ) -> Result<(), ErrorType> {
+        // Check if all types are valid component
+        for type_id in &with {
+            if !self.component_manager.is_registered(type_id) {
                 log_error!(
-                    "Failed to access the global entity generator when querying a component value from an entity in the ECS: {:?}",
-                    err
+                    "Failed to register a new system in the ECS: the component `{:?}' used in the `With' is not registered",
+                    type_id
                 );
-                return Err(ErrorType::Unknown);
+                return Err(ErrorType::DoesNotExist);
             }
-        };
-        match get_value_for_entity_fct(&mut self.component_manager, &real_entity) {
-            Err(err) => {
-                log_error!(
-                    "Failed to query a component value from an entity in the ECS: {:?}",
-                    err
-                );
-                Err(ErrorType::Unknown)
-            }
-            Ok(value) => Ok(value),
         }
+        for type_id in &without {
+            if !self.component_manager.is_registered(type_id) {
+                log_error!(
+                    "Failed to register a new system in the ECS: the component `{:?}' used in the `Without' is not registered",
+                    type_id
+                );
+                return Err(ErrorType::DoesNotExist);
+            }
+        }
+
+        // Create a new system
+        let new_system = system::SystemRef {
+            name,
+            callback,
+            with,
+            without,
+        };
+
+        self.system_manager.systems_ref.push(new_system);
+        Ok(())
+    }
+
+    pub(crate) fn register_system_mut(
+        &mut self,
+        name: std::any::TypeId,
+        with: Vec<std::any::TypeId>,
+        without: Vec<std::any::TypeId>,
+        callback: system::SystemMutCallback,
+    ) -> Result<(), ErrorType> {
+        // Check if all types are valid component
+        for type_id in &with {
+            if !self.component_manager.is_registered(type_id) {
+                log_error!(
+                    "Failed to register a new mut system in the ECS: the component `{:?}' used in the `With' is not registered",
+                    type_id
+                );
+                return Err(ErrorType::DoesNotExist);
+            }
+        }
+        for type_id in &without {
+            if !self.component_manager.is_registered(type_id) {
+                log_error!(
+                    "Failed to register a new mut system in the ECS: the component `{:?}' used in the `Without' is not registered",
+                    type_id
+                );
+                return Err(ErrorType::DoesNotExist);
+            }
+        }
+
+        // Create a new system
+        let new_system = system::SystemMut {
+            name,
+            callback,
+            with,
+            without,
+        };
+
+        self.system_manager.systems_mut.push(new_system);
+        Ok(())
+    }
+}
+
+impl ApplicationSystem<'_> {
+    pub fn run_systems(&mut self) -> Result<(), ErrorType> {
+        for entity in &self.ecs.entities {
+            // By ref first
+            for system::SystemRef {
+                name,
+                with,
+                without,
+                callback,
+            } in &self.ecs.system_manager.systems_ref
+            {
+                match self.ecs.component_manager.should_run(entity, with, without) {
+                    Ok(should_run) => {
+                        if should_run {
+                            let value = match self.ecs.component_manager.get(name, entity) {
+                                Ok(value) => value,
+                                Err(err) => {
+                                    log_error!("Failed to get value: {:?}", err);
+                                    return Err(ErrorType::Unknown);
+                                }
+                            };
+                            if let Err(err) = callback(self.user_game, value) {
+                                log_error!("Failed to run a system in the application: {:?}", err);
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        log_error!("Failed to check if the system should run: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+
+            // By mut
+            for system::SystemMut {
+                name,
+                with,
+                without,
+                callback,
+            } in &self.ecs.system_manager.systems_mut
+            {
+                match self.ecs.component_manager.should_run(entity, with, without) {
+                    Ok(should_run) => {
+                        if should_run {
+                            let value = match self.ecs.component_manager.get_mut(name, entity) {
+                                Ok(value) => value,
+                                Err(err) => {
+                                    log_error!("Failed to get value: {:?}", err);
+                                    return Err(ErrorType::Unknown);
+                                }
+                            };
+                            if let Err(err) = callback(self.user_game, value) {
+                                log_error!("Failed to run a system in the application: {:?}", err);
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        log_error!("Failed to check if the system should run: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }

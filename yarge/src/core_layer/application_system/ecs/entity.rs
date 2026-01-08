@@ -73,7 +73,7 @@ impl EntityGenerator {
     }
 
     /// Updates the user entities to real entities table
-    pub fn update_table(&mut self, real_entities: Vec<Entity>) -> Result<(), ErrorType> {
+    pub fn update_table(&mut self, real_entities: &[Entity]) -> Result<(), ErrorType> {
         if self.entity_to_generate.len() != real_entities.len() {
             log_error!(
                 "Failed to update the user entities to real entities table in the entity generator: length do not match"

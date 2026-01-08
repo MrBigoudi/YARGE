@@ -28,6 +28,8 @@ pub trait ComponentStorage {
         entity: &Entity,
     ) -> Result<Box<dyn RealComponent>, ErrorType>;
     fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType>;
+    fn get(&self, entity: &Entity) -> Result<Option<&dyn RealComponent>, ErrorType>;
+    fn get_mut(&mut self, entity: &Entity) -> Result<Option<&mut dyn RealComponent>, ErrorType>;
 }
 
 impl<T: Component> ComponentStorage for ComponentMap<T> {
@@ -196,7 +198,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
             }
         }
     }
-    
+
     fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
         if let Err(err) = self.remove(entity) {
             log_error!(
@@ -207,20 +209,62 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
         }
         Ok(())
     }
+
+    fn get(&self, entity: &Entity) -> Result<Option<&dyn RealComponent>, ErrorType> {
+        match self.get_value(entity) {
+            Ok(None) => Ok(None),
+            Ok(Some(value)) => {
+                let component: &dyn RealComponent = value;
+                Ok(Some(component))
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to get the value when getting a storage value: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
+    fn get_mut(&mut self, entity: &Entity) -> Result<Option<&mut dyn RealComponent>, ErrorType> {
+        match self.get_mut_value(entity) {
+            Ok(None) => Ok(None),
+            Ok(Some(value)) => {
+                let component: &mut dyn RealComponent = value;
+                Ok(Some(component))
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to get the value when getting a storage value: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
 }
 
 pub trait RealComponent: Send + 'static {
     fn into_any(self: Box<Self>) -> Box<dyn std::any::Any>;
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
 impl<T: Component> RealComponent for T {
     fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
         self
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 /// A component
-pub trait Component: Clone + Send + Sized + 'static {
+pub trait Component: std::any::Any + Clone + Send + Sized + 'static {
     /// Tells if this component is a default component
     /// Should not be used by the user
     const IS_DEFAULT: bool = false;
@@ -255,7 +299,7 @@ pub trait Component: Clone + Send + Sized + 'static {
             }
         }
 
-        log_warn!("Component `{:?}' registered", std::any::type_name::<Self>());
+        // log_warn!("Component `{:?}' registered", std::any::type_name::<Self>());
 
         Ok(())
     }
@@ -500,19 +544,118 @@ impl ComponentManager {
     pub fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
         for (type_id, storages) in &mut self.component_storages {
             if let Err(err) = storages.remove_entity(entity) {
-                log_error!("Failed to remove an entity in the `{:?}' component: {:?}", type_id, err);
+                log_error!(
+                    "Failed to remove an entity in the `{:?}' component: {:?}",
+                    type_id,
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         }
         Ok(())
     }
-    
+
     /// Removes a list of entities from every component
     pub fn remove_entities(&mut self, entities: &[Entity]) -> Result<(), ErrorType> {
         for entity in entities {
             self.remove_entity(entity)?
         }
         Ok(())
+    }
+
+    /// Check if a given component type is well registered
+    pub fn is_registered(&self, type_id: &std::any::TypeId) -> bool {
+        self.component_storages.contains_key(type_id)
+    }
+
+    pub fn has_component_type(
+        &self,
+        entity: &Entity,
+        type_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
+        match self.component_storages.get(type_id) {
+            None => {
+                log_error!("Unexisting component");
+                Err(ErrorType::DoesNotExist)
+            }
+            Some(storage) => match storage.get(entity) {
+                Ok(Some(..)) => Ok(true),
+                Ok(None) => Ok(false),
+                Err(err) => {
+                    log_error!("Failed to get value: {:?}", err);
+                    Err(ErrorType::Unknown)
+                }
+            },
+        }
+    }
+
+    pub fn should_run(
+        &self,
+        entity: &Entity,
+        with: &[std::any::TypeId],
+        without: &[std::any::TypeId],
+    ) -> Result<bool, ErrorType> {
+        for type_id in with {
+            if !self.has_component_type(entity, type_id)? {
+                return Ok(false);
+            }
+        }
+
+        for type_id in without {
+            if self.has_component_type(entity, type_id)? {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
+    }
+
+    pub fn get(
+        &self,
+        type_id: &std::any::TypeId,
+        entity: &Entity,
+    ) -> Result<&dyn RealComponent, ErrorType> {
+        match self.component_storages.get(type_id) {
+            None => {
+                log_error!("Unexisting component");
+                Err(ErrorType::DoesNotExist)
+            }
+            Some(storage) => match storage.get(entity) {
+                Ok(Some(value)) => Ok(value),
+                Ok(None) => {
+                    log_error!("Failed to find non empty value");
+                    Err(ErrorType::DoesNotExist)
+                }
+                Err(err) => {
+                    log_error!("Failed to get value: {:?}", err);
+                    Err(ErrorType::Unknown)
+                }
+            },
+        }
+    }
+
+    pub fn get_mut(
+        &mut self,
+        type_id: &std::any::TypeId,
+        entity: &Entity,
+    ) -> Result<&mut dyn RealComponent, ErrorType> {
+        match self.component_storages.get_mut(type_id) {
+            None => {
+                log_error!("Unexisting component");
+                Err(ErrorType::DoesNotExist)
+            }
+            Some(storage) => match storage.get_mut(entity) {
+                Ok(Some(value)) => Ok(value),
+                Ok(None) => {
+                    log_error!("Failed to find non empty value");
+                    Err(ErrorType::DoesNotExist)
+                }
+                Err(err) => {
+                    log_error!("Failed to get value: {:?}", err);
+                    Err(ErrorType::Unknown)
+                }
+            },
+        }
     }
 }
 
@@ -524,5 +667,3 @@ pub(crate) type RemoveComponentFromEntityFunction =
     fn(&mut ComponentManager, &Entity) -> Result<(), ErrorType>;
 pub(crate) type UpdateComponentForEntityFunction =
     fn(&mut ComponentManager, &Entity, Box<dyn RealComponent>) -> Result<(), ErrorType>;
-pub(crate) type GetComponentValueForEntityFunction =
-    fn(&mut ComponentManager, &Entity) -> Result<Box<dyn RealComponent>, ErrorType>;

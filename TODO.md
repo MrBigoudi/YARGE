@@ -8,8 +8,10 @@
 
 ## ECS
 
+- Add a way to remove a system
+- Add system schedules
+- Add system condition
 - Refactor getters to the components values of an entity, very ugly for now !
-- Create systems
 - Add tests for the generational indices list
 
 ## Graphics
