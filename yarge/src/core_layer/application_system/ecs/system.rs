@@ -100,13 +100,29 @@ impl UserSystemCallbackBuilder {
     }
 }
 
+/// The schedule for the system calls
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SystemSchedule {
+    /// The system will never be called
+    Never,
+    /// The system will be called a single time
+    SingleCall,
+    /// The system will be called at every update
+    Always,
+    /// The system will be called at every updates for the first X updates
+    ForXUpdates(usize),
+    /// The system will be called once every X updates
+    EveryXUpdates(usize),
+}
+
 pub(crate) struct SystemInternal {
     pub entities: HashSet<crate::Entity>,
     pub name: std::any::TypeId,
     pub with: Vec<std::any::TypeId>,
     pub without: Vec<std::any::TypeId>,
+    pub schedule: SystemSchedule,
     // TODO: add if condition
-    // TODO: add schedule (Once, Everytime)
+    updates_counter: usize,
 }
 
 impl SystemInternal {
@@ -114,12 +130,43 @@ impl SystemInternal {
         name: std::any::TypeId, 
         with: &[std::any::TypeId], 
         without: &[std::any::TypeId],
+        schedule: SystemSchedule,
     ) -> Self {
         Self {
             entities: HashSet::new(),
             name,
             with: with.to_vec(),
             without: without.to_vec(),
+            schedule,
+            updates_counter: 0,
+        }
+    }
+
+    pub fn should_run_this_update(&mut self) -> bool {
+        match self.schedule {
+            SystemSchedule::Never => false,
+            SystemSchedule::SingleCall => {
+                self.schedule = SystemSchedule::Never;
+                true
+            },
+            SystemSchedule::Always => true,
+            SystemSchedule::ForXUpdates(nb_frames_remaining) => {
+                if nb_frames_remaining == 1 {
+                    self.schedule =  SystemSchedule::Never;
+                } else {
+                    self.schedule = SystemSchedule::ForXUpdates(nb_frames_remaining - 1);
+                }
+                true
+            },
+            SystemSchedule::EveryXUpdates(nb_frames_to_wait) => {
+                if self.updates_counter % nb_frames_to_wait == 0 {
+                    self.updates_counter = 1;
+                    true
+                } else {
+                    self.updates_counter += 1;
+                    false
+                }
+            },
         }
     }
 
@@ -261,8 +308,9 @@ impl SystemRef {
         with: &[std::any::TypeId], 
         without: &[std::any::TypeId],
         callback: SystemCallback,
+        schedule: SystemSchedule,
     ) -> Self {
-        let internal = SystemInternal::new(name, with, without);
+        let internal = SystemInternal::new(name, with, without, schedule);
         Self {
             callback,
             internal,
@@ -276,8 +324,9 @@ impl SystemMut {
         with: &[std::any::TypeId], 
         without: &[std::any::TypeId],
         callback: SystemMutCallback,
+        schedule: SystemSchedule,
     ) -> Self {
-        let internal = SystemInternal::new(name, with, without);
+        let internal = SystemInternal::new(name, with, without, schedule);
         Self {
             callback,
             internal,
@@ -304,10 +353,11 @@ impl SystemManager {
         with: &[std::any::TypeId], 
         without: &[std::any::TypeId],
         callback: SystemCallback,
+        schedule: SystemSchedule,
         component_manager: &super::component::ComponentManager,
         existing_entities: &[crate::Entity],
     ) -> Result<(), ErrorType> {
-        let mut new_system = SystemRef::new(name, with, without, callback);
+        let mut new_system = SystemRef::new(name, with, without, callback, schedule);
         if let Err(err) = new_system.internal.add_entities(component_manager, existing_entities){
             log_error!("Failed to add the entities when registering a new system: {:?}", err);
             return Err(ErrorType::Unknown);
@@ -322,10 +372,11 @@ impl SystemManager {
         with: &[std::any::TypeId], 
         without: &[std::any::TypeId],
         callback: SystemMutCallback,
+        schedule: SystemSchedule,
         component_manager: &super::component::ComponentManager,
         existing_entities: &[crate::Entity],
     ) -> Result<(), ErrorType> {
-        let mut new_system = SystemMut::new(name, with, without, callback);
+        let mut new_system = SystemMut::new(name, with, without, callback, schedule);
         if let Err(err) = new_system.internal.add_entities(component_manager, existing_entities){
             log_error!("Failed to add the entities when registering a new mut system: {:?}", err);
             return Err(ErrorType::Unknown);
@@ -425,6 +476,28 @@ impl SystemManager {
         }
     }
 
+    pub fn clean_dead_systems(&mut self){
+        let indices_to_remove: Vec<usize> = self.systems_ref
+            .iter()
+            .enumerate()
+            .filter(|&(_, val)| val.internal.schedule == SystemSchedule::Never)
+            .map(|(index, _)| index)
+            .collect();
+        for index in indices_to_remove.into_iter().rev() {
+            self.systems_ref.drain(index..index + 1);
+        }
+
+        let indices_to_remove: Vec<usize> = self.systems_mut
+            .iter()
+            .enumerate()
+            .filter(|&(_, val)| val.internal.schedule == SystemSchedule::Never)
+            .map(|(index, _)| index)
+            .collect();
+        for index in indices_to_remove.into_iter().rev() {
+            self.systems_mut.drain(index..index + 1);
+        }
+    }
+
     pub fn run_all(
         &mut self, 
         component_manager: &mut super::component::ComponentManager,
@@ -432,38 +505,46 @@ impl SystemManager {
     ) -> Result<(), ErrorType> {
         // By ref first
         // let mut systems_to_remove = Vec::with_capacity(self.systems_ref.len());
-        for system in &self.systems_ref {
-            for entity in &system.internal.entities {
-                let value = match component_manager.get(&system.internal.name, entity) {
-                    Ok(value) => value,
-                    Err(err) => {
-                        log_error!("Failed to get a component value when running systems: {:?}", err);
+        for system in &mut self.systems_ref {
+            if system.internal.should_run_this_update(){
+                for entity in &system.internal.entities {
+                    let value = match component_manager.get(&system.internal.name, entity) {
+                        Ok(value) => value,
+                        Err(err) => {
+                            log_error!("Failed to get a component value when running systems: {:?}", err);
+                            return Err(ErrorType::Unknown);
+                        }
+                    };
+                    if let Err(err) = (system.callback)(game, value) {
+                        log_error!("Failed to run a system: {:?}", err);
                         return Err(ErrorType::Unknown);
                     }
-                };
-                if let Err(err) = (system.callback)(game, value) {
-                    log_error!("Failed to run a system: {:?}", err);
-                    return Err(ErrorType::Unknown);
                 }
             }
         }
 
         // By mut then
         for system in &mut self.systems_mut {
-            for entity in &system.internal.entities {
-                let value = match component_manager.get_mut(&system.internal.name, entity) {
-                    Ok(value) => value,
-                    Err(err) => {
-                        log_error!("Failed to get a component value when running systems: {:?}", err);
+            if system.internal.should_run_this_update(){
+                for entity in &system.internal.entities {
+                    let value = match component_manager.get_mut(&system.internal.name, entity) {
+                        Ok(value) => value,
+                        Err(err) => {
+                            log_error!("Failed to get a component value when running systems: {:?}", err);
+                            return Err(ErrorType::Unknown);
+                        }
+                    };
+                    if let Err(err) = (system.callback)(game, value) {
+                        log_error!("Failed to run a system: {:?}", err);
                         return Err(ErrorType::Unknown);
                     }
-                };
-                if let Err(err) = (system.callback)(game, value) {
-                    log_error!("Failed to run a system: {:?}", err);
-                    return Err(ErrorType::Unknown);
                 }
             }
         }
+
+        // Clean empty systems
+        self.clean_dead_systems();
+
         Ok(())
     }
 }

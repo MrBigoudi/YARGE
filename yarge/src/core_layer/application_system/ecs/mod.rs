@@ -12,7 +12,7 @@ pub mod system;
 
 pub use component::Component;
 pub use entity::UserEntity;
-pub use system::{SystemCons, SystemNil};
+pub use system::{SystemCons, SystemNil, SystemSchedule};
 
 
 #[allow(unused)]
@@ -392,6 +392,7 @@ impl ECS {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
+        schedule: SystemSchedule,
         callback: system::SystemCallback,
     ) -> Result<(), ErrorType> {
         // Check if all types are valid component
@@ -416,7 +417,7 @@ impl ECS {
 
         // Create a new system
         if let Err(err) = self.system_manager.register_new_system_ref(
-            name, &with, &without, callback, 
+            name, &with, &without, callback, schedule, 
             &self.component_manager, &self.entities
         ){
             log_error!("Failed to register a new system in the ECS: {:?}", err);
@@ -431,6 +432,7 @@ impl ECS {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
+        schedule: SystemSchedule,
         callback: system::SystemMutCallback,
     ) -> Result<(), ErrorType> {
         // Check if all types are valid component
@@ -455,7 +457,7 @@ impl ECS {
 
         // Create a new system
         if let Err(err) = self.system_manager.register_new_system_mut(
-            name, &with, &without, callback, 
+            name, &with, &without, callback, schedule,
             &self.component_manager, &self.entities
         ){
             log_error!("Failed to register a new mut system in the ECS: {:?}", err);

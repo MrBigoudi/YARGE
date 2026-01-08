@@ -2,17 +2,17 @@
 
 ## Global
 
-- Check / Fix update function not running when window not focused
+- Check / Fix update function not running when window not focused ?
 - Add better documentation
 - Refactor modules privacy in crate
 - Add tests for the ECS methods
+- Create an example folder with many testbeds and way to run them from cargo directly
 
 ## ECS
 
-- Add a way to remove a system
 - Add system schedules
 - Add system condition
-- Refactor getters to the components values of an entity, very ugly for now !
+- Add other UserEventBuilder for no with nor without, just with, just without, just schedule, etc...
 - Add tests for the generational indices list
 
 ## Graphics

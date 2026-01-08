@@ -102,6 +102,7 @@ pub(crate) enum UserEvent {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
+        schedule: crate::SystemSchedule,
         callback: crate::core_layer::application_system::ecs::system::SystemCallback,
     },
 
@@ -109,6 +110,7 @@ pub(crate) enum UserEvent {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
+        schedule: crate::SystemSchedule,
         callback_mut: crate::core_layer::application_system::ecs::system::SystemMutCallback,
     },
 }
@@ -231,6 +233,7 @@ impl UserEventBuilder {
     /// Creates an event to register a new system in the ECS
     pub fn register_system<G, T, With, Without>(
         callback: crate::core_layer::application_system::ecs::system::UserSystemCallback<G, T>,
+        schedule: crate::SystemSchedule,
     ) -> Self
     where
         G: crate::Game + 'static,
@@ -243,6 +246,7 @@ impl UserEventBuilder {
                 name: T::get_type_id(),
                 with: With::get_ids(),
                 without: Without::get_ids(),
+                schedule,
                 callback:
                     crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system::<G, T>(callback),
             }
@@ -252,6 +256,7 @@ impl UserEventBuilder {
     /// Creates an event to register a new mut system in the ECS
     pub fn register_system_mut<G, T, With, Without>(
         callback: crate::core_layer::application_system::ecs::system::UserSystemMutCallback<G, T>,
+        schedule: crate::SystemSchedule,
     ) -> Self
     where
         G: crate::Game + 'static,
@@ -264,6 +269,7 @@ impl UserEventBuilder {
                 name: T::get_type_id(),
                 with: With::get_ids(),
                 without: Without::get_ids(),
+                schedule,
                 callback_mut:
                     crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system_mut::<G, T>(callback),
             }
@@ -425,9 +431,10 @@ impl<'a> ApplicationSystem<'a> {
                     name,
                     with,
                     without,
+                    schedule,
                     callback,
                 } => {
-                    if let Err(err) = self.ecs.register_system(name, with, without, callback) {
+                    if let Err(err) = self.ecs.register_system(name, with, without, schedule, callback) {
                         log_error!(
                             "Failed to register a new system when handling a `RegisterSystem' event in the application: {:?}",
                             err
@@ -440,11 +447,12 @@ impl<'a> ApplicationSystem<'a> {
                     name,
                     with,
                     without,
+                    schedule,
                     callback_mut,
                 } => {
                     if let Err(err) =
                         self.ecs
-                            .register_system_mut(name, with, without, callback_mut)
+                            .register_system_mut(name, with, without, schedule, callback_mut)
                     {
                         log_error!(
                             "Failed to register a new system when handling a `RegisterSystemMut' event in the application: {:?}",
