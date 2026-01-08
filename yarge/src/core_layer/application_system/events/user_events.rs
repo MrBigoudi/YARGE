@@ -102,16 +102,18 @@ pub(crate) enum UserEvent {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
-        schedule: crate::SystemSchedule,
         callback: crate::core_layer::application_system::ecs::system::SystemCallback,
+        schedule: crate::SystemSchedule,
+        condition: crate::core_layer::application_system::ecs::system::SystemCallbackConditionFunction,
     },
 
     RegisterSystemMut {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
-        schedule: crate::SystemSchedule,
         callback_mut: crate::core_layer::application_system::ecs::system::SystemMutCallback,
+        schedule: crate::SystemSchedule,
+        condition: crate::core_layer::application_system::ecs::system::SystemCallbackConditionFunction,
     },
 }
 
@@ -234,6 +236,7 @@ impl UserEventBuilder {
     pub fn register_system<G, T, With, Without>(
         callback: crate::core_layer::application_system::ecs::system::UserSystemCallback<G, T>,
         schedule: crate::SystemSchedule,
+        condition: crate::core_layer::application_system::ecs::system::UserSystemCallbackConditionFunction<G>,
     ) -> Self
     where
         G: crate::Game + 'static,
@@ -246,9 +249,11 @@ impl UserEventBuilder {
                 name: T::get_type_id(),
                 with: With::get_ids(),
                 without: Without::get_ids(),
-                schedule,
                 callback:
                     crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system::<G, T>(callback),
+                schedule,
+                condition:
+                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::condition::<G>(condition),
             }
         }
     }
@@ -257,6 +262,7 @@ impl UserEventBuilder {
     pub fn register_system_mut<G, T, With, Without>(
         callback: crate::core_layer::application_system::ecs::system::UserSystemMutCallback<G, T>,
         schedule: crate::SystemSchedule,
+        condition: crate::core_layer::application_system::ecs::system::UserSystemCallbackConditionFunction<G>,
     ) -> Self
     where
         G: crate::Game + 'static,
@@ -269,9 +275,12 @@ impl UserEventBuilder {
                 name: T::get_type_id(),
                 with: With::get_ids(),
                 without: Without::get_ids(),
-                schedule,
                 callback_mut:
                     crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system_mut::<G, T>(callback),
+
+                schedule,
+                condition:
+                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::condition::<G>(condition),
             }
         }
     }
@@ -351,7 +360,10 @@ impl<'a> ApplicationSystem<'a> {
                     }
                     log_debug!("`{:?}' entities removed", user_entities.len());
                 }
-                UserEvent::RegisterCustomComponent { component_id, register_fct } => {
+                UserEvent::RegisterCustomComponent {
+                    component_id,
+                    register_fct,
+                } => {
                     if let Err(err) = self.ecs.register_component(&component_id, &register_fct) {
                         log_error!(
                             "Failed to register a custom component when handling a `RegisterCustomComponent' event in the application: {:?}",
@@ -361,7 +373,10 @@ impl<'a> ApplicationSystem<'a> {
                     }
                     log_debug!("Custom component registered");
                 }
-                UserEvent::RemoveCustomComponent { component_id, remove_fct } => {
+                UserEvent::RemoveCustomComponent {
+                    component_id,
+                    remove_fct,
+                } => {
                     if let Err(err) = self.ecs.remove_component(&component_id, &remove_fct) {
                         log_error!(
                             "Failed to remove a custom component when handling a `RemoveCustomComponent' event in the application: {:?}",
@@ -377,10 +392,12 @@ impl<'a> ApplicationSystem<'a> {
                     value,
                     add_to_entity_fct,
                 } => {
-                    if let Err(err) =
-                        self.ecs
-                            .add_component_to_entity(&component_id, &user_entity, value, &add_to_entity_fct)
-                    {
+                    if let Err(err) = self.ecs.add_component_to_entity(
+                        &component_id,
+                        &user_entity,
+                        value,
+                        &add_to_entity_fct,
+                    ) {
                         log_error!(
                             "Failed to add a component to an entity when handling a `AddComponentToEntity' event in the application: {:?}",
                             err
@@ -394,10 +411,11 @@ impl<'a> ApplicationSystem<'a> {
                     user_entity,
                     remove_from_entity_fct,
                 } => {
-                    if let Err(err) = self
-                        .ecs
-                        .remove_component_from_entity(&component_id, &user_entity, &remove_from_entity_fct)
-                    {
+                    if let Err(err) = self.ecs.remove_component_from_entity(
+                        &component_id,
+                        &user_entity,
+                        &remove_from_entity_fct,
+                    ) {
                         log_error!(
                             "Failed to remove a component from an entity when handling a `RemoveComponentFromEntity' event in the application: {:?}",
                             err
@@ -431,10 +449,14 @@ impl<'a> ApplicationSystem<'a> {
                     name,
                     with,
                     without,
-                    schedule,
                     callback,
+                    schedule,
+                    condition,
                 } => {
-                    if let Err(err) = self.ecs.register_system(name, with, without, schedule, callback) {
+                    if let Err(err) = self
+                        .ecs
+                        .register_system(name, with, without, callback, schedule, condition)
+                    {
                         log_error!(
                             "Failed to register a new system when handling a `RegisterSystem' event in the application: {:?}",
                             err
@@ -447,13 +469,18 @@ impl<'a> ApplicationSystem<'a> {
                     name,
                     with,
                     without,
-                    schedule,
                     callback_mut,
+                    schedule,
+                    condition,
                 } => {
-                    if let Err(err) =
-                        self.ecs
-                            .register_system_mut(name, with, without, schedule, callback_mut)
-                    {
+                    if let Err(err) = self.ecs.register_system_mut(
+                        name,
+                        with,
+                        without,
+                        callback_mut,
+                        schedule,
+                        condition,
+                    ) {
                         log_error!(
                             "Failed to register a new system when handling a `RegisterSystemMut' event in the application: {:?}",
                             err

@@ -14,7 +14,6 @@ pub use component::Component;
 pub use entity::UserEntity;
 pub use system::{SystemCons, SystemNil, SystemSchedule};
 
-
 #[allow(unused)]
 use crate::{error::ErrorType, log_error, log_info, log_warn};
 
@@ -179,7 +178,7 @@ impl ECS {
             .collect();
         for index in indices_to_remove.into_iter().rev() {
             self.entities.drain(index..index + 1);
-        }        
+        }
 
         Ok(())
     }
@@ -301,8 +300,14 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
-        if let Err(err) = self.system_manager.on_component_changed_for_entity(&self.component_manager, &real_entity){
-            log_error!("Failed to handle component changed in the system manager when adding a component to an entity in the ECS: {:?}", err);
+        if let Err(err) = self
+            .system_manager
+            .on_component_changed_for_entity(&self.component_manager, &real_entity)
+        {
+            log_error!(
+                "Failed to handle component changed in the system manager when adding a component to an entity in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -342,8 +347,14 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
-        if let Err(err) = self.system_manager.on_component_changed_for_entity(&self.component_manager, &real_entity){
-            log_error!("Failed to handle component changed in the system manager when removing a component from an entity in the ECS: {:?}", err);
+        if let Err(err) = self
+            .system_manager
+            .on_component_changed_for_entity(&self.component_manager, &real_entity)
+        {
+            log_error!(
+                "Failed to handle component changed in the system manager when removing a component from an entity in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -392,10 +403,18 @@ impl ECS {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
-        schedule: SystemSchedule,
         callback: system::SystemCallback,
+        schedule: system::SystemSchedule,
+        condition: system::SystemCallbackConditionFunction,
     ) -> Result<(), ErrorType> {
         // Check if all types are valid component
+        if !self.component_manager.is_registered(&name) {
+            log_error!(
+                "Failed to register a new system in the ECS: the component `{:?}' is not registered",
+                name
+            );
+            return Err(ErrorType::DoesNotExist);
+        }
         for type_id in &with {
             if !self.component_manager.is_registered(type_id) {
                 log_error!(
@@ -416,10 +435,13 @@ impl ECS {
         }
 
         // Create a new system
+        let internal = system::SystemInternal::new(name, &with, &without, schedule, condition);
         if let Err(err) = self.system_manager.register_new_system_ref(
-            name, &with, &without, callback, schedule, 
-            &self.component_manager, &self.entities
-        ){
+            internal,
+            callback,
+            &self.component_manager,
+            &self.entities,
+        ) {
             log_error!("Failed to register a new system in the ECS: {:?}", err);
             return Err(ErrorType::Unknown);
         }
@@ -432,10 +454,18 @@ impl ECS {
         name: std::any::TypeId,
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
-        schedule: SystemSchedule,
         callback: system::SystemMutCallback,
+        schedule: system::SystemSchedule,
+        condition: system::SystemCallbackConditionFunction,
     ) -> Result<(), ErrorType> {
         // Check if all types are valid component
+        if !self.component_manager.is_registered(&name) {
+            log_error!(
+                "Failed to register a new system in the ECS: the component `{:?}' is not registered",
+                name
+            );
+            return Err(ErrorType::DoesNotExist);
+        }
         for type_id in &with {
             if !self.component_manager.is_registered(type_id) {
                 log_error!(
@@ -456,10 +486,13 @@ impl ECS {
         }
 
         // Create a new system
+        let internal = system::SystemInternal::new(name, &with, &without, schedule, condition);
         if let Err(err) = self.system_manager.register_new_system_mut(
-            name, &with, &without, callback, schedule,
-            &self.component_manager, &self.entities
-        ){
+            internal,
+            callback,
+            &self.component_manager,
+            &self.entities,
+        ) {
             log_error!("Failed to register a new mut system in the ECS: {:?}", err);
             return Err(ErrorType::Unknown);
         }

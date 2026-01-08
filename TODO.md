@@ -10,9 +10,7 @@
 
 ## ECS
 
-- Add system schedules
-- Add system condition
-- Add other UserEventBuilder for no with nor without, just with, just without, just schedule, etc...
+- Add better helper builder functions to avoid long definition from the user' side for no with nor without, just with, just without, just schedule, etc... (maybe use a Builder pattern ?)
 - Add tests for the generational indices list
 
 ## Graphics
