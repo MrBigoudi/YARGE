@@ -589,7 +589,7 @@ impl ComponentManager {
         }
     }
 
-    pub fn should_run(
+    pub fn has_correct_constraints(
         &self,
         entity: &Entity,
         with: &[std::any::TypeId],

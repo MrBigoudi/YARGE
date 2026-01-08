@@ -14,10 +14,9 @@ pub use component::Component;
 pub use entity::UserEntity;
 pub use system::{SystemCons, SystemNil};
 
-use crate::{core_layer::ApplicationSystem, error::ErrorType};
 
 #[allow(unused)]
-use crate::{log_error, log_info, log_warn};
+use crate::{error::ErrorType, log_error, log_info, log_warn};
 
 #[allow(clippy::upper_case_acronyms)]
 /// An entity component system
@@ -168,6 +167,9 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
+        // Update systems
+        self.system_manager.on_removed_entity(&real_entity);
+
         let indices_to_remove: Vec<usize> = self
             .entities
             .iter()
@@ -177,7 +179,7 @@ impl ECS {
             .collect();
         for index in indices_to_remove.into_iter().rev() {
             self.entities.drain(index..index + 1);
-        }
+        }        
 
         Ok(())
     }
@@ -219,6 +221,9 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
+        // Update systems
+        self.system_manager.on_removed_entities(&real_entities);
+
         let indices_to_remove: Vec<usize> = self
             .entities
             .iter()
@@ -236,6 +241,7 @@ impl ECS {
     /// Registers a new component
     pub(crate) fn register_component(
         &mut self,
+        _component_id: &std::any::TypeId,
         register_fct: &component::RegisterComponentFunction,
     ) -> Result<(), ErrorType> {
         if let Err(err) = register_fct(&mut self.component_manager) {
@@ -249,18 +255,21 @@ impl ECS {
     /// Removes a component
     pub(crate) fn remove_component(
         &mut self,
+        component_id: &std::any::TypeId,
         remove_fct: &component::RemoveComponentFunction,
     ) -> Result<(), ErrorType> {
         if let Err(err) = remove_fct(&mut self.component_manager) {
             log_error!("Failed to remove a component in the ECS: {:?}", err);
             return Err(ErrorType::Unknown);
         }
+        self.system_manager.on_component_removed(component_id);
 
         Ok(())
     }
 
     pub(crate) fn add_component_to_entity(
         &mut self,
+        _component_id: &std::any::TypeId,
         user_entity: &UserEntity,
         value: Box<dyn component::RealComponent>,
         add_to_entity_fct: &component::AddComponentToEntityFunction,
@@ -292,11 +301,17 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
+        if let Err(err) = self.system_manager.on_component_changed_for_entity(&self.component_manager, &real_entity){
+            log_error!("Failed to handle component changed in the system manager when adding a component to an entity in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
         Ok(())
     }
 
     pub(crate) fn remove_component_from_entity(
         &mut self,
+        _component_id: &std::any::TypeId,
         user_entity: &UserEntity,
         remove_from_entity: &component::RemoveComponentFromEntityFunction,
     ) -> Result<(), ErrorType> {
@@ -327,11 +342,17 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
+        if let Err(err) = self.system_manager.on_component_changed_for_entity(&self.component_manager, &real_entity){
+            log_error!("Failed to handle component changed in the system manager when removing a component from an entity in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
         Ok(())
     }
 
-    pub(crate) fn update_component_for_entity(
+    pub(crate) fn update_component_value_for_entity(
         &mut self,
+        _component_id: &std::any::TypeId,
         user_entity: &UserEntity,
         value: Box<dyn component::RealComponent>,
         update_for_entity_fct: &component::UpdateComponentForEntityFunction,
@@ -394,14 +415,14 @@ impl ECS {
         }
 
         // Create a new system
-        let new_system = system::SystemRef {
-            name,
-            callback,
-            with,
-            without,
-        };
+        if let Err(err) = self.system_manager.register_new_system_ref(
+            name, &with, &without, callback, 
+            &self.component_manager, &self.entities
+        ){
+            log_error!("Failed to register a new system in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
 
-        self.system_manager.systems_ref.push(new_system);
         Ok(())
     }
 
@@ -433,82 +454,12 @@ impl ECS {
         }
 
         // Create a new system
-        let new_system = system::SystemMut {
-            name,
-            callback,
-            with,
-            without,
-        };
-
-        self.system_manager.systems_mut.push(new_system);
-        Ok(())
-    }
-}
-
-impl ApplicationSystem<'_> {
-    pub fn run_systems(&mut self) -> Result<(), ErrorType> {
-        for entity in &self.ecs.entities {
-            // By ref first
-            for system::SystemRef {
-                name,
-                with,
-                without,
-                callback,
-            } in &self.ecs.system_manager.systems_ref
-            {
-                match self.ecs.component_manager.should_run(entity, with, without) {
-                    Ok(should_run) => {
-                        if should_run {
-                            let value = match self.ecs.component_manager.get(name, entity) {
-                                Ok(value) => value,
-                                Err(err) => {
-                                    log_error!("Failed to get value: {:?}", err);
-                                    return Err(ErrorType::Unknown);
-                                }
-                            };
-                            if let Err(err) = callback(self.user_game, value) {
-                                log_error!("Failed to run a system in the application: {:?}", err);
-                                return Err(ErrorType::Unknown);
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        log_error!("Failed to check if the system should run: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
-                }
-            }
-
-            // By mut
-            for system::SystemMut {
-                name,
-                with,
-                without,
-                callback,
-            } in &self.ecs.system_manager.systems_mut
-            {
-                match self.ecs.component_manager.should_run(entity, with, without) {
-                    Ok(should_run) => {
-                        if should_run {
-                            let value = match self.ecs.component_manager.get_mut(name, entity) {
-                                Ok(value) => value,
-                                Err(err) => {
-                                    log_error!("Failed to get value: {:?}", err);
-                                    return Err(ErrorType::Unknown);
-                                }
-                            };
-                            if let Err(err) = callback(self.user_game, value) {
-                                log_error!("Failed to run a system in the application: {:?}", err);
-                                return Err(ErrorType::Unknown);
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        log_error!("Failed to check if the system should run: {:?}", err);
-                        return Err(ErrorType::Unknown);
-                    }
-                }
-            }
+        if let Err(err) = self.system_manager.register_new_system_mut(
+            name, &with, &without, callback, 
+            &self.component_manager, &self.entities
+        ){
+            log_error!("Failed to register a new mut system in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
         }
 
         Ok(())

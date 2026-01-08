@@ -38,4 +38,7 @@ pub enum ErrorType {
 
     /// Thrown when an invalid index is used inside a data structure
     InvalidIndex,
+
+    /// Thrown when trying to duplicate a value unexpectedly
+    Duplicate,
 }

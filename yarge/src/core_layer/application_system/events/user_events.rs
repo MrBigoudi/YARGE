@@ -43,13 +43,18 @@ pub(crate) enum UserEvent {
 
     /// To register a new component
     RegisterCustomComponent {
+        /// The id of the component
+        component_id: std::any::TypeId,
         /// The function to register the component
         register_fct:
             crate::core_layer::application_system::ecs::component::RegisterComponentFunction,
     },
 
     /// To remove a component
+    /// When removed, all systems linked to this component are destroyed and need to be recreated even if this component is registered again later
     RemoveCustomComponent {
+        /// The id of the component
+        component_id: std::any::TypeId,
         /// The function to remove the component
         remove_fct:
             crate::core_layer::application_system::ecs::component::RemoveComponentFunction,
@@ -57,6 +62,8 @@ pub(crate) enum UserEvent {
 
     /// Adds a component to an entity
     AddComponentToEntity {
+        /// The id of the component
+        component_id: std::any::TypeId,
         /// The user entity to which add the component
         user_entity: crate::core_layer::UserEntity,
         /// The value of the component to add to the entity
@@ -68,6 +75,8 @@ pub(crate) enum UserEvent {
 
     /// Removes a component from an entity
     RemoveComponentFromEntity {
+        /// The id of the component
+        component_id: std::any::TypeId,
         /// The user entity to which add the component
         user_entity: crate::core_layer::UserEntity,
         /// The function to add a component to an entity
@@ -76,7 +85,9 @@ pub(crate) enum UserEvent {
     },
 
     /// Updates the value of a component for an entity
-    UpdateComponentForEntity {
+    UpdateComponentValueForEntity {
+        /// The id of the component
+        component_id: std::any::TypeId,
         /// The user entity which needs a component update
         user_entity: crate::core_layer::UserEntity,
         /// The new value of the component for the entity
@@ -158,6 +169,7 @@ impl UserEventBuilder {
     pub fn register_custom_component<T: crate::Component>() -> Self {
         Self {
             event: UserEvent::RegisterCustomComponent {
+                component_id: T::get_type_id(),
                 register_fct: T::register,
             },
         }
@@ -167,6 +179,7 @@ impl UserEventBuilder {
     pub fn remove_custom_component<T: crate::Component>() -> Self {
         Self {
             event: UserEvent::RemoveCustomComponent {
+                component_id: T::get_type_id(),
                 remove_fct: T::remove,
             },
         }
@@ -179,6 +192,7 @@ impl UserEventBuilder {
     ) -> Self {
         Self {
             event: UserEvent::AddComponentToEntity {
+                component_id: T::get_type_id(),
                 user_entity: entity,
                 value: Box::new(value),
                 add_to_entity_fct: T::add_to_entity,
@@ -192,6 +206,7 @@ impl UserEventBuilder {
     ) -> Self {
         Self {
             event: UserEvent::RemoveComponentFromEntity {
+                component_id: T::get_type_id(),
                 user_entity: entity,
                 remove_from_entity_fct: T::remove_from_entity,
             },
@@ -204,7 +219,8 @@ impl UserEventBuilder {
         value: T,
     ) -> Self {
         Self {
-            event: UserEvent::UpdateComponentForEntity {
+            event: UserEvent::UpdateComponentValueForEntity {
+                component_id: T::get_type_id(),
                 user_entity: entity,
                 value: Box::new(value),
                 update_for_entity_fct: T::updates_for_entity,
@@ -233,7 +249,7 @@ impl UserEventBuilder {
         }
     }
 
-    /// Creates an event to register a new mutable system in the ECS
+    /// Creates an event to register a new mut system in the ECS
     pub fn register_system_mut<G, T, With, Without>(
         callback: crate::core_layer::application_system::ecs::system::UserSystemMutCallback<G, T>,
     ) -> Self
@@ -329,8 +345,8 @@ impl<'a> ApplicationSystem<'a> {
                     }
                     log_debug!("`{:?}' entities removed", user_entities.len());
                 }
-                UserEvent::RegisterCustomComponent { register_fct } => {
-                    if let Err(err) = self.ecs.register_component(&register_fct) {
+                UserEvent::RegisterCustomComponent { component_id, register_fct } => {
+                    if let Err(err) = self.ecs.register_component(&component_id, &register_fct) {
                         log_error!(
                             "Failed to register a custom component when handling a `RegisterCustomComponent' event in the application: {:?}",
                             err
@@ -339,8 +355,8 @@ impl<'a> ApplicationSystem<'a> {
                     }
                     log_debug!("Custom component registered");
                 }
-                UserEvent::RemoveCustomComponent { remove_fct } => {
-                    if let Err(err) = self.ecs.remove_component(&remove_fct) {
+                UserEvent::RemoveCustomComponent { component_id, remove_fct } => {
+                    if let Err(err) = self.ecs.remove_component(&component_id, &remove_fct) {
                         log_error!(
                             "Failed to remove a custom component when handling a `RemoveCustomComponent' event in the application: {:?}",
                             err
@@ -350,13 +366,14 @@ impl<'a> ApplicationSystem<'a> {
                     log_debug!("Custom component removed");
                 }
                 UserEvent::AddComponentToEntity {
+                    component_id,
                     user_entity,
                     value,
                     add_to_entity_fct,
                 } => {
                     if let Err(err) =
                         self.ecs
-                            .add_component_to_entity(&user_entity, value, &add_to_entity_fct)
+                            .add_component_to_entity(&component_id, &user_entity, value, &add_to_entity_fct)
                     {
                         log_error!(
                             "Failed to add a component to an entity when handling a `AddComponentToEntity' event in the application: {:?}",
@@ -367,12 +384,13 @@ impl<'a> ApplicationSystem<'a> {
                     log_debug!("Added component to entity `{:?}'", user_entity);
                 }
                 UserEvent::RemoveComponentFromEntity {
+                    component_id,
                     user_entity,
                     remove_from_entity_fct,
                 } => {
                     if let Err(err) = self
                         .ecs
-                        .remove_component_from_entity(&user_entity, &remove_from_entity_fct)
+                        .remove_component_from_entity(&component_id, &user_entity, &remove_from_entity_fct)
                     {
                         log_error!(
                             "Failed to remove a component from an entity when handling a `RemoveComponentFromEntity' event in the application: {:?}",
@@ -382,18 +400,20 @@ impl<'a> ApplicationSystem<'a> {
                     }
                     log_debug!("Removed component to entity `{:?}'", user_entity);
                 }
-                UserEvent::UpdateComponentForEntity {
+                UserEvent::UpdateComponentValueForEntity {
+                    component_id,
                     user_entity,
                     value,
                     update_for_entity_fct,
                 } => {
-                    if let Err(err) = self.ecs.update_component_for_entity(
+                    if let Err(err) = self.ecs.update_component_value_for_entity(
+                        &component_id,
                         &user_entity,
                         value,
                         &update_for_entity_fct,
                     ) {
                         log_error!(
-                            "Failed to update a component for an entity when handling a `UpdateComponentForEntity' event in the application: {:?}",
+                            "Failed to update a component for an entity when handling a `UpdateComponentValueForEntity' event in the application: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);

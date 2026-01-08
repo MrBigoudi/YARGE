@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{collections::HashSet, marker::PhantomData};
 
 use crate::{Component, error::ErrorType};
 
@@ -100,26 +100,192 @@ impl UserSystemCallbackBuilder {
     }
 }
 
-pub(crate) struct SystemRef {
-    pub callback: SystemCallback,
+pub(crate) struct SystemInternal {
+    pub entities: HashSet<crate::Entity>,
     pub name: std::any::TypeId,
     pub with: Vec<std::any::TypeId>,
     pub without: Vec<std::any::TypeId>,
     // TODO: add if condition
     // TODO: add schedule (Once, Everytime)
+}
+
+impl SystemInternal {
+    pub fn new(
+        name: std::any::TypeId, 
+        with: &[std::any::TypeId], 
+        without: &[std::any::TypeId],
+    ) -> Self {
+        Self {
+            entities: HashSet::new(),
+            name,
+            with: with.to_vec(),
+            without: without.to_vec(),
+        }
+    }
+
+    pub fn add_entity(
+        &mut self, 
+        component_manager: &super::component::ComponentManager, 
+        entity: &crate::Entity
+    ) -> Result<(), ErrorType> {
+        match component_manager.has_component_type(entity, &self.name) {
+            Ok(false) => {},
+            Ok(true) => {
+                match component_manager.has_correct_constraints(entity, &self.with, &self.without) {
+                    Ok(false) => {},
+                    Ok(true) => {
+                        if !self.entities.insert(*entity) {
+                            log_error!("Failed to insert a new entity in a system, the entity was already present");
+                            return Err(ErrorType::Duplicate);
+                        }
+                    },
+                    Err(err) => {
+                        log_error!("Failed to check if an entry has the correct constraints when adding an entity to a system: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    },
+                }
+            },
+            Err(err) => {
+                log_error!("Failed to check if an entry has the given component type when adding an entity to a system: {:?}", err);
+                return Err(ErrorType::Unknown);
+            },
+        }
+        Ok(())
+    }
+
+    pub fn add_entities(
+        &mut self, 
+        component_manager: &super::component::ComponentManager, 
+        entities: &[crate::Entity]
+    ) -> Result<(), ErrorType> {
+        for entity in entities {
+            if let Err(err) = self.add_entity(component_manager, entity) {
+                log_error!("Failed to add an entity to a system when trying to add multiple entities in a system: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        }
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
+        if !self.entities.remove(entity) {
+            log_error!("Trying to remove an entity not present in a system");
+            return Err(ErrorType::DoesNotExist);
+        }
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
+        self.entities.remove(entity);
+    }
+
+    #[allow(unused)]
+    pub fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
+        for entity in entities {
+            if let Err(err) = self.remove_entity(entity) {
+                log_error!("Failed to remove an entity from a system when trying to remove multiple entities in a system: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        }
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
+        for entity in entities {
+            self.remove_entity_unchecked(entity);
+        }
+    }
+
+    pub fn on_component_changed_for_entity(
+        &mut self, 
+        component_manager: &super::component::ComponentManager, 
+        entity: &crate::Entity
+    ) -> Result<(), ErrorType> {
+        let does_fulfill_requirements = match component_manager.has_component_type(entity, &self.name) {
+            Ok(false) => false,
+            Ok(true) => {
+                match component_manager.has_correct_constraints(entity, &self.with, &self.without) {
+                    Ok(res) => res,
+                    Err(err) => {
+                        log_error!("Failed to check if an entry has the correct constraints when checking a component change in a system: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    },
+                }
+            },
+            Err(err) => {
+                log_error!("Failed to check if an entry has the given component type when checking a component change in a system: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        };
+        match self.entities.contains(entity) {
+            true => {
+                // Check if need to be removed
+                if !does_fulfill_requirements {
+                    self.remove_entity_unchecked(entity);
+                }
+            },
+            false => {
+                // Check if need to be added
+                if does_fulfill_requirements {
+                    self.entities.insert(*entity);
+                }
+            },
+        }
+        Ok(())
+    }
+
+    pub fn does_need_component(&self, component_querried: &std::any::TypeId) -> bool {
+        self.name == *component_querried
+            || self.with.contains(component_querried)
+            || self.without.contains(component_querried)
+    }
+
+}
+
+pub(crate) struct SystemRef {
+    pub callback: SystemCallback,
+    pub internal: SystemInternal,
 }
 
 pub(crate) struct SystemMut {
     pub callback: SystemMutCallback,
-    pub name: std::any::TypeId,
-    pub with: Vec<std::any::TypeId>,
-    pub without: Vec<std::any::TypeId>,
-    // TODO: add if condition
-    // TODO: add schedule (Once, Everytime)
+    pub internal: SystemInternal,
+}
+
+impl SystemRef {
+    pub fn new(
+        name: std::any::TypeId, 
+        with: &[std::any::TypeId], 
+        without: &[std::any::TypeId],
+        callback: SystemCallback,
+    ) -> Self {
+        let internal = SystemInternal::new(name, with, without);
+        Self {
+            callback,
+            internal,
+        }
+    }
+}
+
+impl SystemMut {
+    pub fn new(
+        name: std::any::TypeId, 
+        with: &[std::any::TypeId], 
+        without: &[std::any::TypeId],
+        callback: SystemMutCallback,
+    ) -> Self {
+        let internal = SystemInternal::new(name, with, without);
+        Self {
+            callback,
+            internal,
+        }
+    }
 }
 
 pub(crate) struct SystemManager {
-    // TODO: replace the list by generational indices list
     pub systems_ref: Vec<SystemRef>,
     pub systems_mut: Vec<SystemMut>,
 }
@@ -130,5 +296,184 @@ impl SystemManager {
             systems_ref: vec![],
             systems_mut: vec![],
         }
+    }
+
+    pub fn register_new_system_ref(
+        &mut self,
+        name: std::any::TypeId, 
+        with: &[std::any::TypeId], 
+        without: &[std::any::TypeId],
+        callback: SystemCallback,
+        component_manager: &super::component::ComponentManager,
+        existing_entities: &[crate::Entity],
+    ) -> Result<(), ErrorType> {
+        let mut new_system = SystemRef::new(name, with, without, callback);
+        if let Err(err) = new_system.internal.add_entities(component_manager, existing_entities){
+            log_error!("Failed to add the entities when registering a new system: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+        self.systems_ref.push(new_system);
+        Ok(())
+    }
+
+    pub fn register_new_system_mut(
+        &mut self,
+        name: std::any::TypeId, 
+        with: &[std::any::TypeId], 
+        without: &[std::any::TypeId],
+        callback: SystemMutCallback,
+        component_manager: &super::component::ComponentManager,
+        existing_entities: &[crate::Entity],
+    ) -> Result<(), ErrorType> {
+        let mut new_system = SystemMut::new(name, with, without, callback);
+        if let Err(err) = new_system.internal.add_entities(component_manager, existing_entities){
+            log_error!("Failed to add the entities when registering a new mut system: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+        self.systems_mut.push(new_system);
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
+        for system in &mut self.systems_ref {
+            system.internal.remove_entity_unchecked(entity);
+        }
+        for system in &mut self.systems_mut {
+            system.internal.remove_entity_unchecked(entity);
+        }
+    }
+
+    #[allow(unused)]
+    pub fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
+        for system in &mut self.systems_ref {
+            system.internal.remove_entities_unchecked(entities);
+        }
+        for system in &mut self.systems_mut {
+            system.internal.remove_entities_unchecked(entities);
+        }
+    }
+
+    #[allow(unused)]
+    pub fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
+        for system in &mut self.systems_ref {
+            system.internal.remove_entity(entity)?;
+        }
+        for system in &mut self.systems_mut {
+            system.internal.remove_entity(entity)?;
+        }
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
+        for system in &mut self.systems_ref {
+            system.internal.remove_entities(entities)?;
+        }
+        for system in &mut self.systems_mut {
+            system.internal.remove_entities(entities)?;
+        }
+        Ok(())
+    }
+
+    pub fn on_removed_entity(&mut self, entity: &crate::Entity){
+        self.remove_entity_unchecked(entity);
+    }
+    pub fn on_removed_entities(&mut self, entities: &[crate::Entity]){
+        self.remove_entities_unchecked(entities);
+    }
+
+    pub fn on_component_changed_for_entity(
+        &mut self, 
+        component_manager: &super::component::ComponentManager,
+        entity: &crate::Entity
+    ) -> Result<(), ErrorType> {
+        for system in &mut self.systems_ref {
+            if let Err(err) = system.internal.on_component_changed_for_entity(component_manager, entity) {
+                log_error!("Failed to handle a component change for an entity in the system manager: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        }
+        for system in &mut self.systems_mut {
+            if let Err(err) = system.internal.on_component_changed_for_entity(component_manager, entity) {
+                log_error!("Failed to handle a component change for an entity in the system manager: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        }
+        Ok(())
+    }
+
+    pub fn on_component_removed(&mut self, removed_component: &std::any::TypeId){
+        let indices_to_remove: Vec<usize> = self.systems_ref
+            .iter()
+            .enumerate()
+            .filter(|&(_, val)| val.internal.does_need_component(removed_component))
+            .map(|(index, _)| index)
+            .collect();
+        for index in indices_to_remove.into_iter().rev() {
+            self.systems_ref.drain(index..index + 1);
+        }
+
+        let indices_to_remove: Vec<usize> = self.systems_mut
+            .iter()
+            .enumerate()
+            .filter(|&(_, val)| val.internal.does_need_component(removed_component))
+            .map(|(index, _)| index)
+            .collect();
+        for index in indices_to_remove.into_iter().rev() {
+            self.systems_mut.drain(index..index + 1);
+        }
+    }
+
+    pub fn run_all(
+        &mut self, 
+        component_manager: &mut super::component::ComponentManager,
+        game: &mut dyn crate::Game,
+    ) -> Result<(), ErrorType> {
+        // By ref first
+        // let mut systems_to_remove = Vec::with_capacity(self.systems_ref.len());
+        for system in &self.systems_ref {
+            for entity in &system.internal.entities {
+                let value = match component_manager.get(&system.internal.name, entity) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        log_error!("Failed to get a component value when running systems: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                };
+                if let Err(err) = (system.callback)(game, value) {
+                    log_error!("Failed to run a system: {:?}", err);
+                    return Err(ErrorType::Unknown);
+                }
+            }
+        }
+
+        // By mut then
+        for system in &mut self.systems_mut {
+            for entity in &system.internal.entities {
+                let value = match component_manager.get_mut(&system.internal.name, entity) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        log_error!("Failed to get a component value when running systems: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                };
+                if let Err(err) = (system.callback)(game, value) {
+                    log_error!("Failed to run a system: {:?}", err);
+                    return Err(ErrorType::Unknown);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl crate::core_layer::ApplicationSystem<'_> {
+    pub fn run_systems(&mut self) -> Result<(), ErrorType> {
+        if let Err(err) = self.ecs.system_manager.run_all(&mut self.ecs.component_manager, self.user_game) {
+            log_error!("Failed to run the systems in the application: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+        Ok(())
     }
 }
