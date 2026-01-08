@@ -2,6 +2,7 @@
 
 ## Global
 
+- Check / Fix update function not running when window not focused
 - Add better documentation
 - Refactor modules privacy in crate
 - Add tests for the ECS methods
