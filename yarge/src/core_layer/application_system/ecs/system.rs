@@ -1,33 +1,9 @@
-use std::{collections::HashSet, marker::PhantomData};
+use std::collections::HashSet;
 
-use crate::{Component, error::ErrorType};
+use crate::error::ErrorType;
 
 #[allow(unused)]
 use crate::{log_debug, log_error, log_info, log_warn};
-
-/// An empty system type
-pub struct SystemNil;
-
-/// A Cons pair system type
-pub struct SystemCons<H, T>(PhantomData<(H, T)>);
-
-pub trait ComponentList {
-    fn get_ids() -> Vec<std::any::TypeId>;
-}
-
-impl ComponentList for SystemNil {
-    fn get_ids() -> Vec<std::any::TypeId> {
-        Vec::new()
-    }
-}
-
-impl<H: Component, T: ComponentList> ComponentList for SystemCons<H, T> {
-    fn get_ids() -> Vec<std::any::TypeId> {
-        let mut ids = vec![H::get_type_id()];
-        ids.extend(T::get_ids());
-        ids
-    }
-}
 
 pub type SystemCallback = Box<
     dyn Fn(&mut dyn crate::Game, &dyn super::component::RealComponent) -> Result<(), ErrorType>
@@ -126,13 +102,14 @@ impl UserSystemCallbackBuilder {
 }
 
 /// The schedule for the system calls
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum SystemSchedule {
     /// The system will never be called
     Never,
     /// The system will be called a single time
     SingleCall,
     /// The system will be called at every update
+    #[default]
     Always,
     /// The system will be called at every updates for the first X updates
     ForXUpdates(usize),

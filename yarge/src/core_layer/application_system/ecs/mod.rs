@@ -12,7 +12,7 @@ pub mod system;
 
 pub use component::Component;
 pub use entity::UserEntity;
-pub use system::{SystemCons, SystemNil, SystemSchedule};
+pub use system::SystemSchedule;
 
 #[allow(unused)]
 use crate::{error::ErrorType, log_error, log_info, log_warn};

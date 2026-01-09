@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 
 use crate::{
-    core_layer::{ApplicationSystem, FileLoaderSystem},
-    error::ErrorType,
-    log_debug, log_error,
-    platform_layer::PlatformLayerImpl,
+    core_layer::ApplicationSystem, platform_layer::PlatformLayerImpl,
     rendering_layer::RenderingLayerImpl,
 };
+
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 /// An enum representing user fireable events
 pub(crate) enum UserEvent {
@@ -99,191 +99,39 @@ pub(crate) enum UserEvent {
 
     // TODO: Add schedule + if condition
     RegisterSystem {
+        /// The name of the main component the system will run on
         name: std::any::TypeId,
+        /// A list of component the entity must have for this system to run on it
         with: Vec<std::any::TypeId>,
+        /// A list of component the entity must not have for this system to run on it
         without: Vec<std::any::TypeId>,
+        /// The system function
         callback: crate::core_layer::application_system::ecs::system::SystemCallback,
+        /// The rate at which this system will be called
         schedule: crate::SystemSchedule,
+        /// The condition function to run or not this system
         condition: crate::core_layer::application_system::ecs::system::SystemCallbackConditionFunction,
     },
 
     RegisterSystemMut {
+        /// The name of the main component the system will run on
         name: std::any::TypeId,
+        /// A list of component the entity must have for this system to run on it
         with: Vec<std::any::TypeId>,
+        /// A list of component the entity must not have for this system to run on it
         without: Vec<std::any::TypeId>,
+        /// The system function
         callback_mut: crate::core_layer::application_system::ecs::system::SystemMutCallback,
+        /// The rate at which this system will be called
         schedule: crate::SystemSchedule,
+        /// The condition function to run or not this system
         condition: crate::core_layer::application_system::ecs::system::SystemCallbackConditionFunction,
     },
 }
 
-/// A public builder for UserEvent
-pub struct UserEventBuilder {
-    event: UserEvent,
-}
-
-impl UserEventBuilder {
-    /// Creates a QuitApp event to close the application
-    pub fn quit_app() -> Self {
-        Self {
-            event: UserEvent::QuitApp,
-        }
-    }
-
-    /// Creates an event to register a new user defined custom file resource
-    pub fn register_custom_ron_file_resource<T: crate::RonFileResource>(
-        resource_id: &crate::FileResourceTypeId,
-    ) -> Self {
-        Self {
-            event: UserEvent::RegisterCustomFileResource {
-                resource_id: FileLoaderSystem::cast_resource_id(resource_id),
-                loader_fct: T::start_load_ron,
-            },
-        }
-    }
-
-    /// Creates an event to begin loading a custom file resource
-    pub fn start_load_custom_file_resource(
-        resource_id: &crate::FileResourceTypeId,
-        path: &std::path::Path,
-    ) -> Self {
-        Self {
-            event: UserEvent::StartLoadCustomFileResource {
-                resource_id: FileLoaderSystem::cast_resource_id(resource_id),
-                path: std::path::PathBuf::from(path),
-            },
-        }
-    }
-
-    /// Creates an event to remove a single entity from the ECS
-    pub fn remove_entity(user_entity: crate::core_layer::UserEntity) -> Self {
-        Self {
-            event: UserEvent::RemoveEntity { user_entity },
-        }
-    }
-
-    /// Creates an event to remove entities from the ECS
-    pub fn remove_entities(user_entities: Vec<crate::core_layer::UserEntity>) -> Self {
-        Self {
-            event: UserEvent::RemoveEntities { user_entities },
-        }
-    }
-
-    /// Creates an event to register a custom ECS component
-    pub fn register_custom_component<T: crate::Component>() -> Self {
-        Self {
-            event: UserEvent::RegisterCustomComponent {
-                component_id: T::get_type_id(),
-                register_fct: T::register,
-            },
-        }
-    }
-
-    /// Creates an event to remove a custom ECS component
-    pub fn remove_custom_component<T: crate::Component>() -> Self {
-        Self {
-            event: UserEvent::RemoveCustomComponent {
-                component_id: T::get_type_id(),
-                remove_fct: T::remove,
-            },
-        }
-    }
-
-    /// Creates an event to add a component to an entity
-    pub fn add_component_to_entity<T: crate::Component>(
-        entity: crate::core_layer::UserEntity,
-        value: T,
-    ) -> Self {
-        Self {
-            event: UserEvent::AddComponentToEntity {
-                component_id: T::get_type_id(),
-                user_entity: entity,
-                value: Box::new(value),
-                add_to_entity_fct: T::add_to_entity,
-            },
-        }
-    }
-
-    /// Creates an event to remove a component from an entity
-    pub fn remove_component_from_entity<T: crate::Component>(
-        entity: crate::core_layer::UserEntity,
-    ) -> Self {
-        Self {
-            event: UserEvent::RemoveComponentFromEntity {
-                component_id: T::get_type_id(),
-                user_entity: entity,
-                remove_from_entity_fct: T::remove_from_entity,
-            },
-        }
-    }
-
-    /// Creates an event to update a component for an entity
-    pub fn update_component_for_entity<T: crate::Component>(
-        entity: crate::core_layer::UserEntity,
-        value: T,
-    ) -> Self {
-        Self {
-            event: UserEvent::UpdateComponentValueForEntity {
-                component_id: T::get_type_id(),
-                user_entity: entity,
-                value: Box::new(value),
-                update_for_entity_fct: T::updates_for_entity,
-            },
-        }
-    }
-
-    /// Creates an event to register a new system in the ECS
-    pub fn register_system<G, T, With, Without>(
-        callback: crate::core_layer::application_system::ecs::system::UserSystemCallback<G, T>,
-        schedule: crate::SystemSchedule,
-        condition: crate::core_layer::application_system::ecs::system::UserSystemCallbackConditionFunction<G>,
-    ) -> Self
-    where
-        G: crate::Game + 'static,
-        T: crate::Component + 'static,
-        With: crate::core_layer::application_system::ecs::system::ComponentList,
-        Without: crate::core_layer::application_system::ecs::system::ComponentList,
-    {
-        Self {
-            event: UserEvent::RegisterSystem {
-                name: T::get_type_id(),
-                with: With::get_ids(),
-                without: Without::get_ids(),
-                callback:
-                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system::<G, T>(callback),
-                schedule,
-                condition:
-                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::condition::<G>(condition),
-            }
-        }
-    }
-
-    /// Creates an event to register a new mut system in the ECS
-    pub fn register_system_mut<G, T, With, Without>(
-        callback: crate::core_layer::application_system::ecs::system::UserSystemMutCallback<G, T>,
-        schedule: crate::SystemSchedule,
-        condition: crate::core_layer::application_system::ecs::system::UserSystemCallbackConditionFunction<G>,
-    ) -> Self
-    where
-        G: crate::Game + 'static,
-        T: crate::Component + 'static,
-        With: crate::core_layer::application_system::ecs::system::ComponentList,
-        Without: crate::core_layer::application_system::ecs::system::ComponentList,
-    {
-        Self {
-            event: UserEvent::RegisterSystemMut {
-                name: T::get_type_id(),
-                with: With::get_ids(),
-                without: Without::get_ids(),
-                callback_mut:
-                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::system_mut::<G, T>(callback),
-
-                schedule,
-                condition:
-                    crate::core_layer::application_system::ecs::system::UserSystemCallbackBuilder::condition::<G>(condition),
-            }
-        }
-    }
+/// A public Wrapper for UserEvent
+pub struct UserEventWrapper {
+    pub(crate) event: UserEvent,
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -291,7 +139,7 @@ impl<'a> ApplicationSystem<'a> {
     /// Returns true if the application should quit
     pub(crate) fn handle_user_events(
         &mut self,
-        events: VecDeque<UserEventBuilder>,
+        events: VecDeque<UserEventWrapper>,
         _platform_layer: &mut PlatformLayerImpl,
         _rendering_layer: &mut RenderingLayerImpl,
     ) -> Result<bool, ErrorType> {

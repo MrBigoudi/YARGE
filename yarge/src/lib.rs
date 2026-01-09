@@ -14,11 +14,12 @@ pub(crate) mod rendering_layer;
 
 pub use core_layer::{
     Component, ECS, Entry, FileResource, FileResourceTypeId, GLOBAL_LOGGER, Game, RonFileResource,
-    SystemCons, SystemNil, SystemSchedule, UserEntity as Entity, UserEventBuilder, gamepad,
-    keyboard,
+    SystemSchedule, UserEntity as Entity, UserEventWrapper, gamepad, keyboard,
     logger_system::helpers::{LogLevel, LogTarget},
     mouse,
 };
+
+pub use core_layer::application_system::events::builder as event_builder;
 
 pub use platform_layer::{PlatformLayer, PlatformLayerImpl};
 

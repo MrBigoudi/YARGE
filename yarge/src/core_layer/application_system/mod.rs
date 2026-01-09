@@ -1,11 +1,11 @@
-mod application;
+pub(crate) mod application;
 pub use application::ApplicationSystem;
 
-mod events;
-pub use events::user_events::UserEventBuilder;
+pub(crate) mod events;
+pub use events::user_events::UserEventWrapper;
 
-mod game;
+pub(crate) mod game;
 pub use game::Game;
 
-mod ecs;
-pub use ecs::{Component, ECS, SystemCons, SystemNil, SystemSchedule, UserEntity};
+pub(crate) mod ecs;
+pub use ecs::{Component, ECS, SystemSchedule, UserEntity};

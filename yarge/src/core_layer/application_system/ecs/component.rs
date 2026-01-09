@@ -388,7 +388,7 @@ pub trait Component: std::any::Any + Clone + Send + Sized + 'static {
     }
 
     /// Updates a component for an entity
-    fn updates_for_entity(
+    fn update_for_entity(
         manager: &mut ComponentManager,
         entity: &Entity,
         value: Box<dyn RealComponent>,

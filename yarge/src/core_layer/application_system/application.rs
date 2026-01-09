@@ -203,7 +203,7 @@ impl<'a> ApplicationSystem<'a> {
         &mut self,
         _platform_layer: &mut PlatformLayerImpl,
         _rendering_layer: &mut RenderingLayerImpl,
-    ) -> Result<VecDeque<crate::UserEventBuilder>, ErrorType> {
+    ) -> Result<VecDeque<crate::UserEventWrapper>, ErrorType> {
         let mut user_events = VecDeque::new();
         for path in &self.file_loader.get_loading_file_paths() {
             match self.file_loader.end_load(path) {
