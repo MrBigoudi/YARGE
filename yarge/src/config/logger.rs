@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use crate::core_layer::logger_system::helpers::{LogLevel, LogTarget};
 
 /// The configuration for the logger

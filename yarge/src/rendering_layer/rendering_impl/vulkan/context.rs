@@ -1,15 +1,16 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use ash::{Entry, Instance};
 
-#[allow(unused)]
-use crate::{config::Config, error::ErrorType, log, log_error, log_info};
+use crate::config::Config;
 
 use super::init::{init_entry, init_instance};
 
 /// The vulkan context
 pub struct VulkanContext {
-    #[allow(unused)]
     pub entry: Entry,
-    #[allow(unused)]
+
     pub instance: Instance,
 }
 

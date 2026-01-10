@@ -1,11 +1,9 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::sync::mpsc::Receiver;
 
-use crate::{
-    FileResource,
-    error::ErrorType,
-    log_error,
-    platform_layer::{PlatformLayer, PlatformLayerImpl},
-};
+use crate::{PlatformLayer, PlatformLayerImpl, core_layer::file_system::file::FileResource};
 
 /// A trait representing a resource that can be loaded from a .ron file
 pub trait RonFileResource: FileResource + for<'a> serde::Deserialize<'a> {

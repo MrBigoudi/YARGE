@@ -1,28 +1,29 @@
-use std::path::Path;
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::error::ErrorType;
+use std::path::Path;
 
 use super::{ApplicationConfig, LoggerConfig, RendererConfig, WindowConfig};
 
 /// A structure containing all the engine configuration
 #[derive(Default)]
-pub struct Config {
+pub(crate) struct Config {
     /// The window's configuration
-    pub window_config: WindowConfig,
+    pub(crate) window_config: WindowConfig,
 
     /// The logger's configuration
-    pub logger_config: LoggerConfig,
+    pub(crate) logger_config: LoggerConfig,
 
     /// The renderer's configuration
-    pub renderer_config: RendererConfig,
+    pub(crate) renderer_config: RendererConfig,
 
     /// The application's configuration
-    pub application_config: ApplicationConfig,
+    pub(crate) application_config: ApplicationConfig,
 }
 
 impl Config {
     /// Reads the config file to fill the Config struct
-    pub fn init(config_file: Option<&Path>) -> Result<Self, ErrorType> {
+    pub(crate) fn init(config_file: Option<&Path>) -> Result<Self, ErrorType> {
         match config_file {
             Some(_file_path) => todo!(), // TODO: init config from file
             None => Ok(Config::default()),

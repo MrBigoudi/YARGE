@@ -1,8 +1,12 @@
-use crate::core_layer::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
+use crate::{gamepad::GamepadButton, keyboard::KeyboardKey, mouse::MouseButton};
+
+#[allow(unused)]
 /// An enum representing an application event
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub enum Event {
+pub(crate) enum Event {
     /// Default unrecognized event
     #[default]
     Unrecognized,

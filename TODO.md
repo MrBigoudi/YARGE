@@ -2,9 +2,8 @@
 
 ## Global
 
+- Add better documentation everywhere
 - Check / Fix update function not running when window not focused ?
-- Add better documentation
-- Refactor modules privacy in crate
 - Add tests for the ECS methods
 - Create an example folder with many testbeds and way to run them from cargo directly
 

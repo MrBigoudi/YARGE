@@ -21,14 +21,16 @@ impl std::ops::Deref for Vector2 {
     type Target = private::CoordsVector2;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { &*(self as *const Vector2 as *const private::CoordsVector2) }
+        let value: *const Vector2 = self;
+        unsafe { &*(value as *const private::CoordsVector2) }
     }
 }
 
 /// Implements `DerefMut` to allow modifying `.x` and `.y`
 impl std::ops::DerefMut for Vector2 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { &mut *(self as *mut Vector2 as *mut private::CoordsVector2) }
+        let value: *mut Vector2 = self;
+        unsafe { &mut *(value as *mut private::CoordsVector2) }
     }
 }
 

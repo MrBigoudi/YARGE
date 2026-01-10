@@ -1,13 +1,10 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::{
     collections::HashMap,
-    path::{Path, PathBuf},
-    sync::{
-        Arc,
-        mpsc::{Receiver, TryRecvError},
-    },
+    sync::mpsc::{Receiver, TryRecvError},
 };
-
-use crate::{error::ErrorType, log_error, log_warn};
 
 use downcast_rs::impl_downcast;
 
@@ -16,13 +13,13 @@ pub trait FileResource: downcast_rs::DowncastSync + Send + Sync + 'static {}
 impl_downcast!(sync FileResource);
 
 /// A file that is being loaded
-pub struct LoadingFile {
-    pub(crate) receiver: Receiver<Arc<dyn FileResource>>,
+pub(crate) struct LoadingFile {
+    pub(crate) receiver: Receiver<std::sync::Arc<dyn FileResource>>,
 }
 
 /// A type to abstract a loading function
 pub(crate) type LoadingFileFunction =
-    fn(&Path) -> Result<Receiver<Arc<dyn FileResource>>, ErrorType>;
+    fn(&std::path::Path) -> Result<Receiver<std::sync::Arc<dyn FileResource>>, ErrorType>;
 
 impl LoadingFile {
     /// Begin to load a file
@@ -44,7 +41,7 @@ impl LoadingFile {
 }
 
 /// A file that is done loading
-pub struct LoadedFile {
+pub(crate) struct LoadedFile {
     pub(crate) data: std::sync::Arc<dyn FileResource>,
 }
 
@@ -52,23 +49,23 @@ pub struct LoadedFile {
 pub type FileResourceTypeId = String;
 
 /// The internal file loader system
-pub struct FileLoaderSystem {
+pub(crate) struct FileLoaderSystem {
     /// The loading functions
     pub(crate) loaders: HashMap<FileResourceTypeId, LoadingFileFunction>,
     /// Files that are currently being loaded
-    pub(crate) loading_files: HashMap<PathBuf, LoadingFile>,
+    pub(crate) loading_files: HashMap<std::path::PathBuf, LoadingFile>,
     /// Files that are done being loaded and are now accessible
-    pub(crate) loaded_files: HashMap<PathBuf, LoadedFile>,
+    pub(crate) loaded_files: HashMap<std::path::PathBuf, LoadedFile>,
 }
 
 impl FileLoaderSystem {
     /// Casts a user defined resource id into its safe version
-    pub fn cast_resource_id(id: &FileResourceTypeId) -> FileResourceTypeId {
+    pub(crate) fn cast_resource_id(id: &FileResourceTypeId) -> FileResourceTypeId {
         String::from("user.") + id
     }
 
     /// A simple constructor
-    pub fn init() -> Self {
+    pub(crate) fn init() -> Self {
         Self {
             loaders: HashMap::new(),
             loading_files: HashMap::new(),
@@ -77,7 +74,7 @@ impl FileLoaderSystem {
     }
 
     /// Registers a new resource type in the system
-    pub fn register(
+    pub(crate) fn register(
         &mut self,
         id: &FileResourceTypeId,
         loading_fct: LoadingFileFunction,
@@ -92,13 +89,13 @@ impl FileLoaderSystem {
             )));
         }
 
-        self.loaders.insert(id.clone(), loading_fct);
+        let _ = self.loaders.insert(id.clone(), loading_fct);
 
         Ok(())
     }
 
     /// Begin to load a file
-    pub fn start_load(
+    pub(crate) fn start_load(
         &mut self,
         id: &FileResourceTypeId,
         path: &std::path::Path,
@@ -134,7 +131,8 @@ impl FileLoaderSystem {
                         return Err(ErrorType::Unknown);
                     }
                 };
-                self.loading_files
+                let _ = self
+                    .loading_files
                     .insert(std::path::PathBuf::from(path), loading_file);
             }
         }
@@ -143,7 +141,7 @@ impl FileLoaderSystem {
     }
 
     /// Check if the given file is done loading
-    pub fn end_load(
+    pub(crate) fn end_load(
         &mut self,
         path: &std::path::Path,
     ) -> Result<Option<std::sync::Arc<dyn FileResource>>, ErrorType> {
@@ -159,9 +157,18 @@ impl FileLoaderSystem {
             Some(loading_file) => match loading_file.receiver.try_recv() {
                 Ok(data) => {
                     let arc = std::sync::Arc::clone(&data);
-                    self.loading_files.remove(path);
-                    self.loaded_files
-                        .insert(std::path::PathBuf::from(path), LoadedFile { data });
+                    if self.loading_files.remove(path).is_none() {
+                        log_error!("File `{:?}' was not loading", path);
+                        return Err(ErrorType::DoesNotExist);
+                    }
+                    if self
+                        .loaded_files
+                        .insert(std::path::PathBuf::from(path), LoadedFile { data })
+                        .is_some()
+                    {
+                        log_error!("File `{:?}' has already been loaded", path);
+                        return Err(ErrorType::Duplicate);
+                    }
                     Ok(Some(arc))
                 }
                 Err(TryRecvError::Empty) => {
@@ -177,7 +184,7 @@ impl FileLoaderSystem {
     }
 
     /// Gets the path of all currently loading files
-    pub fn get_loading_file_paths(&self) -> Vec<std::path::PathBuf> {
+    pub(crate) fn get_loading_file_paths(&self) -> Vec<std::path::PathBuf> {
         let mut keys = vec![];
         for key in self.loading_files.keys() {
             keys.push(std::path::PathBuf::from(key));

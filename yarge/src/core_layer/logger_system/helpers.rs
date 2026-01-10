@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 /// The possible log levels
 #[derive(Debug, Default, Clone, Copy)]
 pub enum LogLevel {

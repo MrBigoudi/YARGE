@@ -1,10 +1,10 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::collections::VecDeque;
 
-#[allow(unused)]
-use crate::{log_debug, log_error, log_info, log_warn};
-
 use crate::{
-    core_layer::application_system::UserEventWrapper, error::ErrorType, gamepad::GamepadButton,
+    core_layer::application_system::events::user_events::UserEventWrapper, gamepad::GamepadButton,
     keyboard::KeyboardKey, mouse::MouseButton,
 };
 

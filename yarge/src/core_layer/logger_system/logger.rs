@@ -1,12 +1,14 @@
-use crate::{config::LoggerConfig, platform_layer::PlatformLayerRwLock};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use once_cell::sync::Lazy;
+use crate::{PlatformLayerRwLock, config::LoggerConfig};
 
 /// A custom logger
-pub struct LoggerSystem {
-    /// The actual global logger
+pub(crate) struct LoggerSystem {
     #[allow(unused)]
-    pub(crate) global_logger: &'static Lazy<PlatformLayerRwLock<LoggerSystemInternal>>,
+    /// The actual global logger
+    pub(crate) global_logger:
+        &'static once_cell::sync::Lazy<PlatformLayerRwLock<LoggerSystemInternal>>,
 }
 
 /// The internal logger
@@ -16,8 +18,9 @@ pub struct LoggerSystemInternal {
 }
 
 /// The global logger to allow static log messages
-pub static GLOBAL_LOGGER: Lazy<PlatformLayerRwLock<LoggerSystemInternal>> = Lazy::new(|| {
-    PlatformLayerRwLock::new(LoggerSystemInternal {
-        config: LoggerConfig::default(),
-    })
-});
+pub static GLOBAL_LOGGER: once_cell::sync::Lazy<PlatformLayerRwLock<LoggerSystemInternal>> =
+    once_cell::sync::Lazy::new(|| {
+        PlatformLayerRwLock::new(LoggerSystemInternal {
+            config: LoggerConfig::default(),
+        })
+    });

@@ -1,2 +1,2 @@
 /// 2D vectors
-pub mod vector2;
+pub(crate) mod vector2;

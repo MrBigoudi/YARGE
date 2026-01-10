@@ -8,7 +8,7 @@ fn main() {
     cfg_aliases! {
         // Platforms
         linux_platform: { target_os = "linux" },
-        x11_platform: { all(feature = "xeleven", linux_platform) },
+        x11_platform: { all(feature = "x", linux_platform) },
         wayland_platform: { all(feature = "wayland", linux_platform) },
         web_platform: { all(target_family = "wasm", target_os = "unknown") },
         windows_platform: { target_os = "windows" },

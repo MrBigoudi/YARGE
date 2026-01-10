@@ -1,4 +1,5 @@
-use crate::{error::ErrorType, log_error, log_warn};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 /// The representation of an index in a generational indices structure
 pub(crate) type GenerationalIndex = usize;
@@ -10,43 +11,45 @@ pub(crate) type GenerationalGeneration = u64;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GenerationalKey {
     /// The index
-    pub index: GenerationalIndex,
+    pub(crate) index: GenerationalIndex,
     /// The generation
-    pub generation: GenerationalGeneration,
+    pub(crate) generation: GenerationalGeneration,
 }
 
-pub enum Entry<T> {
+pub(crate) enum Entry<T> {
     Free { next_free: GenerationalIndex },
     Occupied { value: Option<T> },
 }
 
 /// The representation of a generational structure entry
-pub struct GenerationalEntry<T> {
+pub(crate) struct GenerationalEntry<T> {
     /// The stored entry
-    pub entry: Entry<T>,
+    pub(crate) entry: Entry<T>,
     /// The entry generation used to check the validity of the entry
-    pub generation: GenerationalGeneration,
+    pub(crate) generation: GenerationalGeneration,
 }
 
 /// A generational indices collection
-pub struct GenerationalVec<T> {
+pub(crate) struct GenerationalVec<T> {
     /// The list of entries
-    pub entries: Vec<GenerationalEntry<T>>,
+    pub(crate) entries: Vec<GenerationalEntry<T>>,
     /// The first free entry
-    pub free_head: GenerationalIndex,
+    pub(crate) free_head: GenerationalIndex,
 }
 
 impl<T> GenerationalVec<T> {
+    #[allow(unused)]
     /// Initializes an generational indices list
-    pub fn init_empty() -> Self {
+    pub(crate) fn init_empty() -> Self {
         Self {
             entries: Vec::new(),
             free_head: 0,
         }
     }
 
+    #[allow(unused)]
     /// Initializes a generational indices list filled with empty entries
-    pub fn init_filled_with_empty_entries(nb_new_entries: usize) -> Result<Self, ErrorType> {
+    pub(crate) fn init_filled_with_empty_entries(nb_new_entries: usize) -> Result<Self, ErrorType> {
         let mut new_list = Self::init_empty();
         if nb_new_entries > 0
             && let Err(err) = new_list.insert_empty_entries(nb_new_entries, false)
@@ -60,8 +63,9 @@ impl<T> GenerationalVec<T> {
         Ok(new_list)
     }
 
+    #[allow(unused)]
     /// Inserts many empty elements to the list
-    pub fn insert_empty_entries(
+    pub(crate) fn insert_empty_entries(
         &mut self,
         nb_new_entries: usize,
         should_return_new_keys: bool,
@@ -140,8 +144,9 @@ impl<T> GenerationalVec<T> {
         }
     }
 
+    #[allow(unused)]
     /// Inserts a new element to the list
-    pub fn insert(&mut self, value: T) -> Result<GenerationalKey, ErrorType> {
+    pub(crate) fn insert(&mut self, value: T) -> Result<GenerationalKey, ErrorType> {
         match self.entries.get_mut(self.free_head) {
             Some(GenerationalEntry { entry, generation }) => {
                 // Update
@@ -174,8 +179,9 @@ impl<T> GenerationalVec<T> {
         }
     }
 
+    #[allow(unused)]
     /// Removes an element from the list
-    pub fn remove(&mut self, key: &GenerationalKey) -> Result<(), ErrorType> {
+    pub(crate) fn remove(&mut self, key: &GenerationalKey) -> Result<(), ErrorType> {
         match self.entries.get_mut(key.index) {
             None => {
                 log_warn!(
@@ -209,8 +215,9 @@ impl<T> GenerationalVec<T> {
         }
     }
 
+    #[allow(unused)]
     /// Gets the value of an entry in the list
-    pub fn get_value(&self, key: &GenerationalKey) -> Result<Option<&T>, ErrorType> {
+    pub(crate) fn get_value(&self, key: &GenerationalKey) -> Result<Option<&T>, ErrorType> {
         match self.entries.get(key.index) {
             None => {
                 log_error!(
@@ -239,8 +246,12 @@ impl<T> GenerationalVec<T> {
         }
     }
 
+    #[allow(unused)]
     /// Mutable getter to a value of an entry in the list
-    pub fn get_mut_value(&mut self, key: &GenerationalKey) -> Result<Option<&mut T>, ErrorType> {
+    pub(crate) fn get_mut_value(
+        &mut self,
+        key: &GenerationalKey,
+    ) -> Result<Option<&mut T>, ErrorType> {
         match self.entries.get_mut(key.index) {
             None => {
                 log_error!(
@@ -269,8 +280,9 @@ impl<T> GenerationalVec<T> {
         }
     }
 
+    #[allow(unused)]
     /// Gets an entry in the list
-    pub fn get_entry(&self, key: &GenerationalKey) -> Result<&Entry<T>, ErrorType> {
+    pub(crate) fn get_entry(&self, key: &GenerationalKey) -> Result<&Entry<T>, ErrorType> {
         match self.entries.get(key.index) {
             None => {
                 log_error!(
@@ -282,8 +294,12 @@ impl<T> GenerationalVec<T> {
         }
     }
 
+    #[allow(unused)]
     /// Mutable getter to an entry in the list
-    pub fn get_mut_entry(&mut self, key: &GenerationalKey) -> Result<&mut Entry<T>, ErrorType> {
+    pub(crate) fn get_mut_entry(
+        &mut self,
+        key: &GenerationalKey,
+    ) -> Result<&mut Entry<T>, ErrorType> {
         match self.entries.get_mut(key.index) {
             None => {
                 log_error!(

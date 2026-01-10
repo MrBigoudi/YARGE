@@ -1,13 +1,13 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use ash::{
     Entry, Instance,
     vk::{self, ApplicationInfo, InstanceCreateInfo},
 };
 
-#[allow(unused)]
 use crate::{
     config::Config,
-    error::ErrorType,
-    log, log_error, log_info, log_warn,
     rendering_layer::rendering_impl::{VkLayers, vulkan::types::VkNames},
 };
 

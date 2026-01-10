@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 #[cfg(opengl_renderer)]
 use crate::rendering_layer::rendering_impl::OpenglConfig;
 

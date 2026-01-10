@@ -3,11 +3,10 @@
 
 /// A module that abstracts a renderer
 mod renderer;
-pub use renderer::RenderingLayer;
+pub(crate) use renderer::RenderingLayer;
 
 /// The concrete implementation
-pub mod rendering_impl;
-pub use rendering_impl::RenderingLayerImpl;
+pub(crate) mod rendering_impl;
 
 /// A module with different types declaration
 pub mod types;
@@ -16,4 +15,4 @@ pub mod types;
 pub mod shaders;
 
 /// A module to handle graphics pipelines
-pub mod graphics_pipeline;
+pub(crate) mod graphics_pipeline;

@@ -1,5 +1,8 @@
 //! Contains the implementation for a Keyboard device
-//!
+
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::collections::HashMap;
 
 /// The state of a key
@@ -209,12 +212,22 @@ impl Default for Keyboard {
             AlphaNumeric::Eight,
             AlphaNumeric::Nine,
         ] {
-            keys.insert(KeyboardKey::AlphaNumeric(key), KeyboardKeyState::Released);
+            if keys
+                .insert(KeyboardKey::AlphaNumeric(key), KeyboardKeyState::Released)
+                .is_some()
+            {
+                log_warn!("Adding the `{:?}' key twice when building a keyboard", key);
+            }
         }
 
         // Insert all arrow keys
         for key in [Arrow::Up, Arrow::Down, Arrow::Left, Arrow::Right] {
-            keys.insert(KeyboardKey::Arrow(key), KeyboardKeyState::Released);
+            if keys
+                .insert(KeyboardKey::Arrow(key), KeyboardKeyState::Released)
+                .is_some()
+            {
+                log_warn!("Adding the `{:?}' key twice when building a keyboard", key);
+            }
         }
 
         // Insert all modifier keys
@@ -226,7 +239,12 @@ impl Default for Keyboard {
             Modifier::AltLeft,
             Modifier::AltRight,
         ] {
-            keys.insert(KeyboardKey::Modifier(key), KeyboardKeyState::Released);
+            if keys
+                .insert(KeyboardKey::Modifier(key), KeyboardKeyState::Released)
+                .is_some()
+            {
+                log_warn!("Adding the `{:?}' key twice when building a keyboard", key);
+            }
         }
 
         // Insert all special keys
@@ -238,7 +256,12 @@ impl Default for Keyboard {
             Special::Delete,
             Special::Spacebar,
         ] {
-            keys.insert(KeyboardKey::Special(key), KeyboardKeyState::Released);
+            if keys
+                .insert(KeyboardKey::Special(key), KeyboardKeyState::Released)
+                .is_some()
+            {
+                log_warn!("Adding the `{:?}' key twice when building a keyboard", key);
+            }
         }
 
         Self {

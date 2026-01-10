@@ -1,14 +1,7 @@
-use std::path::Path;
-
 #[allow(unused)]
-use crate::{
-    config::Config,
-    error::ErrorType,
-    log, log_debug, log_error, log_info, log_warn,
-    platform_layer::{Event, PlatformLayer},
-};
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use super::{Game, core::CoreLayer};
+use crate::{PlatformLayer, config::Config, core_layer::core::CoreLayer};
 
 /// The entry point of the engine
 pub struct Entry;
@@ -16,7 +9,10 @@ pub struct Entry;
 impl Entry {
     /// The entry point of the engine
     /// Every program using the engine should work simply by calling this function
-    pub fn run(user_game: &mut dyn Game, config_file: Option<&Path>) -> Result<(), ErrorType> {
+    pub fn run(
+        user_game: &mut dyn crate::Game,
+        config_file: Option<&std::path::Path>,
+    ) -> Result<(), ErrorType> {
         // Reads the configuration file
         let config = match Config::init(config_file) {
             Ok(config) => {
@@ -59,7 +55,7 @@ impl Entry {
                         }
                         Ok(event) => event,
                     };
-                    if event == Event::WindowClosed || should_quit {
+                    if event == crate::platform_layer::event::Event::WindowClosed || should_quit {
                         log_info!("The window is closing");
                         break 'infinite_loop;
                     }
@@ -79,8 +75,8 @@ impl Entry {
             return Err(ErrorType::Unknown);
         }
 
-        // TODO: add better logging messages when the logging system is not available
-        println!("Core layer shutted down");
+        // Fck VSCode weird integrated terminal
+        println!();
 
         Ok(())
     }

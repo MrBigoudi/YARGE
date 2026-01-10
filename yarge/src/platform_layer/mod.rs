@@ -2,18 +2,13 @@
 //! with the underlying hardware and operating system
 
 /// A module that abstracts a platform layer
-mod platform;
-pub use platform::PlatformLayer;
+pub(crate) mod platform;
 
 /// A module that abstracts a window manager
-mod window;
-pub use window::{DisplayMode, Window};
+pub(crate) mod window;
 
 /// The concrete implementations
-mod platform_impl;
-pub use platform_impl::PlatformLayerImpl;
-pub use platform_impl::PlatformLayerRwLock;
+pub(crate) mod platform_impl;
 
 /// A module representing an event
-mod event;
-pub use event::Event;
+pub(crate) mod event;

@@ -1,12 +1,11 @@
-use crate::{
-    config::Config,
-    core_layer::logger_system::helpers::{LogLevel, LogTarget},
-    error::ErrorType,
-    log_error,
-};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use super::{Window, event::Event};
+use crate::{LogLevel, LogTarget, config::Config};
 
+use super::{event::Event, window::Window};
+
+#[allow(private_interfaces)]
 /// Abstract trait for the platform specific code
 pub trait PlatformLayer {
     /// The type of the struct implementing the trait
@@ -30,7 +29,9 @@ pub trait PlatformLayer {
     fn get_time_since_unix_epoch() -> Result<u128, ErrorType>;
 
     /// Write a logging message
-    fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType>;
+    fn write_log(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType>;
+    /// Flush the logging output
+    fn flush_log() -> Result<(), ErrorType>;
 
     /// Load a file into a string
     fn load_to_string(path: &std::path::Path) -> Result<String, ErrorType> {

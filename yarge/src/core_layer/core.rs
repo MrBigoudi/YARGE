@@ -1,26 +1,26 @@
-use crate::log_info;
 #[allow(unused)]
-use crate::{
-    config::Config,
-    error::ErrorType,
-    log, log_debug, log_error,
-    platform_layer::{PlatformLayer, PlatformLayerImpl},
-    rendering_layer::{RenderingLayer, RenderingLayerImpl},
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::core_layer::{
+    application_system::application::ApplicationSystem, logger_system::logger::LoggerSystem,
 };
 
-use super::{ApplicationSystem, Game, LoggerSystem};
+use crate::{PlatformLayer, PlatformLayerImpl, RenderingLayer, RenderingLayerImpl, config::Config};
 
 /// The core layer
-pub struct CoreLayer<'a> {
-    pub platform_layer: PlatformLayerImpl,
-    pub rendering_layer: RenderingLayerImpl,
-    pub logger_system: LoggerSystem,
-    pub application_system: ApplicationSystem<'a>,
+pub(crate) struct CoreLayer<'a> {
+    pub(crate) platform_layer: PlatformLayerImpl,
+    pub(crate) rendering_layer: RenderingLayerImpl,
+    pub(crate) logger_system: LoggerSystem,
+    pub(crate) application_system: ApplicationSystem<'a>,
 }
 
 impl<'a> CoreLayer<'a> {
     /// Initializes the application
-    pub fn init(user_game: &'a mut dyn Game, config: &Config) -> Result<Self, ErrorType> {
+    pub(crate) fn init(
+        user_game: &'a mut dyn crate::Game,
+        config: &Config,
+    ) -> Result<Self, ErrorType> {
         // Inits the logger system
         let logger_system = match LoggerSystem::init(config) {
             Err(err) => {
@@ -84,7 +84,7 @@ impl<'a> CoreLayer<'a> {
     }
 
     /// Shuts down the application
-    pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+    pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
         // Shuts down the rendering layer
         if let Err(err) = self.rendering_layer.shutdown() {
             log_error!("Failed to shutdown the rendering layer: {:?}", err);
@@ -110,6 +110,7 @@ impl<'a> CoreLayer<'a> {
             return Err(ErrorType::Unknown);
         }
 
+        println!("Core layer shutted down");
         Ok(())
     }
 }

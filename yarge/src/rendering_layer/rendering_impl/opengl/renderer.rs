@@ -1,18 +1,16 @@
 #[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use crate::{
-    config::Config,
-    error::ErrorType,
-    log, log_error, log_info,
-    platform_layer::{PlatformLayerImpl, Window},
-    rendering_layer::renderer::RenderingLayer,
+    PlatformLayer, PlatformLayerImpl, RenderingLayer,
+    rendering_layer::types::RendererBeginFrameOutput,
 };
-use crate::{platform_layer::PlatformLayer, rendering_layer::types::RendererBeginFrameOutput};
+use crate::{config::Config, platform_layer::window::Window};
 
 use super::context::OpenglContext;
 
-pub struct OpenglRenderingLayer {
-    #[allow(unused)]
-    pub context: OpenglContext,
+pub(crate) struct OpenglRenderingLayer {
+    pub(crate) context: OpenglContext,
 }
 
 impl RenderingLayer for OpenglRenderingLayer {

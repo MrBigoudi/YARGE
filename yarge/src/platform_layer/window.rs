@@ -1,10 +1,14 @@
-use crate::{config::Config, error::ErrorType, maths::Vector2};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use super::Event;
+use crate::{config::Config, maths::Vector2};
 
+use super::event::Event;
+
+#[allow(unused)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Tells how the window should be displayed
-pub enum DisplayMode {
+pub(crate) enum DisplayMode {
     /// Fullscreen mode
     Fullscreen,
 
@@ -30,26 +34,26 @@ pub enum DisplayMode {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Common properties for any platform specific window implementations
-pub struct WindowCommonProperties {
+pub(crate) struct WindowCommonProperties {
     /// The window's position
     /// The position is such that
     /// `x` is the left of the window
     /// `y` is the top of the window
     /// The values are given between 0 and 1
-    pub position: Vector2,
+    pub(crate) position: Vector2,
 
     /// The window's width
     /// The width must be between 0. and 1.
     /// 1 meaning the monitor's width
-    pub width: f32,
+    pub(crate) width: f32,
 
     /// The window's height
     /// The height must be between 0. and 1.
     /// 1 meaning the monitor's height
-    pub height: f32,
+    pub(crate) height: f32,
 
     /// The current display mode
-    pub display_mode: DisplayMode,
+    pub(crate) display_mode: DisplayMode,
 }
 
 /// Abstract trait for a window
@@ -58,7 +62,7 @@ pub struct WindowCommonProperties {
 /// [1.,0.] is the top right corner of the monitor
 /// [0.,1.] is the bottom left corner of the monitor
 /// [1.,1.] is the bottom right corner of the monitor
-pub trait Window {
+pub(crate) trait Window {
     /// The type of the struct implementing the trait
     /// This would often be `Self`
     type WindowType;
@@ -69,6 +73,7 @@ pub trait Window {
     /// Shuts down the window
     fn shutdown(&mut self) -> Result<(), ErrorType>;
 
+    #[allow(unused)]
     /// Gets the window's properties
     fn get_properties(&self) -> WindowCommonProperties;
 

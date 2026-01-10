@@ -1,12 +1,7 @@
-use std::collections::VecDeque;
-
-use crate::{
-    core_layer::ApplicationSystem, platform_layer::PlatformLayerImpl,
-    rendering_layer::RenderingLayerImpl,
-};
-
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::core_layer::application_system::ecs::entity::UserEntity;
 
 /// An enum representing user fireable events
 pub(crate) enum UserEvent {
@@ -32,13 +27,13 @@ pub(crate) enum UserEvent {
     /// To remove a single entity
     RemoveEntity {
         /// The entity to remove
-        user_entity: crate::core_layer::UserEntity,
+        user_entity: UserEntity,
     },
 
     /// To remove entities
     RemoveEntities {
         /// The entities to remove
-        user_entities: Vec<crate::core_layer::UserEntity>,
+        user_entities: Vec<UserEntity>,
     },
 
     /// To register a new component
@@ -65,7 +60,7 @@ pub(crate) enum UserEvent {
         /// The id of the component
         component_id: std::any::TypeId,
         /// The user entity to which add the component
-        user_entity: crate::core_layer::UserEntity,
+        user_entity: UserEntity,
         /// The value of the component to add to the entity
         value: Box<dyn crate::core_layer::application_system::ecs::component::RealComponent>,
         /// The function to add a component to an entity
@@ -78,7 +73,7 @@ pub(crate) enum UserEvent {
         /// The id of the component
         component_id: std::any::TypeId,
         /// The user entity to which add the component
-        user_entity: crate::core_layer::UserEntity,
+        user_entity: UserEntity,
         /// The function to add a component to an entity
         remove_from_entity_fct:
             crate::core_layer::application_system::ecs::component::RemoveComponentFromEntityFunction,
@@ -89,7 +84,7 @@ pub(crate) enum UserEvent {
         /// The id of the component
         component_id: std::any::TypeId,
         /// The user entity which needs a component update
-        user_entity: crate::core_layer::UserEntity,
+        user_entity: UserEntity,
         /// The new value of the component for the entity
         value: Box<dyn crate::core_layer::application_system::ecs::component::RealComponent>,
         /// The function to update a component for an entity
@@ -134,14 +129,14 @@ pub struct UserEventWrapper {
     pub(crate) event: UserEvent,
 }
 
-impl<'a> ApplicationSystem<'a> {
+impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
     /// User events handling
     /// Returns true if the application should quit
     pub(crate) fn handle_user_events(
         &mut self,
-        events: VecDeque<UserEventWrapper>,
-        _platform_layer: &mut PlatformLayerImpl,
-        _rendering_layer: &mut RenderingLayerImpl,
+        events: std::collections::VecDeque<UserEventWrapper>,
+        _platform_layer: &mut crate::PlatformLayerImpl,
+        _rendering_layer: &mut crate::RenderingLayerImpl,
     ) -> Result<bool, ErrorType> {
         // TODO: check if need to create new entities
         if let Err(err) = self.ecs.spawn_real_entities() {

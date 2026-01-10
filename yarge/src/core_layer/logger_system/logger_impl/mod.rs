@@ -1,18 +1,17 @@
-use std::io::Write;
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::{config::Config, error::ErrorType};
+use crate::{PlatformLayer, config::Config};
 
-use super::{
-    LoggerSystem,
-    helpers::{LogLevel, LogTarget},
-    logger::GLOBAL_LOGGER,
-};
+use super::logger::LoggerSystem;
 
-pub mod macros;
+use crate::{GLOBAL_LOGGER, LogLevel, LogTarget};
+
+mod macros;
 
 impl LoggerSystem {
     /// Initializes the logger systems
-    pub fn init(config: &Config) -> Result<Self, ErrorType> {
+    pub(crate) fn init(config: &Config) -> Result<Self, ErrorType> {
         let mut logger = match GLOBAL_LOGGER.write() {
             Ok(logger) => logger,
             Err(err) => {
@@ -27,27 +26,26 @@ impl LoggerSystem {
         })
     }
 
-    /// Updates the the minimum log level
     #[allow(unused)]
-    pub fn update_min_level(&mut self, _new_min_level: LogLevel) {
+    /// Updates the the minimum log level
+    pub(crate) fn update_min_level(&mut self, _new_min_level: LogLevel) {
         todo!("Implement logger level update")
     }
 
-    /// Updates the the log target
     #[allow(unused)]
-    pub fn update_target(&mut self, _new_target: LogTarget) {
+    /// Updates the the log target
+    pub(crate) fn update_target(&mut self, _new_target: LogTarget) {
         todo!("Implement logger target update")
     }
 
     /// Shuts down the logger
-    pub fn shutdown(&mut self) -> Result<(), ErrorType> {
-        if let Err(err) = std::io::stdout().flush() {
-            eprintln!("Failed to flush the stdout: {:?}", err);
-            return Err(ErrorType::IO);
-        }
-        if let Err(err) = std::io::stderr().flush() {
-            eprintln!("Failed to flush the stderr: {:?}", err);
-            return Err(ErrorType::IO);
+    pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
+        if let Err(err) = crate::PlatformLayerImpl::flush_log() {
+            log_error!(
+                "Failed to flush the logger from the platform layer when shutting down the logger system: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
         }
         println!("Logger shutted down");
         Ok(())

@@ -5,11 +5,11 @@ macro_rules! log {
     ($level:expr, $target:expr) => {{
         #[allow(unused)]
         use $crate::{PlatformLayer, PlatformLayerImpl, LogLevel, LogTarget};
-        let message = format!("No message (from {}:{})\n", file!(), line!());
-        if let Err(err) = PlatformLayerImpl::write($level, &message, $target) {
+        let message = format!("No message (from {}:{})", file!(), line!());
+        if let Err(err) = PlatformLayerImpl::write_log($level, &message, $target) {
             let message = format!("Logging failure {:?}, default to error console, original message: {}\n", err, message
             );
-            if let Err(err) = PlatformLayerImpl::write(&LogLevel::Warn, &message, &LogTarget::ErrorConsole) {
+            if let Err(err) = PlatformLayerImpl::write_log(&LogLevel::Warn, &message, &LogTarget::ErrorConsole) {
                 panic!("Critical logging failure: {:?}, original message: {}", err, message);
             }
         }
@@ -17,12 +17,12 @@ macro_rules! log {
     ($level:expr, $target:expr, $($arg:tt)*) => {{
         #[allow(unused)]
         use $crate::{PlatformLayer, PlatformLayerImpl, LogLevel, LogTarget};
-        let message = format!("{} (from {}:{})\n", format!($($arg)*), file!(), line!());
-        if let Err(err) = PlatformLayerImpl::write($level, &message, $target) {
+        let message = format!("{} (from {}:{})", format!($($arg)*), file!(), line!());
+        if let Err(err) = PlatformLayerImpl::write_log($level, &message, $target) {
             let message = format!("Logging failure {:?}, default to error console, original message: {}\n",
                 err, message
             );
-            if let Err(err) = PlatformLayerImpl::write(&LogLevel::Warn, &message, &LogTarget::ErrorConsole) {
+            if let Err(err) = PlatformLayerImpl::write_log(&LogLevel::Warn, &message, &LogTarget::ErrorConsole) {
                 panic!("Critical logging failure: {:?}, original message: {}", err, message);
             }
         }

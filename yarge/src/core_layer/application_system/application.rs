@@ -1,37 +1,44 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::collections::VecDeque;
 
+use crate::config::Version;
+use crate::core_layer::application_system::events::user_events::UserEventWrapper;
 use crate::{
-    ECS,
-    core_layer::FileLoaderSystem,
-    log_info,
-    platform_layer::PlatformLayerImpl,
-    rendering_layer::{RenderingLayer, RenderingLayerImpl, types::RendererBeginFrameOutput},
+    ECS, Game, config::Config, core_layer::file_system::file::FileLoaderSystem,
+    platform_layer::event::Event, rendering_layer::types::RendererBeginFrameOutput,
 };
-#[allow(unused)]
-use crate::{config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::Event};
-
-use super::Game;
+use crate::{PlatformLayerImpl, RenderingLayer, RenderingLayerImpl};
 
 /// The application system
-pub struct ApplicationSystem<'a> {
+pub(crate) struct ApplicationSystem<'a> {
+    /// The name of the application
+    pub(crate) name: String,
+    /// The version of the application
+    pub(crate) version: Version,
+
     /// The user defined game
-    pub user_game: &'a mut dyn Game,
+    pub(crate) user_game: &'a mut dyn Game,
 
     /// The file loader system
-    pub file_loader: FileLoaderSystem,
+    pub(crate) file_loader: FileLoaderSystem,
 
     /// The ECS
-    pub ecs: ECS,
+    pub(crate) ecs: ECS,
 }
 
 impl<'a> ApplicationSystem<'a> {
     /// Initializes the application
-    pub fn init(
+    pub(crate) fn init(
         user_game: &'a mut dyn Game,
-        _config: &Config,
+        config: &Config,
         platform_layer: &mut PlatformLayerImpl,
         rendering_layer: &mut RenderingLayerImpl,
     ) -> Result<Self, ErrorType> {
+        let name = config.application_config.name.clone();
+        let version = config.application_config.version.clone();
+
         // Inits the file loader system
         let file_loader = FileLoaderSystem::init();
         log_info!("File loader system initialized");
@@ -50,6 +57,8 @@ impl<'a> ApplicationSystem<'a> {
         log_info!("ECS initialized");
 
         let mut application = Self {
+            name,
+            version,
             user_game,
             file_loader,
             ecs,
@@ -67,7 +76,14 @@ impl<'a> ApplicationSystem<'a> {
         // TODO: register engine level FileResourceId
 
         match application.handle_user_events(user_events, platform_layer, rendering_layer) {
-            Ok(false) => Ok(application),
+            Ok(false) => {
+                log_info!(
+                    "Application: {:?}, version: {:?} initialized",
+                    application.name,
+                    application.version
+                );
+                Ok(application)
+            }
             Ok(true) => {
                 log_error!("User asked to quit the app on start");
                 Err(ErrorType::WrongArgument(String::from(
@@ -86,7 +102,7 @@ impl<'a> ApplicationSystem<'a> {
 
     /// One iteration of the infinite running loop
     /// Returns true if the application should quit
-    pub fn loop_iteration(
+    pub(crate) fn loop_iteration(
         &mut self,
         event: Event,
         platform_layer: &mut PlatformLayerImpl,
@@ -186,7 +202,7 @@ impl<'a> ApplicationSystem<'a> {
     }
 
     /// Shuts down the application
-    pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+    pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
         // Shuts down the ECS system
         if let Err(err) = ECS::shutdown() {
             log_error!(
@@ -209,11 +225,11 @@ impl<'a> ApplicationSystem<'a> {
     }
 
     /// Check if any file have loaded
-    pub fn handle_loading_files(
+    pub(crate) fn handle_loading_files(
         &mut self,
         _platform_layer: &mut PlatformLayerImpl,
         _rendering_layer: &mut RenderingLayerImpl,
-    ) -> Result<VecDeque<crate::UserEventWrapper>, ErrorType> {
+    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
         let mut user_events = VecDeque::new();
         for path in &self.file_loader.get_loading_file_paths() {
             match self.file_loader.end_load(path) {

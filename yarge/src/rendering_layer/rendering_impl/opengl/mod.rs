@@ -1,8 +1,8 @@
 mod renderer;
 
-pub use renderer::OpenglRenderingLayer as RenderingLayerImpl;
+pub(crate) use renderer::OpenglRenderingLayer as RenderingLayerImpl;
 
 mod context;
 mod types;
 
-pub use types::OpenglConfig;
+pub(crate) use types::OpenglConfig;

@@ -1,28 +1,28 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use crate::{
-    Component, FileResourceTypeId, RonFileResource, SystemSchedule, UserEventWrapper,
+    FileResourceTypeId, RonFileResource, SystemSchedule,
     core_layer::{
-        FileLoaderSystem, UserEntity,
         application_system::{
             ecs::{
                 component::{
-                    AddComponentToEntityFunction, RealComponent, RegisterComponentFunction,
-                    RemoveComponentFromEntityFunction, RemoveComponentFunction,
-                    UpdateComponentForEntityFunction,
+                    AddComponentToEntityFunction, Component, RealComponent,
+                    RegisterComponentFunction, RemoveComponentFromEntityFunction,
+                    RemoveComponentFunction, UpdateComponentForEntityFunction,
                 },
+                entity::UserEntity,
                 system::{
                     SystemCallback, SystemCallbackConditionFunction, SystemMutCallback,
                     UserSystemCallback, UserSystemCallbackBuilder,
                     UserSystemCallbackConditionFunction, UserSystemMutCallback,
                 },
             },
-            events::user_events::UserEvent,
+            events::user_events::{UserEvent, UserEventWrapper},
         },
-        file_system::file::LoadingFileFunction,
+        file_system::file::{FileLoaderSystem, LoadingFileFunction},
     },
 };
-
-#[allow(unused)]
-use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 pub struct QuitAppEventBuilder;
 impl QuitAppEventBuilder {
@@ -366,7 +366,7 @@ impl RegisterSystemEventBuilder {
     pub fn callback<G, T>(mut self, callback: UserSystemCallback<G, T>) -> Self
     where
         G: crate::Game + 'static,
-        T: crate::Component + 'static,
+        T: Component + 'static,
     {
         self.callback = Some(UserSystemCallbackBuilder::system::<G, T>(callback));
         if self.callback_mut.is_some() {
@@ -377,7 +377,7 @@ impl RegisterSystemEventBuilder {
     pub fn callback_mut<G, T>(mut self, callback: UserSystemMutCallback<G, T>) -> Self
     where
         G: crate::Game + 'static,
-        T: crate::Component + 'static,
+        T: Component + 'static,
     {
         self.callback_mut = Some(UserSystemCallbackBuilder::system_mut::<G, T>(callback));
         if self.callback.is_some() {

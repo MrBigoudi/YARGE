@@ -1,21 +1,17 @@
 /// A module representing generatioonal indices structures
 /// See https://lucassardois.medium.com/generational-indices-guide-8e3c5f7fd594
-pub mod generational;
+pub(crate) mod generational;
 
 /// A module representing components in the ECS
-pub mod component;
+pub(crate) mod component;
 /// A module representing entities in the ECS
 /// See https://austinmorlan.com/posts/entity_component_system/
 /// See https://kyren.github.io/2018/09/14/rustconf-talk.html
-pub mod entity;
-pub mod system;
-
-pub use component::Component;
-pub use entity::UserEntity;
-pub use system::SystemSchedule;
+pub(crate) mod entity;
+pub(crate) mod system;
 
 #[allow(unused)]
-use crate::{error::ErrorType, log_error, log_info, log_warn};
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 #[allow(clippy::upper_case_acronyms)]
 /// An entity component system
@@ -56,7 +52,10 @@ impl ECS {
     /// Shuts down the ECS
     pub(crate) fn shutdown() -> Result<(), ErrorType> {
         match entity::GLOBAL_ENTITY_GENERATOR.write() {
-            Ok(mut generator) => Ok(generator.shutdown()),
+            Ok(mut generator) => {
+                generator.shutdown();
+                Ok(())
+            }
             Err(err) => {
                 log_error!(
                     "Failed to access the global entity generator when shutting down the ECS: {:?}",
@@ -151,7 +150,10 @@ impl ECS {
     }
 
     /// Removes an entity
-    pub(crate) fn remove_entity(&mut self, user_entity: &UserEntity) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entity(
+        &mut self,
+        user_entity: &entity::UserEntity,
+    ) -> Result<(), ErrorType> {
         let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
             Ok(generator) => match generator.get_real_entity(user_entity) {
                 Ok(entity) => entity,
@@ -191,7 +193,7 @@ impl ECS {
             .map(|(index, _)| index)
             .collect();
         for index in indices_to_remove.into_iter().rev() {
-            self.entities.drain(index..index + 1);
+            let _ = self.entities.drain(index..index + 1);
         }
 
         Ok(())
@@ -200,7 +202,7 @@ impl ECS {
     /// Removes entities
     pub(crate) fn remove_entities(
         &mut self,
-        user_entities: &[UserEntity],
+        user_entities: &[entity::UserEntity],
     ) -> Result<(), ErrorType> {
         if user_entities.is_empty() {
             log_warn!("Trying to remove 0 entities");
@@ -245,7 +247,7 @@ impl ECS {
             .map(|(index, _)| index)
             .collect();
         for index in indices_to_remove.into_iter().rev() {
-            self.entities.drain(index..index + 1);
+            let _ = self.entities.drain(index..index + 1);
         }
 
         Ok(())
@@ -283,7 +285,7 @@ impl ECS {
     pub(crate) fn add_component_to_entity(
         &mut self,
         _component_id: &std::any::TypeId,
-        user_entity: &UserEntity,
+        user_entity: &entity::UserEntity,
         value: Box<dyn component::RealComponent>,
         add_to_entity_fct: &component::AddComponentToEntityFunction,
     ) -> Result<(), ErrorType> {
@@ -331,7 +333,7 @@ impl ECS {
     pub(crate) fn remove_component_from_entity(
         &mut self,
         _component_id: &std::any::TypeId,
-        user_entity: &UserEntity,
+        user_entity: &entity::UserEntity,
         remove_from_entity: &component::RemoveComponentFromEntityFunction,
     ) -> Result<(), ErrorType> {
         let real_entity = match entity::GLOBAL_ENTITY_GENERATOR.read() {
@@ -378,7 +380,7 @@ impl ECS {
     pub(crate) fn update_component_value_for_entity(
         &mut self,
         _component_id: &std::any::TypeId,
-        user_entity: &UserEntity,
+        user_entity: &entity::UserEntity,
         value: Box<dyn component::RealComponent>,
         update_for_entity_fct: &component::UpdateComponentForEntityFunction,
     ) -> Result<(), ErrorType> {
@@ -418,7 +420,7 @@ impl ECS {
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
         callback: system::SystemCallback,
-        schedule: system::SystemSchedule,
+        schedule: crate::SystemSchedule,
         condition: system::SystemCallbackConditionFunction,
     ) -> Result<(), ErrorType> {
         // Check if all types are valid component
@@ -469,7 +471,7 @@ impl ECS {
         with: Vec<std::any::TypeId>,
         without: Vec<std::any::TypeId>,
         callback: system::SystemMutCallback,
-        schedule: system::SystemSchedule,
+        schedule: crate::SystemSchedule,
         condition: system::SystemCallbackConditionFunction,
     ) -> Result<(), ErrorType> {
         // Check if all types are valid component

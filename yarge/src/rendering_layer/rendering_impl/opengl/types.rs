@@ -1,4 +1,7 @@
-use crate::{config::Version, rendering_layer::rendering_impl::types::ImageFormat};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::{config::Version, rendering_layer::types::ImageFormat};
 
 #[derive(Debug, Clone)]
 /// The config for an OpenGl context

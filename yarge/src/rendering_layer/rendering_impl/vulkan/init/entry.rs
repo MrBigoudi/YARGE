@@ -1,7 +1,7 @@
-use ash::Entry;
-
 #[allow(unused)]
-use crate::{error::ErrorType, log, log_error};
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use ash::Entry;
 
 /// Helper function to initiate the vulkan entry
 pub fn init_entry() -> Result<Entry, ErrorType> {

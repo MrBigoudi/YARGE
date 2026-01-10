@@ -21,9 +21,9 @@ cfg_aliases = "0.2.1"
 pkg-config = "0.3.32"
 
 [features]
-default = ["xeleven", "opengl"]
-# default = ["xeleven", "vulkan"]
-xeleven = ["xcb", "x11", "colored"]
+default = ["x", "opengl"]
+# default = ["x", "vulkan"]
+x = ["xcb", "x11", "colored"]
 wayland = ["colored"]
 directx = []
 metal = []

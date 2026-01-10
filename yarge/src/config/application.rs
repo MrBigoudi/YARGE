@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use crate::config::Version;
 
 /// The configuration for the application

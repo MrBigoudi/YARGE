@@ -1,6 +1,7 @@
+#[allow(private_interfaces, private_bounds)]
 /// Implements the X11 window manager
-mod window;
+pub(crate) mod window;
 
+#[allow(private_interfaces, private_bounds)]
 /// Implements the X11 platform layer
-mod platform;
-pub use platform::LinuxX11PlatformLayer;
+pub(crate) mod platform;

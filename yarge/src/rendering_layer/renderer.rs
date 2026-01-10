@@ -1,10 +1,10 @@
-use crate::{
-    config::Config, error::ErrorType, platform_layer::PlatformLayerImpl,
-    rendering_layer::types::RendererBeginFrameOutput,
-};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::{PlatformLayerImpl, config::Config, rendering_layer::types::RendererBeginFrameOutput};
 
 /// Abstract trait for the renderer backend specific code
-pub trait RenderingLayer {
+pub(crate) trait RenderingLayer {
     /// The type of the struct implementing the trait
     /// This would often be `Self`
     type RenderingLayerType;

@@ -1,15 +1,14 @@
-use crate::rendering_layer::types::RendererBeginFrameOutput;
 #[allow(unused)]
-use crate::{
-    config::Config, error::ErrorType, log, log_debug, log_error, platform_layer::PlatformLayerImpl,
-    rendering_layer::renderer::RenderingLayer,
-};
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::rendering_layer::types::RendererBeginFrameOutput;
+
+use crate::{PlatformLayerImpl, RenderingLayer, config::Config};
 
 use super::context::VulkanContext;
 
-pub struct VulkanRenderingLayer {
-    #[allow(unused)]
-    pub context: VulkanContext,
+pub(crate) struct VulkanRenderingLayer {
+    pub(crate) context: VulkanContext,
 }
 
 impl RenderingLayer for VulkanRenderingLayer {

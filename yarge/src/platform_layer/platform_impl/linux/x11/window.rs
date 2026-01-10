@@ -1,70 +1,70 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::collections::HashMap;
 
-#[cfg(opengl_renderer)]
-use crate::rendering_layer::rendering_impl::types::ImageFormat;
-
-#[allow(unused)]
-use crate::{
-    config::Config,
-    error::ErrorType,
-    keyboard::KeyboardKey,
-    log, log_debug, log_error, log_info,
-    platform_layer::{DisplayMode, Event, Window, window::WindowCommonProperties},
+use crate::platform_layer::{
+    event::Event,
+    window::{DisplayMode, Window, WindowCommonProperties},
 };
+#[cfg(opengl_renderer)]
+use crate::rendering_layer::types::ImageFormat;
+
+use crate::{config::Config, keyboard::KeyboardKey};
 
 use xcb::{Xid, x};
 
 /// Handled atoms
-pub struct LinuxX11Atoms {
+pub(crate) struct LinuxX11Atoms {
     /// Tells the window manager what special messages you can understand
     /// Mainly use to announce support for window close
-    pub protocols: x::Atom,
+    pub(crate) protocols: x::Atom,
     /// Handles window close requests
-    pub delete_window: x::Atom,
+    pub(crate) delete_window: x::Atom,
     /// Window states (fullscreen, maximized, minimized)
-    pub state: x::Atom,
+    pub(crate) state: x::Atom,
     /// Window maximized vertically
-    pub state_maximized_vert: x::Atom,
+    pub(crate) state_maximized_vert: x::Atom,
     /// Window maximized horizontally
-    pub state_maximized_horz: x::Atom,
+    pub(crate) state_maximized_horz: x::Atom,
     /// Window minimized
-    pub state_hidden: x::Atom,
+    pub(crate) state_hidden: x::Atom,
 }
 
 /// Properties of the X11 screen the window is attached to
-pub struct LinuxX11ScreenProperties {
+pub(crate) struct LinuxX11ScreenProperties {
     /// The total screen width in pixels
-    pub width: u16,
+    pub(crate) width: u16,
     /// The total screen height in pixels
-    pub height: u16,
+    pub(crate) height: u16,
 }
 
 /// Properties to handle OpenGL with Linux X11
 #[cfg(opengl_renderer)]
-pub struct LinuxX11OpenglWindow {
+pub(crate) struct LinuxX11OpenglWindow {
     /// The xlib display
-    pub display: *mut x11::xlib::Display,
+    pub(crate) display: *mut x11::xlib::Display,
 
     /// All the framebuffer configs
-    pub all_framebuffer_configs: *mut x11::glx::GLXFBConfig,
+    pub(crate) all_framebuffer_configs: *mut x11::glx::GLXFBConfig,
 
     /// The selected framebuffer config
-    pub framebuffer_config: *mut x11::glx::__GLXFBConfigRec,
+    pub(crate) framebuffer_config: *mut x11::glx::__GLXFBConfigRec,
 
     /// The OpenGL context
-    pub context: *mut x11::glx::__GLXcontextRec,
+    pub(crate) context: *mut x11::glx::__GLXcontextRec,
 
     /// The Visual ID
-    pub visual_id: std::os::raw::c_int,
+    pub(crate) visual_id: std::os::raw::c_int,
 
     /// The colormap
-    pub colormap: x::Colormap,
+    pub(crate) colormap: x::Colormap,
 
     /// The drawable window
-    pub drawable: x11::glx::GLXDrawable,
+    pub(crate) drawable: x11::glx::GLXDrawable,
 
     /// The GLX window
-    pub window: x11::glx::GLXWindow,
+    pub(crate) window: x11::glx::GLXWindow,
 }
 
 #[cfg(opengl_renderer)]
@@ -123,17 +123,18 @@ impl LinuxX11OpenglWindow {
     ) -> Result<(*mut x11::glx::GLXFBConfig, std::os::raw::c_int), ErrorType> {
         let color_channel_size =
             Self::get_channel_size(&config.renderer_config.opengl_parameters.framebuffer_format);
-        
-        #[rustfmt::skip]
+
         // Use a fixed-size array on the stack
         const MAX_NB_ATTRIBUTES: usize = 32;
         let mut visual_attributes = [0i32; MAX_NB_ATTRIBUTES]; // Large enough for all possible attributes
         let mut idx = 0;
-        
+
         // Helper to add attribute pairs
         let mut add_attrib = |attr: i32, value: i32| {
             if idx >= MAX_NB_ATTRIBUTES {
-                log_error!("Trying to add too many attributes in the visual attributes array when initializing the X11 OpenGL window");
+                log_error!(
+                    "Trying to add too many attributes in the visual attributes array when initializing the X11 OpenGL window"
+                );
                 return Err(ErrorType::InvalidIndex);
             }
             visual_attributes[idx] = attr;
@@ -141,7 +142,7 @@ impl LinuxX11OpenglWindow {
             idx += 2;
             Ok(())
         };
-        
+
         add_attrib(x11::glx::GLX_X_RENDERABLE, 1)?;
         add_attrib(x11::glx::GLX_DRAWABLE_TYPE, x11::glx::GLX_WINDOW_BIT)?;
         add_attrib(x11::glx::GLX_X_VISUAL_TYPE, x11::glx::GLX_TRUE_COLOR)?;
@@ -155,17 +156,17 @@ impl LinuxX11OpenglWindow {
         add_attrib(x11::glx::GLX_RED_SIZE, color_channel_size)?;
         add_attrib(x11::glx::GLX_GREEN_SIZE, color_channel_size)?;
         add_attrib(x11::glx::GLX_BLUE_SIZE, color_channel_size)?;
-        
+
         if let Some(alpha_size) = Self::get_alpha_channel_size(
             &config.renderer_config.opengl_parameters.framebuffer_format,
         ) {
             add_attrib(x11::glx::GLX_ALPHA_SIZE, alpha_size)?;
         }
-        
+
         if let Some(format) = &config.renderer_config.opengl_parameters.depthbuffer_format {
             add_attrib(x11::glx::GLX_DEPTH_SIZE, Self::get_channel_size(format))?;
         }
-        
+
         if let Some(format) = &config
             .renderer_config
             .opengl_parameters
@@ -173,15 +174,15 @@ impl LinuxX11OpenglWindow {
         {
             add_attrib(x11::glx::GLX_STENCIL_SIZE, Self::get_channel_size(format))?;
         }
-        
+
         // Null terminate the list
         if idx >= MAX_NB_ATTRIBUTES {
-            log_error!("Invalid index for the end of the visual attributes array when initializing the X11 OpenGL window");
+            log_error!(
+                "Invalid index for the end of the visual attributes array when initializing the X11 OpenGL window"
+            );
             return Err(ErrorType::InvalidIndex);
         }
-        visual_attributes[idx] = x11::glx::GLX_NONE as i32;
-
-
+        visual_attributes[idx] = x11::glx::GLX_NONE;
 
         let mut nb_framebuffer_configs: std::os::raw::c_int = 0;
         let framebuffer_configs = unsafe {
@@ -275,9 +276,9 @@ impl LinuxX11OpenglWindow {
     /// Inits the colormap
     fn init_colormap(
         connection: &xcb::Connection,
-        screen: &xcb::x::Screen,
+        screen: &x::Screen,
         visual_id: std::os::raw::c_int,
-    ) -> Result<xcb::x::Colormap, ErrorType> {
+    ) -> Result<x::Colormap, ErrorType> {
         let colormap = connection.generate_id();
         let cookie = connection.send_request_checked(&x::CreateColormap {
             alloc: x::ColormapAlloc::None,
@@ -293,11 +294,11 @@ impl LinuxX11OpenglWindow {
         Ok(colormap)
     }
 
-    pub fn init(
+    pub(crate) fn init(
         config: &Config,
         display: *mut x11::xlib::Display,
         connection: &xcb::Connection,
-        screen: &xcb::x::Screen,
+        screen: &x::Screen,
         screen_number: i32,
     ) -> Result<Self, ErrorType> {
         let (all_framebuffer_configs, framebuffer_config) =
@@ -354,7 +355,7 @@ impl LinuxX11OpenglWindow {
     }
 
     /// Inits the drawable windows
-    pub fn init_drawable(&mut self, window: x::Window) -> Result<(), ErrorType> {
+    pub(crate) fn init_drawable(&mut self, window: x::Window) -> Result<(), ErrorType> {
         self.window = unsafe {
             x11::glx::glXCreateWindow(
                 self.display,
@@ -374,10 +375,10 @@ impl LinuxX11OpenglWindow {
     }
 
     /// Shutds down the opengl window
-    pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+    pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
         // Free the configs
         unsafe {
-            x11::xlib::XFree(self.all_framebuffer_configs as *mut _);
+            let _ = x11::xlib::XFree(self.all_framebuffer_configs as *mut _);
         }
         // Shutting down the opengl window
         unsafe { x11::glx::glXDestroyWindow(self.display, self.window) };
@@ -386,7 +387,7 @@ impl LinuxX11OpenglWindow {
         Ok(())
     }
 
-    pub fn get_depth(&self) -> Result<u8, ErrorType> {
+    pub(crate) fn get_depth(&self) -> Result<u8, ErrorType> {
         let visual_info =
             unsafe { x11::glx::glXGetVisualFromFBConfig(self.display, self.framebuffer_config) };
         if visual_info.is_null() {
@@ -397,7 +398,7 @@ impl LinuxX11OpenglWindow {
         }
         let depth = (unsafe { *visual_info }).depth as u8;
         unsafe {
-            x11::xlib::XFree(visual_info as *mut _);
+            let _ = x11::xlib::XFree(visual_info as *mut _);
         }
 
         Ok(depth)
@@ -405,17 +406,18 @@ impl LinuxX11OpenglWindow {
 }
 
 /// The required elements to manage a window in Linux X11
-pub struct LinuxX11Window {
+pub(crate) struct LinuxX11Window {
     /// Common window properties
-    pub properties: WindowCommonProperties,
+    pub(crate) properties: WindowCommonProperties,
     /// The keycode to keysym map
-    keymap: std::collections::HashMap<x::Keycode, x::Keysym>,
+    keymap: HashMap<x::Keycode, x::Keysym>,
     /// The atoms needed
     atoms: LinuxX11Atoms,
     /// The xcb connection
     connection: xcb::Connection,
-    /// The xcb window
+
     #[allow(unused)]
+    /// The xcb window
     window: x::Window,
     /// The xcb screen properties
     screen: LinuxX11ScreenProperties,
@@ -443,7 +445,9 @@ impl Window for LinuxX11Window {
                 "Failed to create an xcb connection when initializing the X11 linux window: {:?}",
                 err
             );
-            unsafe { x11::xlib::XCloseDisplay(display) };
+            unsafe {
+                let _ = x11::xlib::XCloseDisplay(display);
+            };
             return Err(ErrorType::Unknown);
         }
 
@@ -496,8 +500,7 @@ impl Window for LinuxX11Window {
         let width = (config.window_config.width * (screen.width_in_pixels() as f32)) as u16;
         let height = (config.window_config.height * (screen.height_in_pixels() as f32)) as u16;
 
-        #[allow(unused)]
-        let depth = x::COPY_FROM_PARENT as u8;
+        let _depth = x::COPY_FROM_PARENT as u8;
         #[cfg(opengl_renderer)]
         let depth = match opengl_window.get_depth() {
             Ok(depth) => depth,
@@ -510,8 +513,7 @@ impl Window for LinuxX11Window {
             }
         };
 
-        #[allow(unused)]
-        let visual = screen.root_visual();
+        let _visual = screen.root_visual();
         #[cfg(opengl_renderer)]
         let visual = opengl_window.visual_id as u32;
 
@@ -578,7 +580,7 @@ impl Window for LinuxX11Window {
         };
 
         // Map the window
-        connection.send_request(&x::MapWindow { window });
+        let _cookie = connection.send_request(&x::MapWindow { window });
 
         // Get necessary atoms
         // An atom is an id replacement for a string
@@ -712,8 +714,13 @@ impl Window for LinuxX11Window {
         let keysyms_per_keycode = keymap_reply.keysyms_per_keycode() as usize;
         for (i, chunk) in keysyms.chunks(keysyms_per_keycode).enumerate() {
             let keycode = min_keycode + (i as x::Keycode);
-            if let Some(&keysym) = chunk.first() {
-                keymap.insert(keycode, keysym);
+            if let Some(&keysym) = chunk.first()
+                && keymap.insert(keycode, keysym).is_some()
+            {
+                log_warn!(
+                    "Adding the `{:?}' keycode twice to the Linux X11 keymap",
+                    keycode
+                );
             }
         }
 

@@ -1,4 +1,5 @@
-use crate::{error::ErrorType, log_error};
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 /// Custrom structure for vulkan names
 pub struct VkNames {
@@ -33,24 +34,24 @@ fn convert_string_to_vknames(names_string: &[String]) -> Result<VkNames, ErrorTy
 }
 
 /// Custom enum for vulkan layers names
-#[allow(unused)]
+
 #[derive(Debug, Clone, Copy)]
 pub enum VkLayers {
     Validation,
 }
 
 /// Custom enum for vulkan 1.1 features names
-#[allow(unused)]
+
 #[derive(Debug, Clone, Copy)]
 pub enum VkFeatures11 {}
 
 /// Custom enum for vulkan 1.2 features names
-#[allow(unused)]
+
 #[derive(Debug, Clone, Copy)]
 pub enum VkFeatures12 {}
 
 /// Custom enum for vulkan 1.3 features names
-#[allow(unused)]
+
 #[derive(Debug, Clone, Copy)]
 pub enum VkFeatures13 {}
 

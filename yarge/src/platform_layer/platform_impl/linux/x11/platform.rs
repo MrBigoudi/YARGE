@@ -1,11 +1,10 @@
-use crate::log_info;
 #[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use crate::{
+    LogLevel, LogTarget, PlatformLayer,
     config::Config,
-    core_layer::logger_system::helpers::{LogLevel, LogTarget},
-    error::ErrorType,
-    log, log_error,
-    platform_layer::{PlatformLayer, Window, event::Event},
+    platform_layer::{event::Event, window::Window},
 };
 
 use colored::Colorize;
@@ -14,7 +13,7 @@ use super::window::LinuxX11Window;
 
 /// The platform structure for Linux X11
 pub struct LinuxX11PlatformLayer {
-    window: LinuxX11Window,
+    pub(crate) window: LinuxX11Window,
 }
 
 impl PlatformLayer for LinuxX11PlatformLayer {
@@ -65,11 +64,36 @@ impl PlatformLayer for LinuxX11PlatformLayer {
         }
     }
 
-    fn write(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType> {
+    fn write_log(level: &LogLevel, message: &str, target: &LogTarget) -> Result<(), ErrorType> {
         match target {
-            LogTarget::Console => print!("[{}]: {}", Self::format_level(level), message),
-            LogTarget::ErrorConsole => eprint!("[{:?}]: {:?}", Self::format_level(level), message),
+            LogTarget::Console => {
+                println!("[{}]: {}", Self::format_level(level), message);
+            }
+            LogTarget::ErrorConsole => {
+                eprintln!("[{:?}]: {:?}", Self::format_level(level), message);
+            }
         };
+        Ok(())
+    }
+
+    fn flush_log() -> Result<(), ErrorType> {
+        use std::io::Write;
+        if let Err(err) = std::io::stdout().flush() {
+            log_error!(
+                "Failed to flush the stdout in the Linux X11 Platform: {:?}",
+                err
+            );
+            eprintln!("failure 1");
+            return Err(ErrorType::Unknown);
+        }
+        if let Err(err) = std::io::stderr().flush() {
+            log_error!(
+                "Failed to flush the stderr in the Linux X11 Platform: {:?}",
+                err
+            );
+            eprintln!("failure 2");
+            return Err(ErrorType::Unknown);
+        }
         Ok(())
     }
 }

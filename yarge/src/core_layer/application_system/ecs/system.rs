@@ -1,41 +1,38 @@
-use std::collections::HashSet;
-
-use crate::error::ErrorType;
-
 #[allow(unused)]
-use crate::{log_debug, log_error, log_info, log_warn};
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-pub type SystemCallback = Box<
+pub(crate) type SystemCallback = Box<
     dyn Fn(&mut dyn crate::Game, &dyn super::component::RealComponent) -> Result<(), ErrorType>
         + Send
         + Sync,
 >;
-pub type SystemMutCallback = Box<
+pub(crate) type SystemMutCallback = Box<
     dyn Fn(&mut dyn crate::Game, &mut dyn super::component::RealComponent) -> Result<(), ErrorType>
         + Send
         + Sync,
 >;
-pub type SystemCallbackConditionFunction =
+pub(crate) type SystemCallbackConditionFunction =
     Box<dyn Fn(&mut dyn crate::Game) -> Result<bool, ErrorType> + Send + Sync>;
 
-pub type UserSystemCallback<G, T> = fn(&mut G, &T) -> Result<(), ErrorType>;
-pub type UserSystemMutCallback<G, T> = fn(&mut G, &mut T) -> Result<(), ErrorType>;
-pub type UserSystemCallbackConditionFunction<G> = fn(&mut G) -> bool;
+pub(crate) type UserSystemCallback<G, T> = fn(&mut G, &T) -> Result<(), ErrorType>;
+pub(crate) type UserSystemMutCallback<G, T> = fn(&mut G, &mut T) -> Result<(), ErrorType>;
+pub(crate) type UserSystemCallbackConditionFunction<G> = fn(&mut G) -> bool;
 
-pub struct UserSystemCallbackBuilder;
+pub(crate) struct UserSystemCallbackBuilder;
 impl UserSystemCallbackBuilder {
-    pub fn default_condition() -> SystemCallbackConditionFunction {
+    pub(crate) fn default_condition() -> SystemCallbackConditionFunction {
         Box::new(|_| Ok(true))
     }
 
-    pub fn condition<G>(
+    pub(crate) fn condition<G>(
         condition: UserSystemCallbackConditionFunction<G>,
     ) -> SystemCallbackConditionFunction
     where
         G: crate::Game + 'static,
     {
         Box::new(move |game| {
-            let game = match (game as &mut dyn std::any::Any).downcast_mut::<G>() {
+            let game: &mut dyn std::any::Any = game;
+            let game = match game.downcast_mut::<G>() {
                 Some(g) => g,
                 None => {
                     log_error!("Failed to downcast game `{:?}`", std::any::type_name::<G>());
@@ -46,10 +43,10 @@ impl UserSystemCallbackBuilder {
         })
     }
 
-    pub fn system<G, T>(callback: UserSystemCallback<G, T>) -> SystemCallback
+    pub(crate) fn system<G, T>(callback: UserSystemCallback<G, T>) -> SystemCallback
     where
         G: crate::Game + 'static,
-        T: crate::Component + 'static,
+        T: super::component::Component + 'static,
     {
         Box::new(move |game, value| {
             let value = match value.as_any().downcast_ref::<T>() {
@@ -62,7 +59,8 @@ impl UserSystemCallbackBuilder {
                     return Err(ErrorType::Unknown);
                 }
             };
-            let game = match (game as &mut dyn std::any::Any).downcast_mut::<G>() {
+            let game: &mut dyn std::any::Any = game;
+            let game = match game.downcast_mut::<G>() {
                 Some(g) => g,
                 None => {
                     log_error!("Failed to downcast game `{:?}`", std::any::type_name::<G>());
@@ -73,10 +71,10 @@ impl UserSystemCallbackBuilder {
         })
     }
 
-    pub fn system_mut<G, T>(callback_mut: UserSystemMutCallback<G, T>) -> SystemMutCallback
+    pub(crate) fn system_mut<G, T>(callback_mut: UserSystemMutCallback<G, T>) -> SystemMutCallback
     where
         G: crate::Game + 'static,
-        T: crate::Component + 'static,
+        T: super::component::Component + 'static,
     {
         Box::new(move |game, value| {
             let value = match value.as_any_mut().downcast_mut::<T>() {
@@ -89,7 +87,8 @@ impl UserSystemCallbackBuilder {
                     return Err(ErrorType::Unknown);
                 }
             };
-            let game = match (game as &mut dyn std::any::Any).downcast_mut::<G>() {
+            let game: &mut dyn std::any::Any = game;
+            let game = match game.downcast_mut::<G>() {
                 Some(g) => g,
                 None => {
                     log_error!("Failed to downcast game `{:?}`", std::any::type_name::<G>());
@@ -118,17 +117,17 @@ pub enum SystemSchedule {
 }
 
 pub(crate) struct SystemInternal {
-    pub entities: HashSet<crate::Entity>,
-    pub name: std::any::TypeId,
-    pub with: Vec<std::any::TypeId>,
-    pub without: Vec<std::any::TypeId>,
-    pub schedule: SystemSchedule,
+    pub(crate) entities: std::collections::HashSet<crate::Entity>,
+    pub(crate) name: std::any::TypeId,
+    pub(crate) with: Vec<std::any::TypeId>,
+    pub(crate) without: Vec<std::any::TypeId>,
+    pub(crate) schedule: SystemSchedule,
     updates_counter: usize,
-    pub condition: SystemCallbackConditionFunction,
+    pub(crate) condition: SystemCallbackConditionFunction,
 }
 
 impl SystemInternal {
-    pub fn new(
+    pub(crate) fn new(
         name: std::any::TypeId,
         with: &[std::any::TypeId],
         without: &[std::any::TypeId],
@@ -136,7 +135,7 @@ impl SystemInternal {
         condition: SystemCallbackConditionFunction,
     ) -> Self {
         Self {
-            entities: HashSet::new(),
+            entities: std::collections::HashSet::new(),
             name,
             with: with.to_vec(),
             without: without.to_vec(),
@@ -146,7 +145,7 @@ impl SystemInternal {
         }
     }
 
-    pub fn should_run_this_update(&mut self) -> bool {
+    pub(crate) fn should_run_this_update(&mut self) -> bool {
         match self.schedule {
             SystemSchedule::Never => false,
             SystemSchedule::SingleCall => {
@@ -174,7 +173,7 @@ impl SystemInternal {
         }
     }
 
-    pub fn add_entity(
+    pub(crate) fn add_entity(
         &mut self,
         component_manager: &super::component::ComponentManager,
         entity: &crate::Entity,
@@ -212,7 +211,7 @@ impl SystemInternal {
         Ok(())
     }
 
-    pub fn add_entities(
+    pub(crate) fn add_entities(
         &mut self,
         component_manager: &super::component::ComponentManager,
         entities: &[crate::Entity],
@@ -230,7 +229,7 @@ impl SystemInternal {
     }
 
     #[allow(unused)]
-    pub fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
         if !self.entities.remove(entity) {
             log_error!("Trying to remove an entity not present in a system");
             return Err(ErrorType::DoesNotExist);
@@ -238,13 +237,14 @@ impl SystemInternal {
         Ok(())
     }
 
-    #[allow(unused)]
-    pub fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
-        self.entities.remove(entity);
+    pub(crate) fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
+        if !self.entities.remove(entity) {
+            log_warn!("Trying to remove an entity not present in a system");
+        }
     }
 
     #[allow(unused)]
-    pub fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
         for entity in entities {
             if let Err(err) = self.remove_entity(entity) {
                 log_error!(
@@ -257,14 +257,13 @@ impl SystemInternal {
         Ok(())
     }
 
-    #[allow(unused)]
-    pub fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
+    pub(crate) fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
         for entity in entities {
             self.remove_entity_unchecked(entity);
         }
     }
 
-    pub fn on_component_changed_for_entity(
+    pub(crate) fn on_component_changed_for_entity(
         &mut self,
         component_manager: &super::component::ComponentManager,
         entity: &crate::Entity,
@@ -302,15 +301,16 @@ impl SystemInternal {
             }
             false => {
                 // Check if need to be added
-                if does_fulfill_requirements {
-                    self.entities.insert(*entity);
+                if does_fulfill_requirements && !self.entities.insert(*entity) {
+                    log_error!("Failed to insert a new entity in a system");
+                    return Err(ErrorType::Unknown);
                 }
             }
         }
         Ok(())
     }
 
-    pub fn does_need_component(&self, component_querried: &std::any::TypeId) -> bool {
+    pub(crate) fn does_need_component(&self, component_querried: &std::any::TypeId) -> bool {
         self.name == *component_querried
             || self.with.contains(component_querried)
             || self.without.contains(component_querried)
@@ -318,41 +318,41 @@ impl SystemInternal {
 }
 
 pub(crate) struct SystemRef {
-    pub callback: SystemCallback,
-    pub internal: SystemInternal,
+    pub(crate) callback: SystemCallback,
+    pub(crate) internal: SystemInternal,
 }
 
 pub(crate) struct SystemMut {
-    pub internal: SystemInternal,
-    pub callback: SystemMutCallback,
+    pub(crate) internal: SystemInternal,
+    pub(crate) callback: SystemMutCallback,
 }
 
 impl SystemRef {
-    pub fn new(internal: SystemInternal, callback: SystemCallback) -> Self {
+    pub(crate) fn new(internal: SystemInternal, callback: SystemCallback) -> Self {
         Self { internal, callback }
     }
 }
 
 impl SystemMut {
-    pub fn new(internal: SystemInternal, callback: SystemMutCallback) -> Self {
+    pub(crate) fn new(internal: SystemInternal, callback: SystemMutCallback) -> Self {
         Self { internal, callback }
     }
 }
 
 pub(crate) struct SystemManager {
-    pub systems_ref: Vec<SystemRef>,
-    pub systems_mut: Vec<SystemMut>,
+    pub(crate) systems_ref: Vec<SystemRef>,
+    pub(crate) systems_mut: Vec<SystemMut>,
 }
 
 impl SystemManager {
-    pub fn init() -> Self {
+    pub(crate) fn init() -> Self {
         Self {
             systems_ref: vec![],
             systems_mut: vec![],
         }
     }
 
-    pub fn register_new_system_ref(
+    pub(crate) fn register_new_system_ref(
         &mut self,
         internal: SystemInternal,
         callback: SystemCallback,
@@ -374,7 +374,7 @@ impl SystemManager {
         Ok(())
     }
 
-    pub fn register_new_system_mut(
+    pub(crate) fn register_new_system_mut(
         &mut self,
         internal: SystemInternal,
         callback: SystemMutCallback,
@@ -396,8 +396,7 @@ impl SystemManager {
         Ok(())
     }
 
-    #[allow(unused)]
-    pub fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
+    pub(crate) fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
         for system in &mut self.systems_ref {
             system.internal.remove_entity_unchecked(entity);
         }
@@ -406,8 +405,7 @@ impl SystemManager {
         }
     }
 
-    #[allow(unused)]
-    pub fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
+    pub(crate) fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
         for system in &mut self.systems_ref {
             system.internal.remove_entities_unchecked(entities);
         }
@@ -417,7 +415,7 @@ impl SystemManager {
     }
 
     #[allow(unused)]
-    pub fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
         for system in &mut self.systems_ref {
             system.internal.remove_entity(entity)?;
         }
@@ -428,7 +426,7 @@ impl SystemManager {
     }
 
     #[allow(unused)]
-    pub fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
         for system in &mut self.systems_ref {
             system.internal.remove_entities(entities)?;
         }
@@ -438,14 +436,14 @@ impl SystemManager {
         Ok(())
     }
 
-    pub fn on_removed_entity(&mut self, entity: &crate::Entity) {
+    pub(crate) fn on_removed_entity(&mut self, entity: &crate::Entity) {
         self.remove_entity_unchecked(entity);
     }
-    pub fn on_removed_entities(&mut self, entities: &[crate::Entity]) {
+    pub(crate) fn on_removed_entities(&mut self, entities: &[crate::Entity]) {
         self.remove_entities_unchecked(entities);
     }
 
-    pub fn on_component_changed_for_entity(
+    pub(crate) fn on_component_changed_for_entity(
         &mut self,
         component_manager: &super::component::ComponentManager,
         entity: &crate::Entity,
@@ -477,7 +475,7 @@ impl SystemManager {
         Ok(())
     }
 
-    pub fn on_component_removed(&mut self, removed_component: &std::any::TypeId) {
+    pub(crate) fn on_component_removed(&mut self, removed_component: &std::any::TypeId) {
         let indices_to_remove: Vec<usize> = self
             .systems_ref
             .iter()
@@ -486,7 +484,7 @@ impl SystemManager {
             .map(|(index, _)| index)
             .collect();
         for index in indices_to_remove.into_iter().rev() {
-            self.systems_ref.drain(index..index + 1);
+            let _ = self.systems_ref.drain(index..index + 1);
         }
 
         let indices_to_remove: Vec<usize> = self
@@ -497,11 +495,11 @@ impl SystemManager {
             .map(|(index, _)| index)
             .collect();
         for index in indices_to_remove.into_iter().rev() {
-            self.systems_mut.drain(index..index + 1);
+            let _ = self.systems_mut.drain(index..index + 1);
         }
     }
 
-    pub fn clean_dead_systems(&mut self) {
+    pub(crate) fn clean_dead_systems(&mut self) {
         let indices_to_remove: Vec<usize> = self
             .systems_ref
             .iter()
@@ -510,7 +508,7 @@ impl SystemManager {
             .map(|(index, _)| index)
             .collect();
         for index in indices_to_remove.into_iter().rev() {
-            self.systems_ref.drain(index..index + 1);
+            let _ = self.systems_ref.drain(index..index + 1);
         }
 
         let indices_to_remove: Vec<usize> = self
@@ -521,11 +519,11 @@ impl SystemManager {
             .map(|(index, _)| index)
             .collect();
         for index in indices_to_remove.into_iter().rev() {
-            self.systems_mut.drain(index..index + 1);
+            let _ = self.systems_mut.drain(index..index + 1);
         }
     }
 
-    pub fn run_all(
+    pub(crate) fn run_all(
         &mut self,
         component_manager: &mut super::component::ComponentManager,
         game: &mut dyn crate::Game,
@@ -606,8 +604,8 @@ impl SystemManager {
     }
 }
 
-impl crate::core_layer::ApplicationSystem<'_> {
-    pub fn run_systems(&mut self) -> Result<(), ErrorType> {
+impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
+    pub(crate) fn run_systems(&mut self) -> Result<(), ErrorType> {
         if let Err(err) = self
             .ecs
             .system_manager
