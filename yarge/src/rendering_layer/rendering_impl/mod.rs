@@ -30,5 +30,7 @@ mod vulkan;
 #[cfg(vulkan_renderer)]
 pub(crate) use vulkan::RenderingLayerImpl;
 
+
 #[cfg(vulkan_renderer)]
+#[allow(unused)]
 pub(crate) use vulkan::{VkFeatures11, VkFeatures12, VkFeatures13, VkLayers};

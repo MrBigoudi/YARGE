@@ -150,7 +150,7 @@ fn get_required_layers(config: &Config, entry: &Entry) -> Result<VkNames, ErrorT
 
 /// Helper function to initialize the instance create info
 fn init_instance_create_info<'a>(
-    app_info: &'a ApplicationInfo,
+    app_info: &'a ApplicationInfo<'_>,
 ) -> Result<InstanceCreateInfo<'a>, ErrorType> {
     Ok(InstanceCreateInfo::default().application_info(app_info))
 }

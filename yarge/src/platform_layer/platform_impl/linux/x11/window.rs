@@ -500,7 +500,8 @@ impl Window for LinuxX11Window {
         let width = (config.window_config.width * (screen.width_in_pixels() as f32)) as u16;
         let height = (config.window_config.height * (screen.height_in_pixels() as f32)) as u16;
 
-        let _depth = x::COPY_FROM_PARENT as u8;
+        #[allow(unused)]
+        let depth = x::COPY_FROM_PARENT as u8;
         #[cfg(opengl_renderer)]
         let depth = match opengl_window.get_depth() {
             Ok(depth) => depth,
@@ -513,7 +514,8 @@ impl Window for LinuxX11Window {
             }
         };
 
-        let _visual = screen.root_visual();
+        #[allow(unused)]
+        let visual = screen.root_visual();
         #[cfg(opengl_renderer)]
         let visual = opengl_window.visual_id as u32;
 
