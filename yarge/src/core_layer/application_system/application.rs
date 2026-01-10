@@ -187,6 +187,16 @@ impl<'a> ApplicationSystem<'a> {
 
     /// Shuts down the application
     pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+        // Shuts down the ECS system
+        if let Err(err) = ECS::shutdown() {
+            log_error!(
+                "Failed to shut down the ECS system when shutting down the application: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+        log_info!("ECS shutted down");
+
         // Shuts down the user's game
         if let Err(err) = self.user_game.on_shutdown() {
             log_error!("The user game failed to shutdown: {:?}", err);

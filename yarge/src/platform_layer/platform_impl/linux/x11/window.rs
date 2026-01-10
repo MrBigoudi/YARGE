@@ -45,7 +45,10 @@ pub struct LinuxX11OpenglWindow {
     /// The xlib display
     pub display: *mut x11::xlib::Display,
 
-    /// The framebuffer config
+    /// All the framebuffer configs
+    pub all_framebuffer_configs: *mut x11::glx::GLXFBConfig,
+
+    /// The selected framebuffer config
     pub framebuffer_config: *mut x11::glx::__GLXFBConfigRec,
 
     /// The OpenGL context
@@ -120,46 +123,65 @@ impl LinuxX11OpenglWindow {
     ) -> Result<(*mut x11::glx::GLXFBConfig, std::os::raw::c_int), ErrorType> {
         let color_channel_size =
             Self::get_channel_size(&config.renderer_config.opengl_parameters.framebuffer_format);
-        let mut visual_attributes: Vec<std::os::raw::c_int> = vec![
-            x11::glx::GLX_X_RENDERABLE,
-            true as std::os::raw::c_int,
-            x11::glx::GLX_DRAWABLE_TYPE,
-            x11::glx::GLX_WINDOW_BIT,
-            x11::glx::GLX_X_VISUAL_TYPE,
-            x11::glx::GLX_TRUE_COLOR,
-            x11::glx::GLX_DOUBLEBUFFER,
-            true as std::os::raw::c_int,
+        
+        #[rustfmt::skip]
+        // Use a fixed-size array on the stack
+        const MAX_NB_ATTRIBUTES: usize = 32;
+        let mut visual_attributes = [0i32; MAX_NB_ATTRIBUTES]; // Large enough for all possible attributes
+        let mut idx = 0;
+        
+        // Helper to add attribute pairs
+        let mut add_attrib = |attr: i32, value: i32| {
+            if idx >= MAX_NB_ATTRIBUTES {
+                log_error!("Trying to add too many attributes in the visual attributes array when initializing the X11 OpenGL window");
+                return Err(ErrorType::InvalidIndex);
+            }
+            visual_attributes[idx] = attr;
+            visual_attributes[idx + 1] = value;
+            idx += 2;
+            Ok(())
+        };
+        
+        add_attrib(x11::glx::GLX_X_RENDERABLE, 1)?;
+        add_attrib(x11::glx::GLX_DRAWABLE_TYPE, x11::glx::GLX_WINDOW_BIT)?;
+        add_attrib(x11::glx::GLX_X_VISUAL_TYPE, x11::glx::GLX_TRUE_COLOR)?;
+        add_attrib(x11::glx::GLX_DOUBLEBUFFER, 1)?;
+        add_attrib(
             x11::glx::GLX_RENDER_TYPE,
             Self::get_glx_render_type_bit(
                 &config.renderer_config.opengl_parameters.framebuffer_format,
             ),
-            x11::glx::GLX_RED_SIZE,
-            color_channel_size,
-            x11::glx::GLX_GREEN_SIZE,
-            color_channel_size,
-            x11::glx::GLX_BLUE_SIZE,
-            color_channel_size,
-        ];
+        )?;
+        add_attrib(x11::glx::GLX_RED_SIZE, color_channel_size)?;
+        add_attrib(x11::glx::GLX_GREEN_SIZE, color_channel_size)?;
+        add_attrib(x11::glx::GLX_BLUE_SIZE, color_channel_size)?;
+        
         if let Some(alpha_size) = Self::get_alpha_channel_size(
             &config.renderer_config.opengl_parameters.framebuffer_format,
         ) {
-            visual_attributes.push(x11::glx::GLX_ALPHA_SIZE);
-            visual_attributes.push(alpha_size);
+            add_attrib(x11::glx::GLX_ALPHA_SIZE, alpha_size)?;
         }
+        
         if let Some(format) = &config.renderer_config.opengl_parameters.depthbuffer_format {
-            visual_attributes.push(x11::glx::GLX_DEPTH_SIZE);
-            visual_attributes.push(Self::get_channel_size(format));
+            add_attrib(x11::glx::GLX_DEPTH_SIZE, Self::get_channel_size(format))?;
         }
+        
         if let Some(format) = &config
             .renderer_config
             .opengl_parameters
             .stencilbuffer_format
         {
-            visual_attributes.push(x11::glx::GLX_STENCIL_SIZE);
-            visual_attributes.push(Self::get_channel_size(format));
+            add_attrib(x11::glx::GLX_STENCIL_SIZE, Self::get_channel_size(format))?;
         }
-        // The list must be null terminated
-        visual_attributes.push(x11::glx::GLX_NONE);
+        
+        // Null terminate the list
+        if idx >= MAX_NB_ATTRIBUTES {
+            log_error!("Invalid index for the end of the visual attributes array when initializing the X11 OpenGL window");
+            return Err(ErrorType::InvalidIndex);
+        }
+        visual_attributes[idx] = x11::glx::GLX_NONE as i32;
+
+
 
         let mut nb_framebuffer_configs: std::os::raw::c_int = 0;
         let framebuffer_configs = unsafe {
@@ -187,7 +209,7 @@ impl LinuxX11OpenglWindow {
         config: &Config,
         display: *mut x11::xlib::Display,
         screen_number: i32,
-    ) -> Result<*mut x11::glx::__GLXFBConfigRec, ErrorType> {
+    ) -> Result<(*mut x11::glx::GLXFBConfig, *mut x11::glx::__GLXFBConfigRec), ErrorType> {
         let (framebuffer_configs, nb_framebuffer_configs) =
             match Self::init_framebuffer_configurations(config, display, screen_number) {
                 Ok(configs) => configs,
@@ -208,12 +230,7 @@ impl LinuxX11OpenglWindow {
         );
         let selected_config = framebuffer_configs_slice[0];
 
-        // Free the other configs
-        unsafe {
-            x11::xlib::XFree(framebuffer_configs as *mut _);
-        }
-
-        Ok(selected_config)
+        Ok((framebuffer_configs, selected_config))
     }
 
     /// Creates the opengl context
@@ -283,20 +300,21 @@ impl LinuxX11OpenglWindow {
         screen: &xcb::x::Screen,
         screen_number: i32,
     ) -> Result<Self, ErrorType> {
-        let framebuffer_config = match LinuxX11OpenglWindow::init_framebuffer_configuration(
-            config,
-            display,
-            screen_number,
-        ) {
-            Ok(config) => config,
-            Err(err) => {
-                log_error!(
-                    "Failed to init the OpenGL framebuffer config when initializing the X11 linux window: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
+        let (all_framebuffer_configs, framebuffer_config) =
+            match LinuxX11OpenglWindow::init_framebuffer_configuration(
+                config,
+                display,
+                screen_number,
+            ) {
+                Ok(config) => config,
+                Err(err) => {
+                    log_error!(
+                        "Failed to init the OpenGL framebuffer config when initializing the X11 linux window: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
         let (context, visual_id) = match LinuxX11OpenglWindow::init_context(
             config,
             display,
@@ -324,6 +342,7 @@ impl LinuxX11OpenglWindow {
 
         Ok(Self {
             display,
+            all_framebuffer_configs,
             framebuffer_config,
             context,
             visual_id,
@@ -356,6 +375,10 @@ impl LinuxX11OpenglWindow {
 
     /// Shutds down the opengl window
     pub fn shutdown(&mut self) -> Result<(), ErrorType> {
+        // Free the configs
+        unsafe {
+            x11::xlib::XFree(self.all_framebuffer_configs as *mut _);
+        }
         // Shutting down the opengl window
         unsafe { x11::glx::glXDestroyWindow(self.display, self.window) };
         // Shutting down the opengl context
@@ -372,7 +395,12 @@ impl LinuxX11OpenglWindow {
             );
             return Err(ErrorType::Unknown);
         }
-        Ok((unsafe { *visual_info }).depth as u8)
+        let depth = (unsafe { *visual_info }).depth as u8;
+        unsafe {
+            x11::xlib::XFree(visual_info as *mut _);
+        }
+
+        Ok(depth)
     }
 }
 

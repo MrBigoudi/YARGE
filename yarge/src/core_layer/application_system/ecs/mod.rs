@@ -53,6 +53,20 @@ impl ECS {
         })
     }
 
+    /// Shuts down the ECS
+    pub(crate) fn shutdown() -> Result<(), ErrorType> {
+        match entity::GLOBAL_ENTITY_GENERATOR.write() {
+            Ok(mut generator) => Ok(generator.shutdown()),
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global entity generator when shutting down the ECS: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
     /// Creates empty entities
     /// This method is for the User
     pub fn spawn_empty_entities(nb_entities: usize) -> Result<Vec<entity::UserEntity>, ErrorType> {

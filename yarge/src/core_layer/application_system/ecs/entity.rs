@@ -25,7 +25,7 @@ impl EntityGenerator {
     pub fn init() -> Self {
         Self {
             table: HashMap::new(),
-            entity_to_generate: Vec::new(),
+            entity_to_generate: vec![],
             nb_entities_total: 0,
             generation: 0,
         }
@@ -101,6 +101,11 @@ impl EntityGenerator {
         self.entity_to_generate.clear();
 
         Ok(())
+    }
+
+    pub fn shutdown(&mut self) {
+        self.table = HashMap::new();
+        self.entity_to_generate = vec![];
     }
 }
 
