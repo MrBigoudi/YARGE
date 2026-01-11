@@ -10,6 +10,8 @@ pub(crate) mod component;
 pub(crate) mod entity;
 pub(crate) mod system;
 
+pub(crate) mod engine;
+
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 

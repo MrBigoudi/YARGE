@@ -8,7 +8,7 @@ use super::event::Event;
 #[allow(unused)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Tells how the window should be displayed
-pub(crate) enum DisplayMode {
+pub enum DisplayMode {
     /// Fullscreen mode
     Fullscreen,
 
@@ -20,7 +20,7 @@ pub(crate) enum DisplayMode {
     /// as well as the window's width and height
     /// # Examples
     /// ```
-    /// use platform_layer::DisplayMode;
+    /// use yarge::DisplayMode;
     ///
     /// // To center the window
     /// let width=0.5;  // width in [0.,1.]

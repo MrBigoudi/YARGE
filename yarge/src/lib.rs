@@ -40,6 +40,7 @@ pub use core_layer::entry::Entry;
 
 pub use core_layer::application_system::ecs::ECS;
 pub use core_layer::application_system::ecs::component::UserComponent as Component;
+pub use core_layer::application_system::ecs::engine::transform::TransformComponent;
 pub use core_layer::application_system::ecs::entity::UserEntity as Entity;
 pub use core_layer::application_system::ecs::system::SystemSchedule;
 pub use core_layer::application_system::events::builder as event_builder;
@@ -55,6 +56,7 @@ pub use core_layer::logger_system::logger::GLOBAL_LOGGER;
 
 pub use platform_layer::platform::PlatformLayer;
 pub use platform_layer::platform_impl::{PlatformLayerImpl, PlatformLayerRwLock};
+pub use platform_layer::window::DisplayMode;
 
 pub(crate) use rendering_layer::RenderingLayer;
 pub(crate) use rendering_layer::rendering_impl::RenderingLayerImpl;

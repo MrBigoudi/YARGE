@@ -23,3 +23,11 @@
 - Implement Buffers
 - Implement Images
 - Implement Scene
+
+## Maths
+
+- Add other matrix types (i32, etc...)
+- Add other matrix structures (2x3, 2x4, ...)
+- Add other matrix vector operations 
+- Add other matrix vector constructions and selections (from vec, ...)
+- Add other tests + better docs for matrices

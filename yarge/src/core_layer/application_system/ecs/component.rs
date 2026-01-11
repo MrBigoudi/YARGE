@@ -400,7 +400,7 @@ pub(crate) trait Component: std::any::Any + Send + Sized + 'static {
 }
 
 /// A default component used to query info on all the other components
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct DefaultComponent;
 impl Component for DefaultComponent {
     const IS_DEFAULT: bool = true;
