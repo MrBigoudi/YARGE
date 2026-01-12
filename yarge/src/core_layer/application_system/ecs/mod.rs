@@ -9,6 +9,7 @@ pub(crate) mod component;
 /// See https://kyren.github.io/2018/09/14/rustconf-talk.html
 pub(crate) mod entity;
 pub(crate) mod system;
+pub(crate) mod resource;
 
 pub(crate) mod engine;
 
@@ -26,6 +27,7 @@ pub struct ECS {
     pub(crate) component_manager: component::ComponentManager,
 
     pub(crate) system_manager: system::SystemManager,
+    pub(crate) resource_manager: resource::ResourceManager,
 }
 
 impl ECS {
@@ -43,11 +45,13 @@ impl ECS {
         };
 
         let system_manager = system::SystemManager::init();
+        let resource_manager = resource::ResourceManager::init();
 
         Ok(ECS {
             entities: vec![],
             component_manager,
             system_manager,
+            resource_manager,
         })
     }
 
@@ -516,5 +520,46 @@ impl ECS {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn register_custom_resource(
+        &mut self,
+        user_id: &resource::UserResourceId, 
+        resource_type_id: &std::any::TypeId, 
+        loading_function: resource::ResourceLoadingFunction,
+    ) -> Result<(), ErrorType> {
+        if let Err(err) = self.resource_manager.add(user_id, resource_type_id, loading_function) {
+            log_error!("Failed to register a new custom resource in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn load_custom_resource(
+        &mut self,
+        user_id: &resource::UserResourceId, 
+        resource_type_id: &std::any::TypeId,
+    ) -> Result<resource::ResourceHandle, ErrorType> {
+        match self.resource_manager.get(user_id, resource_type_id) {
+            Err(err) => {
+                log_error!("Failed to load a custom resource in the ECS: {:?}", err);
+                return Err(ErrorType::Unknown);
+            },
+            Ok(handler) => Ok(handler),
+        }
+    }
+
+    pub(crate) fn try_load_custom_resource(
+        &mut self,
+        user_id: &resource::UserResourceId, 
+        resource_type_id: &std::any::TypeId,
+    ) -> Result<Option<resource::ResourceHandle>, ErrorType> {
+        match self.resource_manager.try_get(user_id, resource_type_id) {
+            Err(err) => {
+                log_error!("Failed to load a custom resource in the ECS: {:?}", err);
+                return Err(ErrorType::Unknown);
+            },
+            Ok(handler) => Ok(handler),
+        }
     }
 }

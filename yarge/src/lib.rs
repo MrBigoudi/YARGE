@@ -39,6 +39,10 @@ pub use core_layer::application_system::game::Game;
 pub use core_layer::entry::Entry;
 
 pub use core_layer::application_system::ecs::ECS;
+pub use core_layer::application_system::ecs::resource::UserResource as Resource;
+pub use core_layer::application_system::ecs::resource::UserResourceLoadingParameters as ResourceLoadingParameters;
+pub use core_layer::application_system::ecs::resource::UserResourceId as ResourceId;
+pub use core_layer::application_system::ecs::resource::ResourceHandle;
 pub use core_layer::application_system::ecs::component::UserComponent as Component;
 pub use core_layer::application_system::ecs::engine::transform::TransformComponent;
 pub use core_layer::application_system::ecs::entity::UserEntity as Entity;
@@ -62,4 +66,4 @@ pub(crate) use rendering_layer::RenderingLayer;
 pub(crate) use rendering_layer::rendering_impl::RenderingLayerImpl;
 pub use rendering_layer::{shaders, types as renderer_types};
 
-pub use macros::{Component, FileResource, RonFileResource};
+pub use macros::{Component, Resource, FileResource, RonFileResource};

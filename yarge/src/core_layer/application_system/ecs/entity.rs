@@ -79,7 +79,7 @@ impl EntityGenerator {
     pub(crate) fn update_table(&mut self, real_entities: &[Entity]) -> Result<(), ErrorType> {
         if self.entity_to_generate.len() != real_entities.len() {
             log_error!(
-                "Failed to update the user entities to real entities table in the entity generator: length do not match"
+                "Failed to update the user entities to real entities table in the entity generator: lengths do not match"
             );
             return Err(ErrorType::WrongArgument(format!(
                 "New user entities length: `{:?}', new real entities length: `{:?}'",

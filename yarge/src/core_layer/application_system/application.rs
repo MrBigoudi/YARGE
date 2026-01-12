@@ -1,3 +1,4 @@
+use crate::core_layer::application_system::ecs::resource::ResourceManager;
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
@@ -137,6 +138,18 @@ impl<'a> ApplicationSystem<'a> {
                 return Err(ErrorType::Unknown);
             }
         };
+        match self.handle_loading_resources(platform_layer, rendering_layer) {
+            Ok(mut events) => {
+                user_events.append(&mut events);
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to handle loading resources in the application layer: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
 
         // TODO: create rendering packet
         let delta_time = 0.;
@@ -242,10 +255,53 @@ impl<'a> ApplicationSystem<'a> {
                     match self.user_game.on_file_loaded(path, arc) {
                         Err(err) => {
                             log_error!(
-                                "The user game failed to handle loaded file ath `{:?}': {:?}",
+                                "The user game failed to handle loaded file at `{:?}': {:?}",
                                 path,
                                 err
                             );
+                            return Err(ErrorType::Unknown);
+                        }
+                        Ok(mut events) => {
+                            user_events.append(&mut events);
+                        }
+                    };
+                }
+            }
+        }
+        Ok(user_events)
+    }
+
+    pub(crate) fn handle_loading_resources(
+        &mut self,
+        _platform_layer: &mut PlatformLayerImpl,
+        _rendering_layer: &mut RenderingLayerImpl,
+    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+        let mut user_events = VecDeque::new();
+
+        // TODO: find a workaround to avoid copying
+        let loading_resources: Vec<_> = self.ecs.resource_manager.loading_resources
+            .iter()
+            .copied() 
+            .collect();
+
+        for (type_id, real_id) in &loading_resources {
+            match self.ecs.resource_manager.try_get(&real_id, &type_id) {
+                Err(err) => {
+                    log_error!("Failed to try getting a loading resource in the application: {:?}", err);
+                    return Err(ErrorType::Unknown);
+                }
+                Ok(None) => {}
+                Ok(Some(handler)) => {
+                    let user_resource_id = match ResourceManager::get_user_id(&real_id) {
+                        Ok(id) => id,
+                        Err(err) => {
+                            log_error!("Failed to get the user id when handling a loaded resource in the application: {:?}", err);
+                            return Err(ErrorType::Unknown);
+                        }
+                    };
+                    match self.user_game.on_resource_loaded(&user_resource_id, handler) {
+                        Err(err) => {
+                            log_error!("The user game failed to handle a loaded resource: {:?}", err);
                             return Err(ErrorType::Unknown);
                         }
                         Ok(mut events) => {

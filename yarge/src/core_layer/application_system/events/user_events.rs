@@ -2,6 +2,7 @@
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::core_layer::application_system::ecs::entity::UserEntity;
+use crate::core_layer::application_system::ecs::resource::UserResourceId;
 
 /// An enum representing user fireable events
 pub(crate) enum UserEvent {
@@ -23,6 +24,22 @@ pub(crate) enum UserEvent {
         /// The path to the resource to load
         path: std::path::PathBuf,
     },
+
+
+    /// To register a new resource
+    RegisterCustomResource {
+        user_id: UserResourceId, 
+        resource_type_id: std::any::TypeId, 
+        loading_function: 
+            crate::core_layer::application_system::ecs::resource::ResourceLoadingFunction,
+    },
+
+    /// To begin loading a new resource
+    StartLoadCustomResource {
+        user_id: UserResourceId, 
+        resource_type_id: std::any::TypeId,
+    },
+
 
     /// To remove a single entity
     RemoveEntity {
@@ -287,7 +304,6 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                     }
                     log_debug!("Updated component for entity `{:?}'", user_entity);
                 }
-
                 UserEvent::RegisterSystem {
                     name,
                     with,
@@ -332,6 +348,18 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                     }
                     log_debug!("Added new system mut");
                 }
+                UserEvent::RegisterCustomResource { user_id, resource_type_id, loading_function } => {
+                    if let Err(err) = self.ecs.register_custom_resource(&user_id, &resource_type_id, loading_function) {
+                        log_error!("Failed to register a new resource when handling a `RegisterCustomResource' event in the application: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                },
+                UserEvent::StartLoadCustomResource { user_id, resource_type_id } => {
+                    if let Err(err) = self.ecs.try_load_custom_resource(&user_id, &resource_type_id) {
+                        log_error!("Failed to start loading a new resource when handling a `StartLoadCustomResource' event in the application: {:?}", err);
+                        return Err(ErrorType::Unknown);
+                    }
+                },
             }
         }
 

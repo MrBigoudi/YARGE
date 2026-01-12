@@ -74,3 +74,17 @@ pub(crate) enum RendererBeginFrameOutput {
     /// Should not present the frame
     Failure,
 }
+
+
+pub enum PrimitiveTopology {
+    PointList,
+    LineList,
+    TriangleList,
+    TriangleStrip,
+    TriangleFan,
+    LineListWithAdjacency,
+    LineStripWithAdjacency,
+    TriangleListWithAdjacency,
+    TriangleStripWithAdjacency,
+    PatchList,
+}

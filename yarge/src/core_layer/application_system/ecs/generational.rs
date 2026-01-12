@@ -146,6 +146,7 @@ impl<T> GenerationalVec<T> {
 
     #[allow(unused)]
     /// Inserts a new element to the list
+    /// Returns the newly associated key
     pub(crate) fn insert(&mut self, value: T) -> Result<GenerationalKey, ErrorType> {
         match self.entries.get_mut(self.free_head) {
             Some(GenerationalEntry { entry, generation }) => {

@@ -175,4 +175,14 @@ pub trait Game: std::any::Any + 'static {
     ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
         Ok(VecDeque::new())
     }
+
+    /// Runs when a given resource is done loading
+    /// Default behavior: don't do anything
+    fn on_resource_loaded(
+        &mut self,
+        _resource_id: &crate::ResourceId,
+        _handler: crate::ResourceHandle,
+    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+        Ok(VecDeque::new())
+    }
 }

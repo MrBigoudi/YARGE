@@ -17,6 +17,10 @@ use crate::{
                     UserSystemCallback, UserSystemCallbackBuilder,
                     UserSystemCallbackConditionFunction, UserSystemMutCallback,
                 },
+                resource::{
+                    UserResourceId, UserResource, UserResourceLoadingParameters,
+                    ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager,
+                },
             },
             events::user_events::{UserEvent, UserEventWrapper},
         },
@@ -100,6 +104,79 @@ impl StartLoadCustomFileResourceEventBuilder {
         })
     }
 }
+
+
+#[derive(Default)]
+pub struct RegisterCustomResourceEventBuilder {
+    /// The type of the resource
+    resource_type_id: Option<std::any::TypeId>,
+    /// The function to load the resource
+    loader_fct: Option<ResourceLoadingFunction>,
+}
+impl RegisterCustomResourceEventBuilder {
+    pub fn loading_parameters<P, R>(mut self, params: &P) -> Self 
+    where 
+        P: UserResourceLoadingParameters<R>,
+        R: UserResource,
+    {
+        self.resource_type_id = Some(std::any::TypeId::of::<R>());
+        self.loader_fct = Some(ResourceLoadingBuilder::loader::<P, R>(params));
+        self
+    }
+    pub fn build(self) -> Result<(UserEventWrapper, UserResourceId), ErrorType> {
+        let user_id = match ResourceManager::generate_id() {
+            Ok(id) => id,
+            Err(err) => {
+                log_error!("Failed to generate a new id for a resource when building a `RegisterCustomResource' event: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        };
+        
+        if self.loader_fct.is_none() {
+            log_error!("Can't build a `RegisterCustomResource' event without a loading parameter");
+            return Err(ErrorType::DoesNotExist);
+        }
+        
+        let new_event = UserEventWrapper {
+            event: UserEvent::RegisterCustomResource { 
+                user_id, 
+                resource_type_id: self.resource_type_id.unwrap(), 
+                loading_function: self.loader_fct.unwrap(),
+            },
+        };
+        Ok((new_event, user_id))
+    }
+}
+
+
+#[derive(Default)]
+pub struct StartLoadCustomResourceEventBuilder {
+    /// The id of the new resource type
+    user_id: Option<UserResourceId>,
+    /// The type of the resource
+    resource_type_id: Option<std::any::TypeId>,
+}
+impl StartLoadCustomResourceEventBuilder {
+    pub fn resource_id<R: UserResource>(mut self, id: &UserResourceId) -> Self {
+        self.user_id = Some(*id);
+        self.resource_type_id = Some(std::any::TypeId::of::<R>());
+        self
+    }
+    pub fn build(self) -> Result<UserEventWrapper, ErrorType> {
+        if self.user_id.is_none() {
+            log_error!("Can't build a `StartLoadCustomResource' event without a resource id");
+            return Err(ErrorType::DoesNotExist);
+        }
+        Ok(UserEventWrapper {
+            event: UserEvent::StartLoadCustomResource { 
+                user_id: self.user_id.unwrap(), 
+                resource_type_id: self.resource_type_id.unwrap(),
+            },
+        })
+    }
+}
+
+
 
 #[derive(Default)]
 pub struct RemoveEntitiesEventBuilder {

@@ -28,7 +28,7 @@ impl LoadingFile {
             Ok(receiver) => receiver,
             Err(err) => {
                 log_error!(
-                    "Failed to start to load the ron file `{:?}': {:?}",
+                    "Failed to start loading file `{:?}': {:?}",
                     path,
                     err
                 );
