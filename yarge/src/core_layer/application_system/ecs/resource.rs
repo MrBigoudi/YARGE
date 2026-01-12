@@ -181,7 +181,7 @@ impl ResourceIdGenerator {
     }
 
     pub(crate) fn insert_inv(&mut self, id: &ResourceId, user_id: &UserResourceId) -> Result<(), ErrorType> {
-        if self.table.insert(*id, *user_id).is_some() {
+        if self.inv_table.insert(*id, *user_id).is_some() {
             log_error!("Failed to add a new key in the inverse resource id table");
             return Err(ErrorType::Duplicate);
         }
@@ -229,12 +229,25 @@ impl ResourceManager {
         }
     }
 
-    pub(crate) fn get_user_id(id: &ResourceId) -> Result<UserResourceId, ErrorType> {
+    pub(crate) fn get_user_id(real_id: &ResourceId) -> Result<UserResourceId, ErrorType> {
         match GLOBAL_RESOURCE_ID_GENERATOR.read() {
-            Ok(generator) => generator.get_user_id(id),
+            Ok(generator) => generator.get_user_id(real_id),
             Err(err) => {
                 log_error!(
                     "Failed to access the global resource id generator when getting user id from real id: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
+    pub(crate) fn get_real_id(user_id: &UserResourceId) -> Result<ResourceId, ErrorType> {
+        match GLOBAL_RESOURCE_ID_GENERATOR.read() {
+            Ok(generator) => generator.get_real_id(user_id),
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global resource id generator when getting real id from user id: {:?}",
                     err
                 );
                 Err(ErrorType::Unknown)

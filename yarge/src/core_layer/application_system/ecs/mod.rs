@@ -540,7 +540,14 @@ impl ECS {
         user_id: &resource::UserResourceId, 
         resource_type_id: &std::any::TypeId,
     ) -> Result<resource::ResourceHandle, ErrorType> {
-        match self.resource_manager.get(user_id, resource_type_id) {
+        let real_id = match resource::ResourceManager::get_real_id(user_id){
+            Ok(id) => id,
+            Err(err) => {
+                log_error!("Failed to get the real id from the user id when loading a custom resource in the ECS: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        };
+        match self.resource_manager.get(&real_id, resource_type_id) {
             Err(err) => {
                 log_error!("Failed to load a custom resource in the ECS: {:?}", err);
                 return Err(ErrorType::Unknown);
@@ -554,9 +561,16 @@ impl ECS {
         user_id: &resource::UserResourceId, 
         resource_type_id: &std::any::TypeId,
     ) -> Result<Option<resource::ResourceHandle>, ErrorType> {
-        match self.resource_manager.try_get(user_id, resource_type_id) {
+        let real_id = match resource::ResourceManager::get_real_id(user_id){
+            Ok(id) => id,
             Err(err) => {
-                log_error!("Failed to load a custom resource in the ECS: {:?}", err);
+                log_error!("Failed to get the real id from the user id when trying to load a custom resource in the ECS: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        };
+        match self.resource_manager.try_get(&real_id, resource_type_id) {
+            Err(err) => {
+                log_error!("Failed to try to load a custom resource in the ECS: {:?}", err);
                 return Err(ErrorType::Unknown);
             },
             Ok(handler) => Ok(handler),
