@@ -3,10 +3,13 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// A real entity in the ECS system
-pub(crate) type Entity = super::generational::GenerationalKey;
+pub(crate) struct Entity(pub(crate) super::generational::GenerationalKey);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// A user defined entity which does not necessarily match the real entity's id
-pub type UserEntity = super::generational::GenerationalKey;
+pub struct UserEntity(pub(crate) super::generational::GenerationalKey);
 
 /// A static entity generator
 pub(crate) struct EntityGenerator {
@@ -42,10 +45,10 @@ impl EntityGenerator {
                     self.generation += 1;
                 }
             }
-            let new_entity = UserEntity {
+            let new_entity = UserEntity(super::generational::GenerationalKey {
                 index: self.nb_entities_total,
                 generation: self.generation,
-            };
+            });
             self.entity_to_generate.push(new_entity);
             new_entities.push(new_entity);
         }

@@ -26,7 +26,7 @@ impl ResourceLoadingBuilder {
                 }
             };
             let handler = std::sync::Arc::new(loaded_data);
-            Ok(handler)
+            Ok(ResourceHandle(handler))
         })
     }
 }
@@ -37,7 +37,7 @@ pub(crate) trait ResourceLoadingParameters<R: Resource>: std::hash::Hash + std::
 pub trait Resource: std::any::Any + Send + Sync + 'static {}
 
 /// A user defined resource
-pub trait UserResource: std::any::Any + Send + Sync + 'static {}
+pub trait UserResource: std::any::Any + Send + Sync + Clone + 'static {}
 impl<T: UserResource> Resource for T {}
 pub trait UserResourceLoadingParameters<R: UserResource>: std::hash::Hash + std::any::Any + Send + Sync + std::fmt::Debug + Clone + 'static {
     fn load_resource(&self) -> Result<R, ErrorType>;
@@ -54,9 +54,24 @@ where
     }
 }
 
-pub(crate) type ResourceId = super::generational::GenerationalKey;
-pub type UserResourceId = super::generational::GenerationalKey;
-pub type ResourceHandle = std::sync::Arc<dyn Resource>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ResourceId(super::generational::GenerationalKey);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct UserResourceId(super::generational::GenerationalKey);
+#[derive(Clone)]
+pub struct ResourceHandle(std::sync::Arc<dyn Resource>);
+
+impl ResourceHandle {
+    pub fn get_clone<R: Resource + Clone + 'static>(&self) -> Result<R, ErrorType> {
+        match std::sync::Arc::downcast::<R>(self.0.clone()) {
+            Ok(new) => Ok((*new).clone()),
+            Err(err) => {
+                log_error!("Failed to downcast a resource handler to the real resource: {:?}", err);
+                Err(ErrorType::Unknown)
+            },
+        }
+    }
+}
 
 pub(crate) struct LoadingResource {
     pub(crate) receiver: Receiver<ResourceHandle>,
@@ -65,7 +80,7 @@ pub(crate) struct LoadingResource {
 impl LoadingResource {
     pub(crate) fn new(resource_id: &UserResourceId, loading_function: &ResourceLoadingFunction) -> Result<Self, ErrorType> {
         let (sender, receiver) = std::sync::mpsc::channel();
-        let thread_name = format!("load_resource_id_{}_gen_{}", resource_id.index, resource_id.generation);
+        let thread_name = format!("load_resource_id_{}_gen_{}", resource_id.0.index, resource_id.0.generation);
 
         let loading_function = std::sync::Arc::clone(loading_function);
         if let Err(err) = std::thread::Builder::new()
@@ -102,11 +117,11 @@ pub(crate) struct LoadedResource {
 }
 
 
-pub enum RealResource {
+pub(crate) enum RealResource {
     Loading(LoadingResource),
     Loaded(LoadedResource),
 }
-pub type ResourcesStorage = super::generational::GenerationalVec<RealResource>;
+pub(crate) struct ResourcesStorage(super::generational::GenerationalVec<RealResource>);
 
 
 pub(crate) struct ResourceIdGenerator {
@@ -135,10 +150,10 @@ impl ResourceIdGenerator {
                 self.generation += 1;
             }
         }
-        UserResourceId {
+        UserResourceId( super::generational::GenerationalKey {
             index: self.nb_ids_total,
             generation: self.generation,
-        }
+        })
     }
 
     pub(crate) fn get_real_id(&self, id: &UserResourceId) -> Result<ResourceId, ErrorType> {
@@ -208,7 +223,7 @@ impl ResourceManager {
     pub(crate) fn init() -> Self {
         Self {
             loading_functions: HashMap::new(),
-            resources: ResourcesStorage::init_empty(),
+            resources: ResourcesStorage(super::generational::GenerationalVec::<RealResource>::init_empty()),
             real_resources: HashMap::new(),
             loading_resources: HashSet::new(),
         }
@@ -259,13 +274,13 @@ impl ResourceManager {
         -> Result<(), ErrorType>
     {
         // Generate real id
-        let real_id = match self.resources.insert_empty_entries(1, true){
+        let real_id = ResourceId(match self.resources.0.insert_empty_entries(1, true){
             Ok(Some(id)) if id.len() == 1 => id[0],
             _ => {
                 log_error!("Failed to generate a real id when adding a new resource in the manager");
                 return Err(ErrorType::Unknown);
             }
-        };
+        });
 
         // Store real id in generator
         match GLOBAL_RESOURCE_ID_GENERATOR.write() {
@@ -321,7 +336,7 @@ impl ResourceManager {
             log_error!("Unknown real resource id found when trying to access resource in the resource manager");
             return Err(ErrorType::DoesNotExist);
         }
-        match self.resources.get_mut_entry(id){
+        match self.resources.0.get_mut_entry(&id.0){
             Ok(entry) => {
                 match entry {
                     super::generational::Entry::Free {..} => {
@@ -338,7 +353,14 @@ impl ResourceManager {
                                 },
                                 Some(fct) => fct,
                             };
-                            let loading_resource = match LoadingResource::new(id, loading_function) {
+                            let user_id = match Self::get_user_id(id){
+                                Ok(id) => id,
+                                Err(err) => {
+                                    log_error!("Failed to get user id from resource id: {:?}", err);
+                                    return Err(ErrorType::Unknown);
+                                }
+                            };
+                            let loading_resource = match LoadingResource::new(&user_id, loading_function) {
                                 Ok(loading) => loading,
                                 Err(err) => {
                                     log_error!("Failed to start loading a resource: {:?}", err);

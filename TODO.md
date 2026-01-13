@@ -13,8 +13,6 @@
 
 ## ECS
 
-- Make the resource handler easier to use for the user by allowing to specify the type in the Handler, adding downcast functions, etc...
-- Make the types matters and be really different for Entity / UserEntity and ResourceId / UserResourceId for the compiler
 - Add tests for the generational indices list
 
 ## Graphics

@@ -1,3 +1,4 @@
+use crate::core_layer::application_system::ecs::entity::Entity;
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
@@ -117,7 +118,7 @@ pub enum SystemSchedule {
 }
 
 pub(crate) struct SystemInternal {
-    pub(crate) entities: std::collections::HashSet<crate::Entity>,
+    pub(crate) entities: std::collections::HashSet<Entity>,
     pub(crate) name: std::any::TypeId,
     pub(crate) with: Vec<std::any::TypeId>,
     pub(crate) without: Vec<std::any::TypeId>,
@@ -176,7 +177,7 @@ impl SystemInternal {
     pub(crate) fn add_entity(
         &mut self,
         component_manager: &super::component::ComponentManager,
-        entity: &crate::Entity,
+        entity: &Entity,
     ) -> Result<(), ErrorType> {
         match component_manager.has_component_type(entity, &self.name) {
             Ok(false) => {}
@@ -214,7 +215,7 @@ impl SystemInternal {
     pub(crate) fn add_entities(
         &mut self,
         component_manager: &super::component::ComponentManager,
-        entities: &[crate::Entity],
+        entities: &[Entity],
     ) -> Result<(), ErrorType> {
         for entity in entities {
             if let Err(err) = self.add_entity(component_manager, entity) {
@@ -229,7 +230,7 @@ impl SystemInternal {
     }
 
     #[allow(unused)]
-    pub(crate) fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
         if !self.entities.remove(entity) {
             log_error!("Trying to remove an entity not present in a system");
             return Err(ErrorType::DoesNotExist);
@@ -237,14 +238,14 @@ impl SystemInternal {
         Ok(())
     }
 
-    pub(crate) fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
+    pub(crate) fn remove_entity_unchecked(&mut self, entity: &Entity) {
         if !self.entities.remove(entity) {
             log_warn!("Trying to remove an entity not present in a system");
         }
     }
 
     #[allow(unused)]
-    pub(crate) fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entities(&mut self, entities: &[Entity]) -> Result<(), ErrorType> {
         for entity in entities {
             if let Err(err) = self.remove_entity(entity) {
                 log_error!(
@@ -257,7 +258,7 @@ impl SystemInternal {
         Ok(())
     }
 
-    pub(crate) fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
+    pub(crate) fn remove_entities_unchecked(&mut self, entities: &[Entity]) {
         for entity in entities {
             self.remove_entity_unchecked(entity);
         }
@@ -266,7 +267,7 @@ impl SystemInternal {
     pub(crate) fn on_component_changed_for_entity(
         &mut self,
         component_manager: &super::component::ComponentManager,
-        entity: &crate::Entity,
+        entity: &Entity,
     ) -> Result<(), ErrorType> {
         let does_fulfill_requirements = match component_manager
             .has_component_type(entity, &self.name)
@@ -357,7 +358,7 @@ impl SystemManager {
         internal: SystemInternal,
         callback: SystemCallback,
         component_manager: &super::component::ComponentManager,
-        existing_entities: &[crate::Entity],
+        existing_entities: &[Entity],
     ) -> Result<(), ErrorType> {
         let mut new_system = SystemRef::new(internal, callback);
         if let Err(err) = new_system
@@ -379,7 +380,7 @@ impl SystemManager {
         internal: SystemInternal,
         callback: SystemMutCallback,
         component_manager: &super::component::ComponentManager,
-        existing_entities: &[crate::Entity],
+        existing_entities: &[Entity],
     ) -> Result<(), ErrorType> {
         let mut new_system = SystemMut::new(internal, callback);
         if let Err(err) = new_system
@@ -396,7 +397,7 @@ impl SystemManager {
         Ok(())
     }
 
-    pub(crate) fn remove_entity_unchecked(&mut self, entity: &crate::Entity) {
+    pub(crate) fn remove_entity_unchecked(&mut self, entity: &Entity) {
         for system in &mut self.systems_ref {
             system.internal.remove_entity_unchecked(entity);
         }
@@ -405,7 +406,7 @@ impl SystemManager {
         }
     }
 
-    pub(crate) fn remove_entities_unchecked(&mut self, entities: &[crate::Entity]) {
+    pub(crate) fn remove_entities_unchecked(&mut self, entities: &[Entity]) {
         for system in &mut self.systems_ref {
             system.internal.remove_entities_unchecked(entities);
         }
@@ -415,7 +416,7 @@ impl SystemManager {
     }
 
     #[allow(unused)]
-    pub(crate) fn remove_entity(&mut self, entity: &crate::Entity) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
         for system in &mut self.systems_ref {
             system.internal.remove_entity(entity)?;
         }
@@ -426,7 +427,7 @@ impl SystemManager {
     }
 
     #[allow(unused)]
-    pub(crate) fn remove_entities(&mut self, entities: &[crate::Entity]) -> Result<(), ErrorType> {
+    pub(crate) fn remove_entities(&mut self, entities: &[Entity]) -> Result<(), ErrorType> {
         for system in &mut self.systems_ref {
             system.internal.remove_entities(entities)?;
         }
@@ -436,17 +437,17 @@ impl SystemManager {
         Ok(())
     }
 
-    pub(crate) fn on_removed_entity(&mut self, entity: &crate::Entity) {
+    pub(crate) fn on_removed_entity(&mut self, entity: &Entity) {
         self.remove_entity_unchecked(entity);
     }
-    pub(crate) fn on_removed_entities(&mut self, entities: &[crate::Entity]) {
+    pub(crate) fn on_removed_entities(&mut self, entities: &[Entity]) {
         self.remove_entities_unchecked(entities);
     }
 
     pub(crate) fn on_component_changed_for_entity(
         &mut self,
         component_manager: &super::component::ComponentManager,
-        entity: &crate::Entity,
+        entity: &Entity,
     ) -> Result<(), ErrorType> {
         for system in &mut self.systems_ref {
             if let Err(err) = system

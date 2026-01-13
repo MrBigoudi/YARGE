@@ -3,7 +3,7 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use super::entity::Entity;
 
-pub(crate) type ComponentMap<T> = super::generational::GenerationalVec<T>;
+pub(crate) struct ComponentMap<T>(super::generational::GenerationalVec<T>);
 
 pub(crate) trait ComponentStorage {
     fn type_name(&self) -> &'static str;
@@ -34,14 +34,21 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
     }
 
     fn len(&self) -> usize {
-        self.entries.len()
+        self.0.entries.len()
     }
 
     fn insert_empty_entities(
         &mut self,
         nb_entities: usize,
     ) -> Result<Option<Vec<Entity>>, ErrorType> {
-        self.insert_empty_entries(nb_entities, T::IS_DEFAULT)
+        match self.0.insert_empty_entries(nb_entities, T::IS_DEFAULT) {
+            Ok(Some(entries)) => Ok(Some(entries.iter().map(|entry| Entity(*entry)).collect())),
+            Ok(None) => Ok(None),
+            Err(err) => {
+                log_error!("Failed to insert empty entities in a component storage: {:?}", err);
+                Err(ErrorType::Unknown)
+            }
+        }
     }
 
     fn add_to_entity(
@@ -61,7 +68,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
             }
         };
 
-        match self.get_mut_entry(entity) {
+        match self.0.get_mut_entry(&entity.0) {
             Ok(entry) => {
                 if let super::generational::Entry::Free { .. } = entry {
                     log_error!(
@@ -94,7 +101,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
     }
 
     fn remove_from_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
-        match self.get_mut_entry(entity) {
+        match self.0.get_mut_entry(&entity.0) {
             Ok(entry) => {
                 if let super::generational::Entry::Free { .. } = entry {
                     log_error!(
@@ -141,7 +148,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
             }
         };
 
-        match self.get_mut_entry(entity) {
+        match self.0.get_mut_entry(&entity.0) {
             Ok(entry) => {
                 if let super::generational::Entry::Free { .. } = entry {
                     log_error!(
@@ -174,7 +181,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
     }
 
     fn remove_entity(&mut self, entity: &Entity) -> Result<(), ErrorType> {
-        if let Err(err) = self.remove(entity) {
+        if let Err(err) = self.0.remove(&entity.0) {
             log_error!(
                 "Failed to remove an entity in a component storage: {:?}",
                 err
@@ -185,7 +192,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
     }
 
     fn get(&self, entity: &Entity) -> Result<Option<&dyn RealComponent>, ErrorType> {
-        match self.get_value(entity) {
+        match self.0.get_value(&entity.0) {
             Ok(None) => Ok(None),
             Ok(Some(value)) => {
                 let component: &dyn RealComponent = value;
@@ -202,7 +209,7 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
     }
 
     fn get_mut(&mut self, entity: &Entity) -> Result<Option<&mut dyn RealComponent>, ErrorType> {
-        match self.get_mut_value(entity) {
+        match self.0.get_mut_value(&entity.0) {
             Ok(None) => Ok(None),
             Ok(Some(value)) => {
                 let component: &mut dyn RealComponent = value;
@@ -256,11 +263,12 @@ pub(crate) trait Component: std::any::Any + Send + Sized + 'static {
         }
 
         // Creates the real data in the hashmap
-        match ComponentMap::<Self>::init_filled_with_empty_entries(manager.length) {
+        match super::generational::GenerationalVec::<Self>::init_filled_with_empty_entries(manager.length) {
             Ok(new_map) => {
+                let new_storage = ComponentMap::<Self>(new_map);
                 if manager
                     .component_storages
-                    .insert(type_id, Box::new(new_map))
+                    .insert(type_id, Box::new(new_storage))
                     .is_some()
                 {
                     log_error!(
