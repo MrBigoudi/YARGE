@@ -5,8 +5,8 @@
 #![warn(macro_use_extern_crate)]
 #![warn(meta_variable_misuse)]
 #![warn(missing_abi)]
-#![warn(missing_docs)]
-#![warn(clippy::missing_docs_in_private_items)]
+// #![warn(missing_docs)]
+// #![warn(clippy::missing_docs_in_private_items)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
 #![warn(single_use_lifetimes)]
@@ -39,19 +39,17 @@ pub use core_layer::application_system::game::Game;
 pub use core_layer::entry::Entry;
 
 pub use core_layer::application_system::ecs::ECS;
-pub use core_layer::application_system::ecs::resource::UserResource as Resource;
-pub use core_layer::application_system::ecs::resource::UserResourceLoadingParameters as ResourceLoadingParameters;
-pub use core_layer::application_system::ecs::resource::UserResourceId as ResourceId;
 pub use core_layer::application_system::ecs::resource::ResourceHandle;
+pub use core_layer::application_system::ecs::resource::UserResource as Resource;
+pub use core_layer::application_system::ecs::resource::UserResourceId as ResourceId;
+pub use core_layer::application_system::ecs::resource::UserResourceLoadingParameters as ResourceLoadingParameters;
+
 pub use core_layer::application_system::ecs::component::UserComponent as Component;
 pub use core_layer::application_system::ecs::engine::transform::TransformComponent;
 pub use core_layer::application_system::ecs::entity::UserEntity as Entity;
 pub use core_layer::application_system::ecs::system::SystemSchedule;
 pub use core_layer::application_system::events::builder as event_builder;
 pub use core_layer::application_system::events::user_events::UserEventWrapper as Event;
-
-pub use core_layer::file_system::file::{FileResource, FileResourceTypeId};
-pub use core_layer::file_system::ron::RonFileResource;
 
 pub use core_layer::input_system::{gamepad, keyboard, mouse};
 
@@ -66,4 +64,4 @@ pub(crate) use rendering_layer::RenderingLayer;
 pub(crate) use rendering_layer::rendering_impl::RenderingLayerImpl;
 pub use rendering_layer::{shaders, types as renderer_types};
 
-pub use macros::{Component, Resource, FileResource, RonFileResource};
+pub use macros::{Component, Resource};

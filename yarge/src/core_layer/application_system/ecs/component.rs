@@ -45,7 +45,10 @@ impl<T: Component> ComponentStorage for ComponentMap<T> {
             Ok(Some(entries)) => Ok(Some(entries.iter().map(|entry| Entity(*entry)).collect())),
             Ok(None) => Ok(None),
             Err(err) => {
-                log_error!("Failed to insert empty entities in a component storage: {:?}", err);
+                log_error!(
+                    "Failed to insert empty entities in a component storage: {:?}",
+                    err
+                );
                 Err(ErrorType::Unknown)
             }
         }
@@ -263,7 +266,9 @@ pub(crate) trait Component: std::any::Any + Send + Sized + 'static {
         }
 
         // Creates the real data in the hashmap
-        match super::generational::GenerationalVec::<Self>::init_filled_with_empty_entries(manager.length) {
+        match super::generational::GenerationalVec::<Self>::init_filled_with_empty_entries(
+            manager.length,
+        ) {
             Ok(new_map) => {
                 let new_storage = ComponentMap::<Self>(new_map);
                 if manager

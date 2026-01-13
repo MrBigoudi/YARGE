@@ -9,7 +9,7 @@ pub(crate) type GenerationalGeneration = u64;
 
 /// The representation of a generational index
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct GenerationalKey {
+pub(crate) struct GenerationalKey {
     /// The index
     pub(crate) index: GenerationalIndex,
     /// The generation

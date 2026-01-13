@@ -26,6 +26,7 @@
 
 ## Maths
 
+- Remove 9 / 16 parameters constructors by rows / cols constructors
 - Add other matrix types (i32, etc...)
 - Add other matrix structures (2x3, 2x4, ...)
 - Add other matrix vector operations 

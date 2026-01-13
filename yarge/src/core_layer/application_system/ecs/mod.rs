@@ -8,8 +8,8 @@ pub(crate) mod component;
 /// See https://austinmorlan.com/posts/entity_component_system/
 /// See https://kyren.github.io/2018/09/14/rustconf-talk.html
 pub(crate) mod entity;
-pub(crate) mod system;
 pub(crate) mod resource;
+pub(crate) mod system;
 
 pub(crate) mod engine;
 
@@ -524,12 +524,18 @@ impl ECS {
 
     pub(crate) fn register_custom_resource(
         &mut self,
-        user_id: &resource::UserResourceId, 
-        resource_type_id: &std::any::TypeId, 
+        user_id: &resource::UserResourceId,
+        resource_type_id: &std::any::TypeId,
         loading_function: resource::ResourceLoadingFunction,
     ) -> Result<(), ErrorType> {
-        if let Err(err) = self.resource_manager.add(user_id, resource_type_id, loading_function) {
-            log_error!("Failed to register a new custom resource in the ECS: {:?}", err);
+        if let Err(err) = self
+            .resource_manager
+            .add(user_id, resource_type_id, loading_function)
+        {
+            log_error!(
+                "Failed to register a new custom resource in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
         Ok(())
@@ -537,42 +543,51 @@ impl ECS {
 
     pub(crate) fn load_custom_resource(
         &mut self,
-        user_id: &resource::UserResourceId, 
+        user_id: &resource::UserResourceId,
         resource_type_id: &std::any::TypeId,
     ) -> Result<resource::ResourceHandle, ErrorType> {
-        let real_id = match resource::ResourceManager::get_real_id(user_id){
+        let real_id = match resource::ResourceManager::get_real_id(user_id) {
             Ok(id) => id,
             Err(err) => {
-                log_error!("Failed to get the real id from the user id when loading a custom resource in the ECS: {:?}", err);
+                log_error!(
+                    "Failed to get the real id from the user id when loading a custom resource in the ECS: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         match self.resource_manager.get(&real_id, resource_type_id) {
             Err(err) => {
                 log_error!("Failed to load a custom resource in the ECS: {:?}", err);
-                return Err(ErrorType::Unknown);
-            },
+                Err(ErrorType::Unknown)
+            }
             Ok(handler) => Ok(handler),
         }
     }
 
     pub(crate) fn try_load_custom_resource(
         &mut self,
-        user_id: &resource::UserResourceId, 
+        user_id: &resource::UserResourceId,
         resource_type_id: &std::any::TypeId,
     ) -> Result<Option<resource::ResourceHandle>, ErrorType> {
-        let real_id = match resource::ResourceManager::get_real_id(user_id){
+        let real_id = match resource::ResourceManager::get_real_id(user_id) {
             Ok(id) => id,
             Err(err) => {
-                log_error!("Failed to get the real id from the user id when trying to load a custom resource in the ECS: {:?}", err);
+                log_error!(
+                    "Failed to get the real id from the user id when trying to load a custom resource in the ECS: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         match self.resource_manager.try_get(&real_id, resource_type_id) {
             Err(err) => {
-                log_error!("Failed to try to load a custom resource in the ECS: {:?}", err);
-                return Err(ErrorType::Unknown);
-            },
+                log_error!(
+                    "Failed to try to load a custom resource in the ECS: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
             Ok(handler) => Ok(handler),
         }
     }

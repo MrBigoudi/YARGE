@@ -165,17 +165,6 @@ pub trait Game: std::any::Any + 'static {
         Ok(VecDeque::new())
     }
 
-    /// Runs when the file at the given path is loaded
-    /// To load a file, users must use the UserEventWrapper functionality
-    /// Default behavior: don't do anything
-    fn on_file_loaded(
-        &mut self,
-        _path: &std::path::Path,
-        _resource: std::sync::Arc<dyn crate::FileResource>,
-    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
-        Ok(VecDeque::new())
-    }
-
     /// Runs when a given resource is done loading
     /// Default behavior: don't do anything
     fn on_resource_loaded(

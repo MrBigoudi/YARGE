@@ -75,7 +75,6 @@ pub(crate) enum RendererBeginFrameOutput {
     Failure,
 }
 
-
 pub enum PrimitiveTopology {
     PointList,
     LineList,

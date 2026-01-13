@@ -2,29 +2,26 @@
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
-    FileResourceTypeId, RonFileResource, SystemSchedule,
-    core_layer::{
-        application_system::{
-            ecs::{
-                component::{
-                    AddComponentToEntityFunction, Component, RealComponent,
-                    RegisterComponentFunction, RemoveComponentFromEntityFunction,
-                    RemoveComponentFunction, UpdateComponentForEntityFunction,
-                },
-                entity::UserEntity,
-                system::{
-                    SystemCallback, SystemCallbackConditionFunction, SystemMutCallback,
-                    UserSystemCallback, UserSystemCallbackBuilder,
-                    UserSystemCallbackConditionFunction, UserSystemMutCallback,
-                },
-                resource::{
-                    UserResourceId, UserResource, UserResourceLoadingParameters,
-                    ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager,
-                },
+    SystemSchedule,
+    core_layer::application_system::{
+        ecs::{
+            component::{
+                AddComponentToEntityFunction, Component, RealComponent, RegisterComponentFunction,
+                RemoveComponentFromEntityFunction, RemoveComponentFunction,
+                UpdateComponentForEntityFunction,
             },
-            events::user_events::{UserEvent, UserEventWrapper},
+            entity::UserEntity,
+            resource::{
+                ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager, UserResource,
+                UserResourceId, UserResourceLoadingParameters,
+            },
+            system::{
+                SystemCallback, SystemCallbackConditionFunction, SystemMutCallback,
+                UserSystemCallback, UserSystemCallbackBuilder, UserSystemCallbackConditionFunction,
+                UserSystemMutCallback,
+            },
         },
-        file_system::file::{FileLoaderSystem, LoadingFileFunction},
+        events::user_events::{UserEvent, UserEventWrapper},
     },
 };
 
@@ -38,75 +35,6 @@ impl QuitAppEventBuilder {
 }
 
 #[derive(Default)]
-pub struct RegisterCustomFileResourceEventBuilder {
-    /// The id of the new resource type
-    resource_id: Option<FileResourceTypeId>,
-    /// The function to load the resource
-    loader_fct: Option<LoadingFileFunction>,
-}
-impl RegisterCustomFileResourceEventBuilder {
-    pub fn resource_id(mut self, resource_id: &FileResourceTypeId) -> Self {
-        self.resource_id = Some(FileLoaderSystem::cast_resource_id(resource_id));
-        self
-    }
-    pub fn resource_type<T: RonFileResource>(mut self) -> Self {
-        self.loader_fct = Some(T::start_load_ron);
-        self
-    }
-    pub fn build(self) -> Result<UserEventWrapper, ErrorType> {
-        if self.loader_fct.is_none() {
-            log_error!("Can't build a `RegisterCustomFileResource' event without a resource type");
-            return Err(ErrorType::DoesNotExist);
-        }
-        if self.resource_id.is_none() {
-            log_error!("Can't build a `RegisterCustomFileResource' event without a resource id");
-            return Err(ErrorType::DoesNotExist);
-        }
-        Ok(UserEventWrapper {
-            event: UserEvent::RegisterCustomFileResource {
-                resource_id: self.resource_id.unwrap(),
-                loader_fct: self.loader_fct.unwrap(),
-            },
-        })
-    }
-}
-
-#[derive(Default)]
-pub struct StartLoadCustomFileResourceEventBuilder {
-    /// The id of the resource type to load
-    resource_id: Option<FileResourceTypeId>,
-    /// The path to the resource to load
-    path: Option<std::path::PathBuf>,
-}
-impl StartLoadCustomFileResourceEventBuilder {
-    pub fn resource_id(mut self, resource_id: &FileResourceTypeId) -> Self {
-        self.resource_id = Some(FileLoaderSystem::cast_resource_id(resource_id));
-        self
-    }
-    pub fn path(mut self, path: &std::path::Path) -> Self {
-        self.path = Some(std::path::PathBuf::from(path));
-        self
-    }
-    pub fn build(self) -> Result<UserEventWrapper, ErrorType> {
-        if self.resource_id.is_none() {
-            log_error!("Can't build a `StartLoadCustomFileResource' event without a resource id");
-            return Err(ErrorType::DoesNotExist);
-        }
-        if self.path.is_none() {
-            log_error!("Can't build a `StartLoadCustomFileResource' event without a path");
-            return Err(ErrorType::DoesNotExist);
-        }
-        Ok(UserEventWrapper {
-            event: UserEvent::StartLoadCustomFileResource {
-                resource_id: self.resource_id.unwrap(),
-                path: self.path.unwrap(),
-            },
-        })
-    }
-}
-
-
-#[derive(Default)]
 pub struct RegisterCustomResourceEventBuilder {
     /// The type of the resource
     resource_type_id: Option<std::any::TypeId>,
@@ -114,8 +42,8 @@ pub struct RegisterCustomResourceEventBuilder {
     loader_fct: Option<ResourceLoadingFunction>,
 }
 impl RegisterCustomResourceEventBuilder {
-    pub fn loading_parameters<P, R>(mut self, params: &P) -> Self 
-    where 
+    pub fn loading_parameters<P, R>(mut self, params: &P) -> Self
+    where
         P: UserResourceLoadingParameters<R>,
         R: UserResource,
     {
@@ -127,27 +55,29 @@ impl RegisterCustomResourceEventBuilder {
         let user_id = match ResourceManager::generate_id() {
             Ok(id) => id,
             Err(err) => {
-                log_error!("Failed to generate a new id for a resource when building a `RegisterCustomResource' event: {:?}", err);
+                log_error!(
+                    "Failed to generate a new id for a resource when building a `RegisterCustomResource' event: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
-        
+
         if self.loader_fct.is_none() {
             log_error!("Can't build a `RegisterCustomResource' event without a loading parameter");
             return Err(ErrorType::DoesNotExist);
         }
-        
+
         let new_event = UserEventWrapper {
-            event: UserEvent::RegisterCustomResource { 
-                user_id, 
-                resource_type_id: self.resource_type_id.unwrap(), 
+            event: UserEvent::RegisterCustomResource {
+                user_id,
+                resource_type_id: self.resource_type_id.unwrap(),
                 loading_function: self.loader_fct.unwrap(),
             },
         };
         Ok((new_event, user_id))
     }
 }
-
 
 #[derive(Default)]
 pub struct StartLoadCustomResourceEventBuilder {
@@ -168,15 +98,13 @@ impl StartLoadCustomResourceEventBuilder {
             return Err(ErrorType::DoesNotExist);
         }
         Ok(UserEventWrapper {
-            event: UserEvent::StartLoadCustomResource { 
-                user_id: self.user_id.unwrap(), 
+            event: UserEvent::StartLoadCustomResource {
+                user_id: self.user_id.unwrap(),
                 resource_type_id: self.resource_type_id.unwrap(),
             },
         })
     }
 }
-
-
 
 #[derive(Default)]
 pub struct RemoveEntitiesEventBuilder {

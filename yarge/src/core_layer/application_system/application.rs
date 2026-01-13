@@ -7,8 +7,8 @@ use std::collections::VecDeque;
 use crate::config::Version;
 use crate::core_layer::application_system::events::user_events::UserEventWrapper;
 use crate::{
-    ECS, Game, config::Config, core_layer::file_system::file::FileLoaderSystem,
-    platform_layer::event::Event, rendering_layer::types::RendererBeginFrameOutput,
+    ECS, Game, config::Config, platform_layer::event::Event,
+    rendering_layer::types::RendererBeginFrameOutput,
 };
 use crate::{PlatformLayerImpl, RenderingLayer, RenderingLayerImpl};
 
@@ -21,9 +21,6 @@ pub(crate) struct ApplicationSystem<'a> {
 
     /// The user defined game
     pub(crate) user_game: &'a mut dyn Game,
-
-    /// The file loader system
-    pub(crate) file_loader: FileLoaderSystem,
 
     /// The ECS
     pub(crate) ecs: ECS,
@@ -39,10 +36,6 @@ impl<'a> ApplicationSystem<'a> {
     ) -> Result<Self, ErrorType> {
         let name = config.application_config.name.clone();
         let version = config.application_config.version.clone();
-
-        // Inits the file loader system
-        let file_loader = FileLoaderSystem::init();
-        log_info!("File loader system initialized");
 
         // Inits the ECS system
         let ecs = match ECS::init() {
@@ -61,7 +54,6 @@ impl<'a> ApplicationSystem<'a> {
             name,
             version,
             user_game,
-            file_loader,
             ecs,
         };
 
@@ -125,19 +117,7 @@ impl<'a> ApplicationSystem<'a> {
             }
         };
 
-        // Handle file loading
-        match self.handle_loading_files(platform_layer, rendering_layer) {
-            Ok(mut events) => {
-                user_events.append(&mut events);
-            }
-            Err(err) => {
-                log_error!(
-                    "Failed to handle loading files in the application layer: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
+        // Handle resource loading
         match self.handle_loading_resources(platform_layer, rendering_layer) {
             Ok(mut events) => {
                 user_events.append(&mut events);
@@ -237,40 +217,6 @@ impl<'a> ApplicationSystem<'a> {
         Ok(())
     }
 
-    /// Check if any file have loaded
-    pub(crate) fn handle_loading_files(
-        &mut self,
-        _platform_layer: &mut PlatformLayerImpl,
-        _rendering_layer: &mut RenderingLayerImpl,
-    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
-        let mut user_events = VecDeque::new();
-        for path in &self.file_loader.get_loading_file_paths() {
-            match self.file_loader.end_load(path) {
-                Err(err) => {
-                    log_error!("Failed to end loading a file at `{:?}': {:?}", path, err);
-                    return Err(ErrorType::Unknown);
-                }
-                Ok(None) => {}
-                Ok(Some(arc)) => {
-                    match self.user_game.on_file_loaded(path, arc) {
-                        Err(err) => {
-                            log_error!(
-                                "The user game failed to handle loaded file at `{:?}': {:?}",
-                                path,
-                                err
-                            );
-                            return Err(ErrorType::Unknown);
-                        }
-                        Ok(mut events) => {
-                            user_events.append(&mut events);
-                        }
-                    };
-                }
-            }
-        }
-        Ok(user_events)
-    }
-
     pub(crate) fn handle_loading_resources(
         &mut self,
         _platform_layer: &mut PlatformLayerImpl,
@@ -279,29 +225,44 @@ impl<'a> ApplicationSystem<'a> {
         let mut user_events = VecDeque::new();
 
         // TODO: find a workaround to avoid copying
-        let loading_resources: Vec<_> = self.ecs.resource_manager.loading_resources
+        let loading_resources: Vec<_> = self
+            .ecs
+            .resource_manager
+            .loading_resources
             .iter()
-            .copied() 
+            .copied()
             .collect();
 
         for (type_id, real_id) in &loading_resources {
-            match self.ecs.resource_manager.try_get(&real_id, &type_id) {
+            match self.ecs.resource_manager.try_get(real_id, type_id) {
                 Err(err) => {
-                    log_error!("Failed to try getting a loading resource in the application: {:?}", err);
+                    log_error!(
+                        "Failed to try getting a loading resource in the application: {:?}",
+                        err
+                    );
                     return Err(ErrorType::Unknown);
                 }
                 Ok(None) => {}
                 Ok(Some(handler)) => {
-                    let user_resource_id = match ResourceManager::get_user_id(&real_id) {
+                    let user_resource_id = match ResourceManager::get_user_id(real_id) {
                         Ok(id) => id,
                         Err(err) => {
-                            log_error!("Failed to get the user id when handling a loaded resource in the application: {:?}", err);
+                            log_error!(
+                                "Failed to get the user id when handling a loaded resource in the application: {:?}",
+                                err
+                            );
                             return Err(ErrorType::Unknown);
                         }
                     };
-                    match self.user_game.on_resource_loaded(&user_resource_id, handler) {
+                    match self
+                        .user_game
+                        .on_resource_loaded(&user_resource_id, handler)
+                    {
                         Err(err) => {
-                            log_error!("The user game failed to handle a loaded resource: {:?}", err);
+                            log_error!(
+                                "The user game failed to handle a loaded resource: {:?}",
+                                err
+                            );
                             return Err(ErrorType::Unknown);
                         }
                         Ok(mut events) => {

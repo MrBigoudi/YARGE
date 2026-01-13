@@ -9,34 +9,17 @@ pub(crate) enum UserEvent {
     /// To close the application
     QuitApp,
 
-    /// To register a new user defined file resource
-    RegisterCustomFileResource {
-        /// The id of the new resource type
-        resource_id: crate::FileResourceTypeId,
-        /// The function to load the resource
-        loader_fct: crate::core_layer::file_system::file::LoadingFileFunction,
-    },
-
-    /// To begin loading a file resource
-    StartLoadCustomFileResource {
-        /// The id of the resource type to load
-        resource_id: crate::FileResourceTypeId,
-        /// The path to the resource to load
-        path: std::path::PathBuf,
-    },
-
-
     /// To register a new resource
     RegisterCustomResource {
-        user_id: UserResourceId, 
-        resource_type_id: std::any::TypeId, 
-        loading_function: 
+        user_id: UserResourceId,
+        resource_type_id: std::any::TypeId,
+        loading_function:
             crate::core_layer::application_system::ecs::resource::ResourceLoadingFunction,
     },
 
     /// To begin loading a new resource
     StartLoadCustomResource {
-        user_id: UserResourceId, 
+        user_id: UserResourceId,
         resource_type_id: std::any::TypeId,
     },
 
@@ -169,36 +152,6 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
             match event_builder.event {
                 UserEvent::QuitApp => {
                     should_quit = true;
-                }
-                UserEvent::RegisterCustomFileResource {
-                    resource_id,
-                    loader_fct,
-                } => {
-                    if let Err(err) = self.file_loader.register(&resource_id, loader_fct) {
-                        log_error!(
-                            "Failed to register the custom `{:?}' resource when handling a `RegisterCustomFileResource' event in the application: {:?}",
-                            resource_id,
-                            err
-                        );
-                        return Err(ErrorType::Unknown);
-                    }
-                    log_debug!("Custom resource `{:?}' registered", resource_id);
-                }
-                UserEvent::StartLoadCustomFileResource { resource_id, path } => {
-                    if let Err(err) = self.file_loader.start_load(&resource_id, &path) {
-                        log_error!(
-                            "Failed to start loading the custom `{:?}' resource at `{:?}' when handling a `StartLoadCustomFileResource' event in the application: {:?}",
-                            resource_id,
-                            path,
-                            err
-                        );
-                        return Err(ErrorType::Unknown);
-                    }
-                    log_debug!(
-                        "Start loading the custom `{:?}' resource at `{:?}'",
-                        resource_id,
-                        path
-                    );
                 }
                 UserEvent::RemoveEntity { user_entity } => {
                     if let Err(err) = self.ecs.remove_entity(&user_entity) {
@@ -348,18 +301,38 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                     }
                     log_debug!("Added new system mut");
                 }
-                UserEvent::RegisterCustomResource { user_id, resource_type_id, loading_function } => {
-                    if let Err(err) = self.ecs.register_custom_resource(&user_id, &resource_type_id, loading_function) {
-                        log_error!("Failed to register a new resource when handling a `RegisterCustomResource' event in the application: {:?}", err);
+                UserEvent::RegisterCustomResource {
+                    user_id,
+                    resource_type_id,
+                    loading_function,
+                } => {
+                    if let Err(err) = self.ecs.register_custom_resource(
+                        &user_id,
+                        &resource_type_id,
+                        loading_function,
+                    ) {
+                        log_error!(
+                            "Failed to register a new resource when handling a `RegisterCustomResource' event in the application: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
                     }
-                },
-                UserEvent::StartLoadCustomResource { user_id, resource_type_id } => {
-                    if let Err(err) = self.ecs.try_load_custom_resource(&user_id, &resource_type_id) {
-                        log_error!("Failed to start loading a new resource when handling a `StartLoadCustomResource' event in the application: {:?}", err);
+                }
+                UserEvent::StartLoadCustomResource {
+                    user_id,
+                    resource_type_id,
+                } => {
+                    if let Err(err) = self
+                        .ecs
+                        .try_load_custom_resource(&user_id, &resource_type_id)
+                    {
+                        log_error!(
+                            "Failed to start loading a new resource when handling a `StartLoadCustomResource' event in the application: {:?}",
+                            err
+                        );
                         return Err(ErrorType::Unknown);
                     }
-                },
+                }
             }
         }
 
