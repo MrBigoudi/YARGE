@@ -6,13 +6,13 @@ use crate::core_layer::application_system::ecs::component::Component;
 use crate::maths::Vector3;
 
 /// A simple transform component
-pub struct TransformComponent {
+pub(crate) struct TransformComponent {
     /// The position in object space
-    pub position: Vector3,
+    pub(crate) position: Vector3,
     /// The scaling in object space
-    pub scale: Vector3,
+    pub(crate) scale: Vector3,
     /// The rotation in object space
     /// Using Euler angles (for now)
-    pub rotation: Vector3,
+    pub(crate) rotation: Vector3,
 }
 impl Component for TransformComponent {}

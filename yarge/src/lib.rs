@@ -45,7 +45,6 @@ pub use core_layer::application_system::ecs::resource::UserResourceId as Resourc
 pub use core_layer::application_system::ecs::resource::UserResourceLoadingParameters as ResourceLoadingParameters;
 
 pub use core_layer::application_system::ecs::component::UserComponent as Component;
-pub use core_layer::application_system::ecs::engine::transform::TransformComponent;
 pub use core_layer::application_system::ecs::entity::UserEntity as Entity;
 pub use core_layer::application_system::ecs::system::SystemSchedule;
 pub use core_layer::application_system::events::builder as event_builder;
