@@ -73,7 +73,6 @@ pub(crate) trait Window {
     /// Shuts down the window
     fn shutdown(&mut self) -> Result<(), ErrorType>;
 
-    #[allow(unused)]
     /// Gets the window's properties
     fn get_properties(&self) -> WindowCommonProperties;
 
@@ -91,4 +90,13 @@ pub(crate) trait Window {
     /// Loads all the OpenGL functions
     #[cfg(opengl_renderer)]
     fn opengl_load_functions(&mut self) -> Result<(), ErrorType>;
+
+    /// Get the required Vulkan extensions to interface with the window system
+    #[cfg(vulkan_renderer)]
+    fn vulkan_get_required_instance_extensions(&self) -> Result<Vec<crate::rendering_layer::rendering_impl::VkInstanceExtensions>, ErrorType>;
+
+    /// Get the Vulkan surface to interface with the window system
+    #[cfg(vulkan_renderer)]
+    fn vulkan_get_surface(&self, vk_entry: &ash::Entry, vk_instance: &ash::Instance, allocator: &Option<ash::vk::AllocationCallbacks<'_>>) -> Result<ash::vk::SurfaceKHR, ErrorType>;
+
 }

@@ -9,12 +9,12 @@ use crate::{config::Config, platform_layer::window::Window};
 
 use super::context::OpenglContext;
 
-pub(crate) struct OpenglRenderingLayer {
-    pub(crate) context: OpenglContext,
+pub(crate) struct OpenglRenderingLayer<'a> {
+    pub(crate) context: OpenglContext<'a>,
 }
 
-impl RenderingLayer for OpenglRenderingLayer {
-    type RenderingLayerType = OpenglRenderingLayer;
+impl<'a> RenderingLayer<'a> for OpenglRenderingLayer<'a> {
+    type RenderingLayerType = OpenglRenderingLayer<'a>;
 
     fn init(
         config: &Config,

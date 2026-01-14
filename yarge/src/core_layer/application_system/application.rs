@@ -32,7 +32,7 @@ impl<'a> ApplicationSystem<'a> {
         user_game: &'a mut dyn Game,
         config: &Config,
         platform_layer: &mut PlatformLayerImpl,
-        rendering_layer: &mut RenderingLayerImpl,
+        rendering_layer: &mut RenderingLayerImpl<'a>,
     ) -> Result<Self, ErrorType> {
         let name = config.application_config.name.clone();
         let version = config.application_config.version.clone();
@@ -99,7 +99,7 @@ impl<'a> ApplicationSystem<'a> {
         &mut self,
         event: Event,
         platform_layer: &mut PlatformLayerImpl,
-        rendering_layer: &mut RenderingLayerImpl,
+        rendering_layer: &mut RenderingLayerImpl<'_>,
     ) -> Result<bool, ErrorType> {
         let mut user_events = VecDeque::new();
 
@@ -220,7 +220,7 @@ impl<'a> ApplicationSystem<'a> {
     pub(crate) fn handle_loading_resources(
         &mut self,
         _platform_layer: &mut PlatformLayerImpl,
-        _rendering_layer: &mut RenderingLayerImpl,
+        _rendering_layer: &mut RenderingLayerImpl<'_>,
     ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
         let mut user_events = VecDeque::new();
 

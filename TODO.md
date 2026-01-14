@@ -2,6 +2,8 @@
 
 ## Global
 
+- Add debug specific code
+- Move the "init" logs inside the structures methods
 - Add better documentation everywhere
 - Check / Fix update function not running when window not focused ?
 - Add tests for the ECS methods
@@ -26,7 +28,7 @@
 
 ## Maths
 
-- Remove 9 / 16 parameters constructors by rows / cols constructors
+- Replace 9 / 16 parameters constructors by rows / cols constructors
 - Add other matrix types (i32, etc...)
 - Add other matrix structures (2x3, 2x4, ...)
 - Add other matrix vector operations 

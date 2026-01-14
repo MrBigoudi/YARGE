@@ -10,7 +10,7 @@ use crate::{PlatformLayer, PlatformLayerImpl, RenderingLayer, RenderingLayerImpl
 /// The core layer
 pub(crate) struct CoreLayer<'a> {
     pub(crate) platform_layer: PlatformLayerImpl,
-    pub(crate) rendering_layer: RenderingLayerImpl,
+    pub(crate) rendering_layer: RenderingLayerImpl<'a>,
     pub(crate) logger_system: LoggerSystem,
     pub(crate) application_system: ApplicationSystem<'a>,
 }

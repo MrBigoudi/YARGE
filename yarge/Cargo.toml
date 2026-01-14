@@ -18,8 +18,8 @@ cfg_aliases = "0.2.1"
 pkg-config = "0.3.32"
 
 [features]
-default = ["x", "opengl"]
-# default = ["x", "vulkan"]
+# default = ["x", "opengl"]
+default = ["x", "vulkan"]
 x = ["xcb", "x11", "colored"]
 wayland = ["colored"]
 directx = []

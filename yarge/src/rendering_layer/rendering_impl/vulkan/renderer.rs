@@ -7,25 +7,25 @@ use crate::{PlatformLayerImpl, RenderingLayer, config::Config};
 
 use super::context::VulkanContext;
 
-pub(crate) struct VulkanRenderingLayer {
-    pub(crate) context: VulkanContext,
+pub(crate) struct VulkanRenderingLayer<'a> {
+    pub(crate) context: VulkanContext<'a>,
 }
 
-impl RenderingLayer for VulkanRenderingLayer {
-    type RenderingLayerType = VulkanRenderingLayer;
+impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
+    type RenderingLayerType = VulkanRenderingLayer<'a>;
 
     fn init(
         config: &Config,
-        _platform_layer: &mut PlatformLayerImpl,
+        platform_layer: &mut PlatformLayerImpl,
     ) -> Result<Self::RenderingLayerType, ErrorType> {
-        let context = match VulkanContext::new(config) {
+        let context = match VulkanContext::init(config, platform_layer) {
             Ok(context) => context,
             Err(err) => {
                 log_error!("Failed to initialize the vulkan context: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
         };
-        log_debug!("Vulkan renderer initialized");
+        log_info!("Vulkan renderer initialized");
         Ok(VulkanRenderingLayer { context })
     }
 

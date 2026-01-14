@@ -136,7 +136,7 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
         &mut self,
         events: std::collections::VecDeque<UserEventWrapper>,
         _platform_layer: &mut crate::PlatformLayerImpl,
-        _rendering_layer: &mut crate::RenderingLayerImpl,
+        _rendering_layer: &mut crate::RenderingLayerImpl<'_>,
     ) -> Result<bool, ErrorType> {
         // TODO: check if need to create new entities
         if let Err(err) = self.ecs.spawn_real_entities() {

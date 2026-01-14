@@ -7,12 +7,12 @@ use ash::{
 };
 
 use crate::{
-    config::Config,
-    rendering_layer::rendering_impl::{VkLayers, vulkan::types::VkNames},
+    PlatformLayerImpl, config::{Config, Version}, platform_layer::window::Window, rendering_layer::rendering_impl::{VkInstanceExtensions, VkLayers, vulkan::types::VkNames}
 };
 
 /// Helper function to create the application info
-fn init_application_info(config: &'_ Config) -> Result<ApplicationInfo<'_>, ErrorType> {
+fn init_application_info<'a>(config: &'a Config, entry: &'a Entry) -> Result<ApplicationInfo<'a>, ErrorType> {
+    // Get user game info
     let application_name = match std::ffi::CString::new(config.application_config.name.clone()) {
         Ok(name) => name,
         Err(err) => {
@@ -23,7 +23,6 @@ fn init_application_info(config: &'_ Config) -> Result<ApplicationInfo<'_>, Erro
             return Err(ErrorType::Unknown);
         }
     };
-
     let application_version = vk::make_api_version(
         config.application_config.version.variant as u32,
         config.application_config.version.major as u32,
@@ -31,6 +30,7 @@ fn init_application_info(config: &'_ Config) -> Result<ApplicationInfo<'_>, Erro
         config.application_config.version.patch as u32,
     );
 
+    // Get engine info
     let engine_name = match std::ffi::CString::new(env!("CARGO_PKG_NAME")) {
         Ok(name) => name,
         Err(err) => {
@@ -41,7 +41,6 @@ fn init_application_info(config: &'_ Config) -> Result<ApplicationInfo<'_>, Erro
             return Err(ErrorType::Unknown);
         }
     };
-
     let engine_version = env!("CARGO_PKG_VERSION");
     let engine_version: Vec<u32> = engine_version
         .split('.')
@@ -55,21 +54,55 @@ fn init_application_info(config: &'_ Config) -> Result<ApplicationInfo<'_>, Erro
     };
     let engine_version = vk::make_api_version(0, major, minor, patch);
 
-    Ok(ApplicationInfo {
+    // Get Vulkan info
+    let vk_config = &config.renderer_config.vulkan_parameters;
+    let supported_version = match unsafe { entry.try_enumerate_instance_version() } {
+        Ok(Some(version)) => {
+            Version::new(
+                vk::api_version_variant(version) as u8,
+                vk::api_version_major(version) as u8,
+                vk::api_version_minor(version) as u8,
+                vk::api_version_patch(version) as u8,
+            )
+        },
+        Ok(None) => Version::new(0, 1, 0, 0),
+        Err(err) => {
+            log_error!("Failed to enumerate the supported vulkan instance version: {:?}", err);
+            return Err(ErrorType::VulkanError);
+        }
+    };
+    if vk_config.version > supported_version {
+        log_error!("Invalid Vulkan version requested: requested version `{:?}', while maximum version supported is `{:?}'", 
+            vk_config.version.as_string(), supported_version.as_string()
+        );
+        return Err(ErrorType::Unknown);
+    };
+    let api_version = vk::make_api_version(
+        vk_config.version.variant as u32,
+        vk_config.version.major as u32,
+        vk_config.version.minor as u32,
+        vk_config.version.patch as u32,
+    );
+
+    // Bulid the application info
+    let application_info = ApplicationInfo {
         p_application_name: application_name.as_ptr() as *const std::ffi::c_char,
         p_engine_name: engine_name.as_ptr() as *const std::ffi::c_char,
         ..Default::default()
     }
-    .api_version(vk::API_VERSION_1_3)
+    .api_version(api_version)
     .application_version(application_version)
-    .engine_version(engine_version))
+    .engine_version(engine_version);
+
+    Ok(application_info)
 }
 
 /// Helper function to fetch the required layers
 /// Checks if all required layers are available
 fn get_required_layers(config: &Config, entry: &Entry) -> Result<VkNames, ErrorType> {
-    let required_layers = match VkLayers::to_vknames(&config.renderer_config.vulkan_required_layers)
-    {
+    let vk_config = &config.renderer_config.vulkan_parameters;
+    let layers = [vk_config.required_layers.clone(), vk_config.required_layers_debug.clone()].concat();
+    let required_layers = match VkLayers::to_vknames(&layers){
         Ok(names) => names,
         Err(err) => {
             log_error!(
@@ -81,7 +114,7 @@ fn get_required_layers(config: &Config, entry: &Entry) -> Result<VkNames, ErrorT
     };
 
     // Display required layers
-    log_info!("Required layers:");
+    log_info!("Required Vulkan layers:");
     for layer_name in &required_layers.names_cstrings {
         log_info!("\t- Layer: {:?}", layer_name);
     }
@@ -100,7 +133,7 @@ fn get_required_layers(config: &Config, entry: &Entry) -> Result<VkNames, ErrorT
     };
 
     // Display available layers
-    log_info!("Available layers:");
+    log_info!("Available Vulkan layers:");
     for layer in &available_layers {
         match layer.layer_name_as_c_str() {
             Ok(layer_cstr) => match layer_cstr.to_str() {
@@ -148,15 +181,97 @@ fn get_required_layers(config: &Config, entry: &Entry) -> Result<VkNames, ErrorT
     Ok(required_layers)
 }
 
-/// Helper function to initialize the instance create info
-fn init_instance_create_info<'a>(
-    app_info: &'a ApplicationInfo<'_>,
-) -> Result<InstanceCreateInfo<'a>, ErrorType> {
-    Ok(InstanceCreateInfo::default().application_info(app_info))
+/// Helper function to fetch the required instance extensions
+/// Checks if all required extensions are available
+fn get_required_extensions(entry: &Entry, platform_layer: &PlatformLayerImpl) -> Result<VkNames, ErrorType> {
+    let extensions = match platform_layer.window.vulkan_get_required_instance_extensions(){
+        Ok(extensions) => extensions,
+        Err(err) => {
+            log_error!("Failed to get the required instance extension from the platform extension when initializing the Vulkan instance create info: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+    };
+    let required_extensions = match VkInstanceExtensions::to_vknames(&extensions){
+        Ok(names) => names,
+        Err(err) => {
+            log_error!(
+                "Failed to convert required vulkan extensions to vknames: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+    };
+
+    // Display required extensions
+    log_info!("Required Vulkan instance extensions:");
+    for extension_name in &required_extensions.names_cstrings {
+        log_info!("\t- Extension: {:?}", extension_name);
+    }
+
+    let available_extensions = unsafe {
+        match entry.enumerate_instance_extension_properties(None) {
+            Ok(extensions) => extensions,
+            Err(err) => {
+                log_error!(
+                    "Failed to enumerate the available extensions properties when querying the required extensions: {:?}",
+                    err
+                );
+                return Err(ErrorType::VulkanError);
+            }
+        }
+    };
+
+    // Display available extensions
+    log_info!("Available Vulkan instance extensions:");
+    for extension in &available_extensions {
+        match extension.extension_name_as_c_str() {
+            Ok(extension_cstr) => match extension_cstr.to_str() {
+                Ok(extension_name) => log_info!("\t- Extension: {}", extension_name),
+                Err(err) => {
+                    log_error!("Invalid UTF-8 in available extension name: {:?}", err);
+                    return Err(ErrorType::IO);
+                }
+            },
+            Err(err) => {
+                log_error!("Invalid string format in available extension name: {:?}", err);
+                return Err(ErrorType::IO);
+            }
+        }
+    }
+
+    for required in &required_extensions.names_cstrings {
+        // Check the name of the required extension
+        let mut is_available = false;
+        'inner: for available in &available_extensions {
+            let name = match available.extension_name_as_c_str() {
+                Ok(name) => name,
+                Err(err) => {
+                    log_error!(
+                        "Failed to fetch the extension name when querying the required extensions: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::VulkanError);
+                }
+            };
+            if name == required {
+                is_available = true;
+                break 'inner;
+            }
+        }
+        if !is_available {
+            log_error!(
+                "Failed to find the {:?} extension when querying the required extensions",
+                required
+            );
+            return Err(ErrorType::VulkanError);
+        }
+    }
+
+    Ok(required_extensions)
 }
 
-pub fn init_instance(config: &Config, entry: &Entry) -> Result<Instance, ErrorType> {
-    let application_info = match init_application_info(config) {
+pub(crate) fn init_instance(config: &Config, entry: &Entry, platform_layer: &PlatformLayerImpl, allocator: &Option<vk::AllocationCallbacks<'_>>) -> Result<Instance, ErrorType> {
+    let application_info = match init_application_info(config, entry) {
         Ok(info) => info,
         Err(err) => {
             log_error!(
@@ -167,7 +282,7 @@ pub fn init_instance(config: &Config, entry: &Entry) -> Result<Instance, ErrorTy
         }
     };
 
-    let _required_layers = match get_required_layers(config, entry) {
+    let required_layers = match get_required_layers(config, entry) {
         Ok(layers) => layers,
         Err(err) => {
             log_error!(
@@ -178,7 +293,31 @@ pub fn init_instance(config: &Config, entry: &Entry) -> Result<Instance, ErrorTy
         }
     };
 
-    let _instance_info = init_instance_create_info(&application_info);
+    let required_instance_extensions = match get_required_extensions(entry, platform_layer){
+        Ok(extensions) => extensions,
+        Err(err) => {
+            log_error!(
+                "Failed to get the required instance extensions when initializing the instance: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+    };
 
-    Err(ErrorType::Unknown)
+    let instance_info = InstanceCreateInfo::default()
+        .application_info(&application_info)
+        .enabled_layer_names(&required_layers.names)
+        .enabled_extension_names(&required_instance_extensions.names)
+    ;
+
+    let instance = match unsafe { entry.create_instance(&instance_info, allocator.as_ref()) } {
+        Ok(instance) => instance,
+        Err(err) => {
+            log_error!("Failed to create the vulkan instance: {:?}", err);
+            return Err(ErrorType::VulkanError);
+        },
+    };
+
+    log_info!("Vulkan instance initialized");
+    Ok(instance)
 }

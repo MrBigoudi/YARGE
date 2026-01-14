@@ -64,8 +64,35 @@ impl Version {
     /// Creates a string from a version
     pub fn as_string(&self) -> String {
         format!(
-            "({:?},{:?},{:?},{:?})",
+            "({:?}.{:?}.{:?}.{:?})",
             self.variant, self.major, self.minor, self.patch
         )
+    }
+}
+
+impl PartialEq for Version {
+    fn eq(&self, other: &Self) -> bool {
+        self.variant == other.variant
+            && self.major == other.major
+            && self.minor == other.minor
+            && self.patch == other.patch
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.variant.partial_cmp(&other.variant) {
+            Some(std::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        match self.major.partial_cmp(&other.major) {
+            Some(std::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        match self.minor.partial_cmp(&other.minor) {
+            Some(std::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.patch.partial_cmp(&other.patch)
     }
 }
