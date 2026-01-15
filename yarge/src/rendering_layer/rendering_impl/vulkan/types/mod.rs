@@ -2,10 +2,10 @@
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 pub(crate) mod features;
-pub(crate) mod instance;
+pub(crate) mod extensions;
 pub(crate) mod layers;
 
-use crate::{config::Version, rendering_layer::rendering_impl::types::layers::VkLayers};
+use crate::{config::Version, rendering_layer::rendering_impl::types::{extensions::VkInstanceExtensions, layers::VkLayers}};
 
 /// Custrom structure for Vulkan names
 pub(crate) struct VkNames {
@@ -43,10 +43,14 @@ fn convert_string_to_vknames(names_string: &[String]) -> Result<VkNames, ErrorTy
 pub(crate) struct VulkanConfig {
     /// The Vulkan version
     pub(crate) version: Version,
-    /// The layers in normal mode
+    /// The required layers in normal mode
     pub(crate) required_layers: Vec<VkLayers>,
-    /// The layers in debug mode
+    /// The required layers in debug mode
     pub(crate) required_layers_debug: Vec<VkLayers>,
+    /// The required instance extensions in normal mode
+    pub(crate) required_instance_extensions: Vec<VkInstanceExtensions>,
+    /// The required instanceextensions in debug mode
+    pub(crate) required_instance_extensions_debug: Vec<VkInstanceExtensions>,
 }
 
 impl Default for VulkanConfig {
@@ -71,10 +75,15 @@ impl Default for VulkanConfig {
             ]),
         ])];
 
+        let required_instance_extensions = vec![VkInstanceExtensions::KhrSurface];
+        let required_instance_extensions_debug = vec![VkInstanceExtensions::ExtDebugUtils];
+
         Self {
             version,
             required_layers,
             required_layers_debug,
+            required_instance_extensions,
+            required_instance_extensions_debug,
         }
     }
 }

@@ -21,7 +21,7 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
         let context = match VulkanContext::init(config, platform_layer) {
             Ok(context) => context,
             Err(err) => {
-                log_error!("Failed to initialize the vulkan context: {:?}", err);
+                log_error!("Failed to initialize the Vulkan context: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
         };

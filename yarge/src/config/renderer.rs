@@ -15,7 +15,7 @@ pub(crate) struct RendererConfig {
     pub(crate) opengl_parameters: OpenglConfig,
 
     #[cfg(vulkan_renderer)]
-    /// The vulkan specific parameters
+    /// The Vulkan specific parameters
     pub(crate) vulkan_parameters: VulkanConfig,
 }
 

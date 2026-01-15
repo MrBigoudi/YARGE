@@ -96,7 +96,7 @@ pub(crate) trait Window {
     fn vulkan_get_required_instance_extensions(
         &self,
     ) -> Result<
-        Vec<crate::rendering_layer::rendering_impl::types::instance::VkInstanceExtensions>,
+        Vec<crate::rendering_layer::rendering_impl::types::extensions::VkInstanceExtensions>,
         ErrorType,
     >;
 

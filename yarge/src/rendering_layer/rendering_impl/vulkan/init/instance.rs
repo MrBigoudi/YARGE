@@ -11,7 +11,7 @@ use crate::{
     config::{Config, Version},
     platform_layer::window::Window,
     rendering_layer::rendering_impl::types::{
-        VkNames, instance::VkInstanceExtensions, layers::VkLayers,
+        VkNames, extensions::VkInstanceExtensions, layers::VkLayers,
     },
 };
 
@@ -74,7 +74,7 @@ fn init_application_info<'a>(
         Ok(None) => Version::new(0, 1, 0, 0),
         Err(err) => {
             log_error!(
-                "Failed to enumerate the supported vulkan instance version: {:?}",
+                "Failed to enumerate the supported Vulkan instance version: {:?}",
                 err
             );
             return Err(ErrorType::VulkanError);
@@ -117,6 +117,7 @@ fn get_required_layers(
     let vk_config = &config.renderer_config.vulkan_parameters;
     let required_layers: Vec<VkLayers> = [
         vk_config.required_layers.clone(),
+        #[cfg(debug_assertions)]
         vk_config.required_layers_debug.clone(),
     ]
     .concat();
@@ -124,7 +125,7 @@ fn get_required_layers(
         Ok(names) => names,
         Err(err) => {
             log_error!(
-                "Failed to convert required vulkan layers to vknames: {:?}",
+                "Failed to convert required Vulkan layers to vknames: {:?}",
                 err
             );
             return Err(ErrorType::Unknown);
@@ -216,10 +217,11 @@ fn get_required_layers(
 /// Helper function to fetch the required instance extensions
 /// Checks if all required extensions are available
 fn get_required_extensions(
+    config: &Config,
     entry: &Entry,
     platform_layer: &PlatformLayerImpl,
 ) -> Result<(Vec<VkInstanceExtensions>, VkNames), ErrorType> {
-    let required_extensions = match platform_layer
+    let mut required_extensions = match platform_layer
         .window
         .vulkan_get_required_instance_extensions()
     {
@@ -232,11 +234,15 @@ fn get_required_extensions(
             return Err(ErrorType::Unknown);
         }
     };
+    required_extensions.extend(config.renderer_config.vulkan_parameters.required_instance_extensions.clone());
+    #[cfg(debug_assertions)]
+    required_extensions.extend(config.renderer_config.vulkan_parameters.required_instance_extensions_debug.clone());
+
     let required_extensions_names = match VkInstanceExtensions::to_vknames(&required_extensions) {
         Ok(names) => names,
         Err(err) => {
             log_error!(
-                "Failed to convert required vulkan extensions to vknames: {:?}",
+                "Failed to convert required Vulkan extensions to vknames: {:?}",
                 err
             );
             return Err(ErrorType::Unknown);
@@ -318,7 +324,7 @@ pub(crate) fn init_instance(
     config: &Config,
     entry: &Entry,
     platform_layer: &PlatformLayerImpl,
-    allocator: &Option<vk::AllocationCallbacks<'_>>,
+    allocator: Option<&vk::AllocationCallbacks<'_>>,
 ) -> Result<Instance, ErrorType> {
     // Create application
     let application_info = match init_application_info(config, entry) {
@@ -334,6 +340,7 @@ pub(crate) fn init_instance(
 
     // Create instance extensions
     let (_required_extensions, required_extensions_names) = match get_required_extensions(
+        config,
         entry,
         platform_layer,
     ) {
@@ -387,10 +394,10 @@ pub(crate) fn init_instance(
         .enabled_layer_names(&required_layers_names.names)
         .push_next(&mut layers_settings_info);
 
-    let instance = match unsafe { entry.create_instance(&instance_info, allocator.as_ref()) } {
+    let instance = match unsafe { entry.create_instance(&instance_info, allocator) } {
         Ok(instance) => instance,
         Err(err) => {
-            log_error!("Failed to create the vulkan instance: {:?}", err);
+            log_error!("Failed to create the Vulkan instance: {:?}", err);
             return Err(ErrorType::VulkanError);
         }
     };

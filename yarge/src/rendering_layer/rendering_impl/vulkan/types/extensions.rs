@@ -24,6 +24,9 @@ pub(crate) enum VkInstanceExtensions {
     /// Khronos instance extension
     /// https://docs.vulkan.org/refpages/latest/refpages/source/VK_KHR_xlib_surface.html
     KhrXlibSurface,
+    /// Extension to setup a debug messenger callback
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_debug_utils.html
+    ExtDebugUtils,
 }
 
 impl VkInstanceExtensions {
@@ -35,6 +38,7 @@ impl VkInstanceExtensions {
             VkInstanceExtensions::KhrWin32Surface => String::from("VK_KHR_win32_surface"),
             VkInstanceExtensions::KhrXcbSurface => String::from("VK_KHR_xcb_surface"),
             VkInstanceExtensions::KhrXlibSurface => String::from("VK_KHR_xlib_surface"),
+            VkInstanceExtensions::ExtDebugUtils => String::from("VK_EXT_debug_utils"),
         }
     }
 

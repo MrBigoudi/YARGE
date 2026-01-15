@@ -42,25 +42,25 @@ impl VkLayers {
 #[derive(Debug, Clone)]
 pub(crate) enum VkValidationLayerSettings {
     /// Checks threads
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#thread-safety
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#thread-safety
     ThreadSafety,
     /// Gives warnings when using legacy parts of the API
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#legacy-detection
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#legacy-detection
     LegacyDetection,
     /// Checks for resource access conflicts from misused synchronization operations
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#synchronization
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#synchronization
     Synchronization(Vec<VkValidationLayerSyncValSettings>),
     /// Enables DebugPrintf to display log messages from shaders
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#debug-printf
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#debug-printf
     DebugPrintf(Vec<VkValidationLayerPrintfSettings>),
     /// Enables validation that cannot be done by the CPU
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#gpu-assisted-validation
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#gpu-assisted-validation
     GpuAssistedValidation(Vec<VkValidationLayerGpuavSettings>),
     /// Outputs warnings related to common misuse of the API which are not prohibited by the specification
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#best-practices
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#best-practices
     BestPractices(Vec<VkValidationLayerBestPracticesSettings>),
     /// Displays the application in the validation messages
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#display-application-name
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#display-application-name
     DisplayApplicationName,
 }
 
@@ -68,10 +68,10 @@ pub(crate) enum VkValidationLayerSettings {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum VkValidationLayerSyncValSettings {
     /// Takes into account memory accesses performed by the shader based on SPIR-V static analysis
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#shader-accesses-heuristic
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#shader-accesses-heuristic
     ShaderAccessesHeuristic,
     /// Appends a section of key-value properties to the error message
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#extra-properties
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#extra-properties
     MessageExtraProperties,
 }
 
@@ -79,10 +79,10 @@ pub(crate) enum VkValidationLayerSyncValSettings {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum VkValidationLayerPrintfSettings {
     /// Enables redirection of Debug Printf messages from the debug callback to stdout
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#redirect-printf-messages-to-stdout
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#redirect-printf-messages-to-stdout
     ToStdout,
     /// Prints out more information for each message
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#printf-verbose
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#printf-verbose
     Verbose,
 }
 
@@ -90,13 +90,13 @@ pub(crate) enum VkValidationLayerPrintfSettings {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum VkValidationLayerGpuavSettings {
     /// Tries to prevent crashes
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#safe-mode
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#safe-mode
     SafeMode,
     /// Enables all possible robustness features for the app at device creation time
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#force-on-robustness-features
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#force-on-robustness-features
     ForceOnRobustnessFeatures,
     /// Selects which shaders to instrument
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#enable-instrumenting-shaders-selectively
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#enable-instrumenting-shaders-selectively
     SelectInstrumentedShaders,
 }
 
@@ -104,16 +104,16 @@ pub(crate) enum VkValidationLayerGpuavSettings {
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum VkValidationLayerBestPracticesSettings {
     /// Specific for Arm GPUs
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#arm-specific-best-practices
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#arm-specific-best-practices
     Arm,
     /// Specific for Amd GPUs
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#amd-specific-best-practices
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#amd-specific-best-practices
     Amd,
     /// Specific for Imagination GPUs
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#img-specific-best-practices
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#img-specific-best-practices
     Img,
     /// Specific for Nvidia GPUs
-    /// https://vulkan.lunarg.com/doc/view/1.4.335.0/windows/khronos_validation_layer.html#nvidia-specific-best-practices
+    /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#nvidia-specific-best-practices
     Nvidia,
 }
 
@@ -144,7 +144,7 @@ impl VkLayerSettingWithData {
         })
     }
 
-    /// Creates a vulkan layer setting from the current data
+    /// Creates a Vulkan layer setting from the current data
     pub(crate) fn as_vk_validation_setting_ext<'a>(&'a self) -> ash::vk::LayerSettingEXT<'a> {
         ash::vk::LayerSettingEXT::default()
             .layer_name(&self.layer_name)

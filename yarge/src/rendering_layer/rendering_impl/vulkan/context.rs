@@ -3,18 +3,18 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use ash::{Entry, Instance};
 
-use crate::{PlatformLayerImpl, config::Config};
+use crate::{PlatformLayerImpl, config::Config, rendering_layer::rendering_impl::vulkan::init::{allocator::init_allocator, debug_messenger::{VkDebugMessenger, init_debug_messenger}, entry::init_entry, instance::init_instance}};
 
-use super::init::{init_allocator, init_entry, init_instance};
-
-/// The vulkan context
+/// The Vulkan context
 pub(crate) struct VulkanContext<'a> {
-    /// The vulkan entry
+    /// The entry
     pub(crate) entry: Entry,
-    /// The vulkan allocation callback
+    /// The allocation callback
     pub(crate) allocator: Option<ash::vk::AllocationCallbacks<'a>>,
-    /// The vulkan instance
+    /// The instance
     pub(crate) instance: Instance,
+    /// The debug messenger
+    pub(crate) debug_messenger: Option<VkDebugMessenger>,
 }
 
 impl VulkanContext<'_> {
@@ -26,7 +26,7 @@ impl VulkanContext<'_> {
             Ok(entry) => entry,
             Err(err) => {
                 log_error!(
-                    "Failed to initialize the entry in the vulkan context: {:?}",
+                    "Failed to initialize the entry in the Vulkan context: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -37,20 +37,28 @@ impl VulkanContext<'_> {
             Ok(allocator) => allocator,
             Err(err) => {
                 log_error!(
-                    "Failed to initialize the allocation callback in the vulkan context: {:?}",
+                    "Failed to initialize the allocation callback in the Vulkan context: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
             }
         };
 
-        let instance = match init_instance(config, &entry, platform_layer, &allocator) {
+        let instance = match init_instance(config, &entry, platform_layer, allocator.as_ref()) {
             Ok(instance) => instance,
             Err(err) => {
                 log_error!(
-                    "Failed to initialize the instance in the vulkan context: {:?}",
+                    "Failed to initialize the instance in the Vulkan context: {:?}",
                     err
                 );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        let debug_messenger = match init_debug_messenger(&entry, allocator.as_ref(), &instance){
+            Ok(messenger) => messenger,
+            Err(err) => {
+                log_error!("Failed to initialize the debug messenger in the Vulkan context: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
         };
@@ -60,6 +68,7 @@ impl VulkanContext<'_> {
             entry,
             allocator,
             instance,
+            debug_messenger,
         })
     }
 }

@@ -8,7 +8,7 @@ use crate::platform_layer::{
     window::{DisplayMode, Window, WindowCommonProperties},
 };
 #[cfg(vulkan_renderer)]
-use crate::rendering_layer::rendering_impl::types::instance::VkInstanceExtensions;
+use crate::rendering_layer::rendering_impl::types::extensions::VkInstanceExtensions;
 #[cfg(opengl_renderer)]
 use crate::rendering_layer::types::ImageFormat;
 
