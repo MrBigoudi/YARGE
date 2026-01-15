@@ -93,10 +93,19 @@ pub(crate) trait Window {
 
     /// Get the required Vulkan extensions to interface with the window system
     #[cfg(vulkan_renderer)]
-    fn vulkan_get_required_instance_extensions(&self) -> Result<Vec<crate::rendering_layer::rendering_impl::VkInstanceExtensions>, ErrorType>;
+    fn vulkan_get_required_instance_extensions(
+        &self,
+    ) -> Result<
+        Vec<crate::rendering_layer::rendering_impl::types::instance::VkInstanceExtensions>,
+        ErrorType,
+    >;
 
     /// Get the Vulkan surface to interface with the window system
     #[cfg(vulkan_renderer)]
-    fn vulkan_get_surface(&self, vk_entry: &ash::Entry, vk_instance: &ash::Instance, allocator: &Option<ash::vk::AllocationCallbacks<'_>>) -> Result<ash::vk::SurfaceKHR, ErrorType>;
-
+    fn vulkan_get_surface(
+        &self,
+        vk_entry: &ash::Entry,
+        vk_instance: &ash::Instance,
+        allocator: &Option<ash::vk::AllocationCallbacks<'_>>,
+    ) -> Result<ash::vk::SurfaceKHR, ErrorType>;
 }

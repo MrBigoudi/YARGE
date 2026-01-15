@@ -5,7 +5,7 @@ use ash::{Entry, Instance};
 
 use crate::{PlatformLayerImpl, config::Config};
 
-use super::init::{init_entry, init_allocator, init_instance};
+use super::init::{init_allocator, init_entry, init_instance};
 
 /// The vulkan context
 pub(crate) struct VulkanContext<'a> {
@@ -18,7 +18,10 @@ pub(crate) struct VulkanContext<'a> {
 }
 
 impl VulkanContext<'_> {
-    pub(crate) fn init(config: &Config, platform_layer: &PlatformLayerImpl) -> Result<Self, ErrorType> {
+    pub(crate) fn init(
+        config: &Config,
+        platform_layer: &PlatformLayerImpl,
+    ) -> Result<Self, ErrorType> {
         let entry = match init_entry() {
             Ok(entry) => entry,
             Err(err) => {
@@ -53,7 +56,7 @@ impl VulkanContext<'_> {
         };
 
         log_info!("Vulkan context initialized");
-        Ok(Self { 
+        Ok(Self {
             entry,
             allocator,
             instance,

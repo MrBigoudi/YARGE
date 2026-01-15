@@ -13,6 +13,5 @@ pub(crate) enum ShaderStage {
     // TODO: add other stages
 }
 
-
 /// The shader input location number
 pub(crate) struct ShaderLocation(pub(crate) usize);

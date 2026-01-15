@@ -9,7 +9,7 @@ pub(crate) fn init_entry() -> Result<Entry, ErrorType> {
         Ok(entry) => {
             log_info!("Vulkan entry initialized");
             Ok(entry)
-        },
+        }
         Err(err) => {
             log_error!("Failed to load the vulkan entry in ash: {:?}", err);
             Err(ErrorType::Unknown)

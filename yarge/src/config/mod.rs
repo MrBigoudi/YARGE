@@ -3,16 +3,16 @@
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 mod window;
-pub use window::WindowConfig;
+pub(crate) use window::WindowConfig;
 
 mod logger;
-pub use logger::LoggerConfig;
+pub(crate) use logger::LoggerConfig;
 
 mod renderer;
-pub use renderer::RendererConfig;
+pub(crate) use renderer::RendererConfig;
 
 mod application;
-pub use application::ApplicationConfig;
+pub(crate) use application::ApplicationConfig;
 
 mod init;
 pub(crate) use init::Config;

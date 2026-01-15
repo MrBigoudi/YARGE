@@ -1,9 +1,10 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
+use crate::core_layer::application_system::ecs::generational::{
+    GenerationalGeneration, GenerationalKey,
+};
 use std::collections::HashMap;
-use crate::core_layer::application_system::ecs::generational::{GenerationalGeneration, GenerationalKey};
-
 
 /// A GPU buffer is just an ID
 /// The underlying buffer generation and buffer management is left to the rendering API
@@ -64,10 +65,7 @@ impl BufferIdGenerator {
         }
     }
 
-    pub(crate) fn get_real_ids(
-        &self,
-        ids: &[UserBufferId],
-    ) -> Result<Vec<BufferId>, ErrorType> {
+    pub(crate) fn get_real_ids(&self, ids: &[UserBufferId]) -> Result<Vec<BufferId>, ErrorType> {
         let mut output = Vec::with_capacity(ids.len());
         for id in ids {
             output.push(self.get_real_id(id)?);

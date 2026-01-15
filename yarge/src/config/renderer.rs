@@ -5,18 +5,18 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 use crate::rendering_layer::rendering_impl::OpenglConfig;
 
 #[cfg(vulkan_renderer)]
-use crate::rendering_layer::rendering_impl::VulkanConfig;
+use crate::rendering_layer::rendering_impl::types::VulkanConfig;
 
 /// The configuration for the renderer
 #[derive(Clone)]
-pub struct RendererConfig {
+pub(crate) struct RendererConfig {
     #[cfg(opengl_renderer)]
     /// The opengl specific parameters
-    pub opengl_parameters: OpenglConfig,
+    pub(crate) opengl_parameters: OpenglConfig,
 
     #[cfg(vulkan_renderer)]
     /// The vulkan specific parameters
-    pub vulkan_parameters: VulkanConfig,
+    pub(crate) vulkan_parameters: VulkanConfig,
 }
 
 /// Default implementation for the renderer config

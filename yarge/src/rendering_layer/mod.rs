@@ -17,6 +17,6 @@ pub mod shaders;
 /// A module to handle graphics pipelines
 pub(crate) mod graphics_pipeline;
 
-pub(crate) mod mesh;
 pub(crate) mod buffer;
+pub(crate) mod mesh;
 pub(crate) mod vertex;

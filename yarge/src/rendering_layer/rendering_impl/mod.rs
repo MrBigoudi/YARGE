@@ -30,4 +30,4 @@ mod vulkan;
 #[cfg(vulkan_renderer)]
 pub(crate) use vulkan::RenderingLayerImpl;
 #[cfg(vulkan_renderer)]
-pub(crate) use vulkan::types::*;
+pub(crate) use vulkan::types;

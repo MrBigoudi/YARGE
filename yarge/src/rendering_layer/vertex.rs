@@ -3,7 +3,11 @@ use std::mem::offset_of;
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::{maths::{Vector2, Vector3, Vector4}, renderer_types::ImageFormat, shaders::ShaderLocation};
+use crate::{
+    maths::{Vector2, Vector3, Vector4},
+    renderer_types::ImageFormat,
+    shaders::ShaderLocation,
+};
 
 pub(crate) const VERTEX_ATTRIBUTE_BINDING_PACKED: usize = 0;
 pub(crate) const VERTEX_ATTRIBUTE_OFFSET_MULTI_ARRAY: usize = 0;
@@ -72,7 +76,6 @@ impl VertexDataAttribute for VertexTexCoords {
     const POSITION: usize = 3;
     const OFFSET: usize = offset_of!(VertexData, tex_coordinates);
 }
-
 
 /// A structure representing the data contained in a single vertex
 pub(crate) struct VertexData {

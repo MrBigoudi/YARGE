@@ -7,10 +7,10 @@ use crate::platform_layer::{
     event::Event,
     window::{DisplayMode, Window, WindowCommonProperties},
 };
+#[cfg(vulkan_renderer)]
+use crate::rendering_layer::rendering_impl::types::instance::VkInstanceExtensions;
 #[cfg(opengl_renderer)]
 use crate::rendering_layer::types::ImageFormat;
-#[cfg(vulkan_renderer)]
-use crate::rendering_layer::rendering_impl::VkInstanceExtensions;
 
 use crate::{config::Config, keyboard::KeyboardKey};
 
@@ -916,9 +916,10 @@ impl Window for LinuxX11Window {
         Ok(())
     }
 
-
     #[cfg(vulkan_renderer)]
-    fn vulkan_get_required_instance_extensions(&self) -> Result<Vec<VkInstanceExtensions>, ErrorType>{
+    fn vulkan_get_required_instance_extensions(
+        &self,
+    ) -> Result<Vec<VkInstanceExtensions>, ErrorType> {
         let required_extensions = vec![
             VkInstanceExtensions::KhrSurface,
             VkInstanceExtensions::KhrXcbSurface,
@@ -927,11 +928,15 @@ impl Window for LinuxX11Window {
     }
 
     #[cfg(vulkan_renderer)]
-    fn vulkan_get_surface(&self, vk_entry: &ash::Entry, vk_instance: &ash::Instance, allocator: &Option<ash::vk::AllocationCallbacks<'_>>) -> Result<ash::vk::SurfaceKHR, ErrorType>{
+    fn vulkan_get_surface(
+        &self,
+        vk_entry: &ash::Entry,
+        vk_instance: &ash::Instance,
+        allocator: &Option<ash::vk::AllocationCallbacks<'_>>,
+    ) -> Result<ash::vk::SurfaceKHR, ErrorType> {
         let create_info_khr = ash::vk::XcbSurfaceCreateInfoKHR::default()
             .connection(self.connection.get_raw_conn() as *mut std::os::raw::c_void)
-            .window(self.window.resource_id()
-        );
+            .window(self.window.resource_id());
 
         // Create surface instance
         let surface_instance = ash::khr::xcb_surface::Instance::new(vk_entry, vk_instance);
@@ -940,7 +945,10 @@ impl Window for LinuxX11Window {
             match surface_instance.create_xcb_surface(&create_info_khr, allocator.as_ref()) {
                 Ok(surface) => surface,
                 Err(err) => {
-                    log_error!("Failed to create the xcb surface when trying to get the Vulkan Surface on the Linux X11 platform: {:?}", err);
+                    log_error!(
+                        "Failed to create the xcb surface when trying to get the Vulkan Surface on the Linux X11 platform: {:?}",
+                        err
+                    );
                     return Err(ErrorType::VulkanError);
                 }
             }
@@ -1041,5 +1049,3 @@ impl LinuxX11Window {
         }
     }
 }
-
-
