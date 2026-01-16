@@ -27,16 +27,44 @@ unsafe extern "system" fn pfn_user_callback(
 
     match message_severity {
         ash::vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => {
-            log_error!("[VULKAN][{}][{}] {}", message_id, types, message);
+            log_error!(
+                "[Vulkan Error][{:?}][{:?}]\n\t\t{:?}",
+                message_id,
+                types,
+                message
+            );
         }
         ash::vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => {
-            log_warn!("[VULKAN][{}][{}] {}", message_id, types, message);
+            log_warn!(
+                "[Vulkan Warning][{:?}][{:?}]\n\t\t{:?}",
+                message_id,
+                types,
+                message
+            );
         }
         ash::vk::DebugUtilsMessageSeverityFlagsEXT::INFO => {
-            log_info!("[VULKAN][{}][{}] {}", message_id, types, message);
+            log_debug!(
+                "[Vulkan Info][{:?}][{:?}]\n\t\t{:?}",
+                message_id,
+                types,
+                message
+            );
+        }
+        ash::vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => {
+            log_info!(
+                "[Vulkan Verbose][{:?}][{:?}]\n\t\t{:?}",
+                message_id,
+                types,
+                message
+            );
         }
         _ => {
-            log_debug!("[VULKAN][{}][{}] {}", message_id, types, message);
+            log_info!(
+                "[Vulkan Unknown][{:?}][{:?}]\n\t\t{:?}",
+                message_id,
+                types,
+                message
+            );
         }
     }
 
@@ -46,17 +74,22 @@ unsafe extern "system" fn pfn_user_callback(
 /// The debug messenger
 pub(crate) struct VkDebugMessenger {
     /// The debug utils instance
-    pub(crate) instance: ash::ext::debug_utils::Instance,
+    pub(crate) _instance: ash::ext::debug_utils::Instance,
     /// The debug messenger
-    pub(crate) messenger: ash::vk::DebugUtilsMessengerEXT,
+    pub(crate) _messenger: ash::vk::DebugUtilsMessengerEXT,
 }
 
-
 /// Helper function to initiate the Vulkan debug messenger
-pub(crate) fn init_debug_messenger(entry: &ash::Entry, allocator: Option<&ash::vk::AllocationCallbacks<'_>>, instance: &ash::Instance) -> Result<Option<VkDebugMessenger>, ErrorType> {
+pub(crate) fn init_debug_messenger(
+    entry: &ash::Entry,
+    allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+    instance: &ash::Instance,
+) -> Result<Option<VkDebugMessenger>, ErrorType> {
     #[cfg(not(debug_assertions))]
     {
-        log_warn!("The Vulkan debug messenger will not be set without rust debug assertions enabled");
+        log_warn!(
+            "The Vulkan debug messenger will not be set without rust debug assertions enabled"
+        );
         Ok(None)
     }
     #[cfg(debug_assertions)]
@@ -65,35 +98,34 @@ pub(crate) fn init_debug_messenger(entry: &ash::Entry, allocator: Option<&ash::v
             | ash::vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
             | ash::vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
             | ash::vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
-            | ash::vk::DebugUtilsMessageSeverityFlagsEXT::INFO
-        ;
+            | ash::vk::DebugUtilsMessageSeverityFlagsEXT::INFO;
         let message_type_flags = ash::vk::DebugUtilsMessageTypeFlagsEXT::empty()
-            | ash::vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+            // | ash::vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
             | ash::vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
-            | ash::vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
-        ;
+            | ash::vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION;
         let debug_messenger_info = ash::vk::DebugUtilsMessengerCreateInfoEXT::default()
             .message_severity(severity_flags)
             .message_type(message_type_flags)
-            .pfn_user_callback(Some(pfn_user_callback))
-        ;
+            .pfn_user_callback(Some(pfn_user_callback));
 
         let debug_instance = ash::ext::debug_utils::Instance::new(entry, instance);
-        let debug_messenger = match unsafe { debug_instance.create_debug_utils_messenger(
-            &debug_messenger_info,
-            allocator,
-        ) }{
+        let debug_messenger = match unsafe {
+            debug_instance.create_debug_utils_messenger(&debug_messenger_info, allocator)
+        } {
             Ok(messenger) => messenger,
             Err(err) => {
-                log_error!("Failed to create the Vulkan debug utils messenger: {:?}", err);
+                log_error!(
+                    "Failed to create the Vulkan debug utils messenger: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
 
         log_info!("Vulkan debug messenger initialized");
         Ok(Some(VkDebugMessenger {
-            instance: debug_instance,
-            messenger: debug_messenger,
+            _instance: debug_instance,
+            _messenger: debug_messenger,
         }))
     }
 }

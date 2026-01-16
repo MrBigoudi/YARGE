@@ -11,8 +11,6 @@
 
 ## Events
 
-- Refactor file resources
-
 ## ECS
 
 - Add tests for the generational indices list

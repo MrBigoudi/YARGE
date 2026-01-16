@@ -5,6 +5,7 @@ use crate::rendering_layer::rendering_impl::types::{VkNames, convert_string_to_v
 
 /// Custom enum for Vulkan layers names
 #[derive(Debug, Clone)]
+#[allow(unused)]
 pub(crate) enum VkLayers {
     /// Khronos validation layers
     KhrValidation(Vec<VkValidationLayerSettings>),
@@ -40,6 +41,7 @@ impl VkLayers {
 
 /// Custom enum for Vulkan validation layers settings
 #[derive(Debug, Clone)]
+#[allow(unused)]
 pub(crate) enum VkValidationLayerSettings {
     /// Checks threads
     /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#thread-safety
@@ -66,6 +68,7 @@ pub(crate) enum VkValidationLayerSettings {
 
 /// Custom enum for Vulkan validation layers synchronization settings
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 pub(crate) enum VkValidationLayerSyncValSettings {
     /// Takes into account memory accesses performed by the shader based on SPIR-V static analysis
     /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#shader-accesses-heuristic
@@ -77,6 +80,7 @@ pub(crate) enum VkValidationLayerSyncValSettings {
 
 /// Custom enum for Vulkan validation layers debug printf settings
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 pub(crate) enum VkValidationLayerPrintfSettings {
     /// Enables redirection of Debug Printf messages from the debug callback to stdout
     /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#redirect-printf-messages-to-stdout
@@ -88,6 +92,7 @@ pub(crate) enum VkValidationLayerPrintfSettings {
 
 /// Custom enum for Vulkan validation layers gpu assisted settings
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 pub(crate) enum VkValidationLayerGpuavSettings {
     /// Tries to prevent crashes
     /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#safe-mode
@@ -102,6 +107,7 @@ pub(crate) enum VkValidationLayerGpuavSettings {
 
 /// Custom enum for Vulkan validation layers best practices settings
 #[derive(Debug, Clone, Copy)]
+#[allow(unused)]
 pub(crate) enum VkValidationLayerBestPracticesSettings {
     /// Specific for Arm GPUs
     /// https://vulkan.lunarg.com/doc/view/latest/windows/khronos_validation_layer.html#arm-specific-best-practices
@@ -228,11 +234,13 @@ pub(crate) trait VkValidationLayerSubSetting {
         match VkLayerSettingWithData::new_true(&self.as_string()) {
             Ok(data) => Ok(data),
             Err(err) => {
-                log_error!("Failed to create a VkLayerSettingWithData from a validation layer setting for setting `{:?}': {:?}", 
-                    self.as_string(), err,
+                log_error!(
+                    "Failed to create a VkLayerSettingWithData from a validation layer setting for setting `{:?}': {:?}",
+                    self.as_string(),
+                    err,
                 );
                 Err(ErrorType::Unknown)
-            },
+            }
         }
     }
 

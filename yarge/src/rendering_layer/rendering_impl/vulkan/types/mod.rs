@@ -1,11 +1,18 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-pub(crate) mod features;
 pub(crate) mod extensions;
+pub(crate) mod features;
 pub(crate) mod layers;
 
-use crate::{config::Version, rendering_layer::rendering_impl::types::{extensions::VkInstanceExtensions, layers::VkLayers}};
+use crate::{
+    config::Version,
+    rendering_layer::rendering_impl::types::{
+        extensions::{VkDeviceExtensions, VkInstanceExtensions},
+        features::{VkFeatures10, VkFeatures11, VkFeatures12, VkFeatures13, VkFeatures14},
+        layers::VkLayers,
+    },
+};
 
 /// Custrom structure for Vulkan names
 pub(crate) struct VkNames {
@@ -51,6 +58,18 @@ pub(crate) struct VulkanConfig {
     pub(crate) required_instance_extensions: Vec<VkInstanceExtensions>,
     /// The required instanceextensions in debug mode
     pub(crate) required_instance_extensions_debug: Vec<VkInstanceExtensions>,
+    /// The required physical device core 1.0 features
+    pub(crate) required_physical_device_features_1_0: Vec<VkFeatures10>,
+    /// The required physical device 1.1 features
+    pub(crate) required_physical_device_features_1_1: Vec<VkFeatures11>,
+    /// The required physical device 1.2 features
+    pub(crate) required_physical_device_features_1_2: Vec<VkFeatures12>,
+    /// The required physical device 1.3 features
+    pub(crate) required_physical_device_features_1_3: Vec<VkFeatures13>,
+    /// The required physical device 1.4 features
+    pub(crate) required_physical_device_features_1_4: Vec<VkFeatures14>,
+    /// The required device extensions in normal mode
+    pub(crate) required_device_extensions: Vec<VkDeviceExtensions>,
 }
 
 impl Default for VulkanConfig {
@@ -78,12 +97,55 @@ impl Default for VulkanConfig {
         let required_instance_extensions = vec![VkInstanceExtensions::KhrSurface];
         let required_instance_extensions_debug = vec![VkInstanceExtensions::ExtDebugUtils];
 
+        let required_physical_device_features_1_0 = vec![
+            VkFeatures10::GeometryShader,
+            VkFeatures10::TessellationShader,
+            VkFeatures10::DepthClamp,
+            VkFeatures10::FillModeNonSolid,
+            VkFeatures10::WideLines,
+            VkFeatures10::MultiViewport,
+            VkFeatures10::VertexPipelineStoresAndAtomics,
+            VkFeatures10::FragmentStoresAndAtomics,
+            VkFeatures10::ShaderUniformBufferArrayDynamicIndexing,
+            VkFeatures10::ShaderSampledImageArrayDynamicIndexing,
+            VkFeatures10::ShaderStorageBufferArrayDynamicIndexing,
+            VkFeatures10::ShaderStorageImageArrayDynamicIndexing,
+            // VkFeatures10::ShaderFloat64,
+        ];
+        let required_physical_device_features_1_1 = vec![
+            VkFeatures11::Multiview,
+            VkFeatures11::MultiviewGeometryShader,
+            VkFeatures11::MultiviewTessellationShader,
+        ];
+        let required_physical_device_features_1_2 = vec![
+            VkFeatures12::ShaderBufferInt64Atomics,
+            // VkFeatures12::ShaderSharedInt64Atomics,
+            // VkFeatures12::ShaderInputAttachmentArrayDynamicIndexing,
+            VkFeatures12::ShaderUniformTexelBufferArrayDynamicIndexing,
+            VkFeatures12::ShaderStorageTexelBufferArrayDynamicIndexing,
+        ];
+        let required_physical_device_features_1_3 = vec![VkFeatures13::DynamicRendering];
+        let required_physical_device_features_1_4 = vec![VkFeatures14::HostImageCopy];
+
+        let required_device_extensions = vec![
+            VkDeviceExtensions::KhrSwapchain,
+            VkDeviceExtensions::KhrSpirV14,
+            VkDeviceExtensions::KhrSynchronization2,
+            VkDeviceExtensions::KhrCreateRenderpass2,
+        ];
+
         Self {
             version,
             required_layers,
             required_layers_debug,
             required_instance_extensions,
             required_instance_extensions_debug,
+            required_physical_device_features_1_0,
+            required_physical_device_features_1_1,
+            required_physical_device_features_1_2,
+            required_physical_device_features_1_3,
+            required_physical_device_features_1_4,
+            required_device_extensions,
         }
     }
 }

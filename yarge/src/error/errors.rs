@@ -41,4 +41,7 @@ pub enum ErrorType {
 
     /// Thrown when trying to duplicate a value unexpectedly
     Duplicate,
+
+    /// Thrown when a bad request is attempted
+    BadRequest,
 }

@@ -11,7 +11,9 @@ use crate::{
     config::{Config, Version},
     platform_layer::window::Window,
     rendering_layer::rendering_impl::types::{
-        VkNames, extensions::VkInstanceExtensions, layers::VkLayers,
+        VkNames,
+        extensions::{VkExtension, VkInstanceExtensions},
+        layers::VkLayers,
     },
 };
 
@@ -234,9 +236,21 @@ fn get_required_extensions(
             return Err(ErrorType::Unknown);
         }
     };
-    required_extensions.extend(config.renderer_config.vulkan_parameters.required_instance_extensions.clone());
+    required_extensions.extend(
+        config
+            .renderer_config
+            .vulkan_parameters
+            .required_instance_extensions
+            .clone(),
+    );
     #[cfg(debug_assertions)]
-    required_extensions.extend(config.renderer_config.vulkan_parameters.required_instance_extensions_debug.clone());
+    required_extensions.extend(
+        config
+            .renderer_config
+            .vulkan_parameters
+            .required_instance_extensions_debug
+            .clone(),
+    );
 
     let required_extensions_names = match VkInstanceExtensions::to_vknames(&required_extensions) {
         Ok(names) => names,
@@ -273,7 +287,7 @@ fn get_required_extensions(
     for extension in &available_extensions {
         match extension.extension_name_as_c_str() {
             Ok(extension_cstr) => match extension_cstr.to_str() {
-                Ok(extension_name) => log_info!("\t- Extension: {}", extension_name),
+                Ok(extension_name) => log_info!("\t- Extension: {:?}", extension_name),
                 Err(err) => {
                     log_error!("Invalid UTF-8 in available extension name: {:?}", err);
                     return Err(ErrorType::IO);

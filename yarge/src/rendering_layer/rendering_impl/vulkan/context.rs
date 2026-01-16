@@ -3,7 +3,17 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use ash::{Entry, Instance};
 
-use crate::{PlatformLayerImpl, config::Config, rendering_layer::rendering_impl::vulkan::init::{allocator::init_allocator, debug_messenger::{VkDebugMessenger, init_debug_messenger}, entry::init_entry, instance::init_instance}};
+use crate::{
+    PlatformLayerImpl,
+    config::Config,
+    rendering_layer::rendering_impl::vulkan::init::{
+        allocator::init_allocator,
+        debug_messenger::{VkDebugMessenger, init_debug_messenger},
+        entry::init_entry,
+        instance::init_instance,
+        physical_device::init_physical_device,
+    },
+};
 
 /// The Vulkan context
 pub(crate) struct VulkanContext<'a> {
@@ -15,6 +25,8 @@ pub(crate) struct VulkanContext<'a> {
     pub(crate) instance: Instance,
     /// The debug messenger
     pub(crate) debug_messenger: Option<VkDebugMessenger>,
+    /// The physical device
+    pub(crate) physical_device: ash::vk::PhysicalDevice,
 }
 
 impl VulkanContext<'_> {
@@ -55,10 +67,24 @@ impl VulkanContext<'_> {
             }
         };
 
-        let debug_messenger = match init_debug_messenger(&entry, allocator.as_ref(), &instance){
+        let debug_messenger = match init_debug_messenger(&entry, allocator.as_ref(), &instance) {
             Ok(messenger) => messenger,
             Err(err) => {
-                log_error!("Failed to initialize the debug messenger in the Vulkan context: {:?}", err);
+                log_error!(
+                    "Failed to initialize the debug messenger in the Vulkan context: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        let physical_device = match init_physical_device(config, &instance) {
+            Ok(device) => device,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the physical device in the Vulkan context: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
@@ -69,6 +95,7 @@ impl VulkanContext<'_> {
             allocator,
             instance,
             debug_messenger,
+            physical_device,
         })
     }
 }

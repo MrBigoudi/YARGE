@@ -14,9 +14,9 @@ pub(crate) struct ApplicationConfig {
 
 impl Default for ApplicationConfig {
     fn default() -> Self {
-        Self { 
-            name: String::from("NewApp"), 
-            version: Version::new(0, 0, 1, 0), 
+        Self {
+            name: String::from("NewApp"),
+            version: Version::new(0, 0, 1, 0),
         }
     }
 }
