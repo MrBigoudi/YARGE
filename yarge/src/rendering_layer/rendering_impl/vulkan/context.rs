@@ -1,32 +1,28 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use ash::{Entry, Instance};
-
 use crate::{
     PlatformLayerImpl,
     config::Config,
     rendering_layer::rendering_impl::vulkan::init::{
-        allocator::init_allocator,
-        debug_messenger::{VkDebugMessenger, init_debug_messenger},
-        entry::init_entry,
-        instance::init_instance,
-        physical_device::init_physical_device,
+        allocator::init_allocator, debug_messenger::{VkDebugMessenger, init_debug_messenger}, device::init_device, entry::init_entry, instance::init_instance, physical_device::init_physical_device
     },
 };
 
 /// The Vulkan context
 pub(crate) struct VulkanContext<'a> {
     /// The entry
-    pub(crate) entry: Entry,
+    pub(crate) entry: ash::Entry,
     /// The allocation callback
     pub(crate) allocator: Option<ash::vk::AllocationCallbacks<'a>>,
     /// The instance
-    pub(crate) instance: Instance,
+    pub(crate) instance: ash::Instance,
     /// The debug messenger
     pub(crate) debug_messenger: Option<VkDebugMessenger>,
     /// The physical device
     pub(crate) physical_device: ash::vk::PhysicalDevice,
+    /// The logical device
+    pub(crate) device_wrapper: super::init::device::VkDevice,
 }
 
 impl VulkanContext<'_> {
@@ -89,6 +85,17 @@ impl VulkanContext<'_> {
             }
         };
 
+        let device_wrapper = match init_device(config, &instance, &physical_device, allocator.as_ref()) {
+            Ok(device) => device,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the device in the Vulkan context: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
         log_info!("Vulkan context initialized");
         Ok(Self {
             entry,
@@ -96,6 +103,7 @@ impl VulkanContext<'_> {
             instance,
             debug_messenger,
             physical_device,
+            device_wrapper,
         })
     }
 }

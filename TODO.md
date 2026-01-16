@@ -32,3 +32,12 @@
 - Add other matrix vector operations 
 - Add other matrix vector constructions and selections (from vec, ...)
 - Add other tests + better docs for matrices
+
+## Vulkan
+
+- Put the physical device rate strategy in the configuration
+- Add other strategies depending on the config: AR / VR / Raytracing / Embedded app / Offline simulation ...
+- Add other features: PhysicalDeviceExtendedDynamicStateFeaturesEXT:
+    - add a struct containing every other features
+    - add a function "as_..." and "is_enabled" for every type of supported features
+    - in these functions, only match with corresponding features and skip unrelated features

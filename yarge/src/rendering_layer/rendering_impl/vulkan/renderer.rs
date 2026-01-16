@@ -35,10 +35,12 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
     }
 
     fn begin_frame(&mut self) -> Result<RendererBeginFrameOutput, ErrorType> {
+        log_error!("Function is not yet implemented");
         Err(ErrorType::NotImplemented)
     }
 
     fn end_frame(&mut self, _platform_layer: &mut PlatformLayerImpl) -> Result<(), ErrorType> {
+        log_error!("Function is not yet implemented");
         Err(ErrorType::NotImplemented)
     }
 }

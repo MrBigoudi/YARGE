@@ -1280,5 +1280,6 @@ pub(crate) fn init_physical_device(
         }
     };
 
+    log_info!("Vulkan physical device initialized");
     Ok(*physical_device)
 }
