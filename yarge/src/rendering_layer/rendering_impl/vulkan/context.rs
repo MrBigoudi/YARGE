@@ -5,7 +5,12 @@ use crate::{
     PlatformLayerImpl,
     config::Config,
     rendering_layer::rendering_impl::vulkan::init::{
-        allocator::init_allocator, debug_messenger::{VkDebugMessenger, init_debug_messenger}, device::init_device, entry::init_entry, instance::init_instance, physical_device::init_physical_device
+        allocator::init_allocator,
+        debug_messenger::{VkDebugMessenger, init_debug_messenger},
+        device::init_device,
+        entry::init_entry,
+        instance::init_instance,
+        physical_device::init_physical_device,
     },
 };
 
@@ -85,16 +90,17 @@ impl VulkanContext<'_> {
             }
         };
 
-        let device_wrapper = match init_device(config, &instance, &physical_device, allocator.as_ref()) {
-            Ok(device) => device,
-            Err(err) => {
-                log_error!(
-                    "Failed to initialize the device in the Vulkan context: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
+        let device_wrapper =
+            match init_device(config, &instance, &physical_device, allocator.as_ref()) {
+                Ok(device) => device,
+                Err(err) => {
+                    log_error!(
+                        "Failed to initialize the device in the Vulkan context: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
 
         log_info!("Vulkan context initialized");
         Ok(Self {

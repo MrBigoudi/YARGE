@@ -9,7 +9,9 @@ use crate::{
     config::Version,
     rendering_layer::rendering_impl::types::{
         extensions::{VkDeviceExtensions, VkInstanceExtensions},
-        features::{VkFeatures10, VkFeatures11, VkFeatures12, VkFeatures13, VkFeatures14},
+        features::{
+            VkFeatures10, VkFeatures11, VkFeatures12, VkFeatures13, VkFeatures14, VkFeaturesExt,
+        },
         layers::VkLayers,
     },
 };
@@ -68,6 +70,8 @@ pub(crate) struct VulkanConfig {
     pub(crate) required_physical_device_features_1_3: Vec<VkFeatures13>,
     /// The required physical device 1.4 features
     pub(crate) required_physical_device_features_1_4: Vec<VkFeatures14>,
+    /// The required extension features
+    pub(crate) required_device_features_ext: Vec<VkFeaturesExt>,
     /// The required device extensions in normal mode
     pub(crate) required_device_extensions: Vec<VkDeviceExtensions>,
 }
@@ -126,6 +130,12 @@ impl Default for VulkanConfig {
         ];
         let required_physical_device_features_1_3 = vec![VkFeatures13::DynamicRendering];
         let required_physical_device_features_1_4 = vec![VkFeatures14::HostImageCopy];
+        let required_device_features_ext = vec![
+            VkFeaturesExt::ExtendedDynamicState,
+            VkFeaturesExt::ExtendedDynamicState2,
+            VkFeaturesExt::ExtendedDynamicState2LogicOp,
+            VkFeaturesExt::ExtendedDynamicState2PatchControlPoints,
+        ];
 
         let required_device_extensions = vec![
             VkDeviceExtensions::KhrSwapchain,
@@ -145,6 +155,7 @@ impl Default for VulkanConfig {
             required_physical_device_features_1_2,
             required_physical_device_features_1_3,
             required_physical_device_features_1_4,
+            required_device_features_ext,
             required_device_extensions,
         }
     }

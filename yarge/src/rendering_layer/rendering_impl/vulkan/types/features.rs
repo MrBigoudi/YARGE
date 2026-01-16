@@ -134,7 +134,9 @@ impl VkFeatures10 {
                 VkFeatures10::DualSrcBlend => ash_features.dual_src_blend(true),
                 VkFeatures10::LogicOp => ash_features.logic_op(true),
                 VkFeatures10::MultiDrawIndirect => ash_features.multi_draw_indirect(true),
-                VkFeatures10::DrawIndirectFirstInstance => ash_features.draw_indirect_first_instance(true),
+                VkFeatures10::DrawIndirectFirstInstance => {
+                    ash_features.draw_indirect_first_instance(true)
+                }
                 VkFeatures10::DepthClamp => ash_features.depth_clamp(true),
                 VkFeatures10::DepthBiasClamp => ash_features.depth_bias_clamp(true),
                 VkFeatures10::FillModeNonSolid => ash_features.fill_mode_non_solid(true),
@@ -145,39 +147,83 @@ impl VkFeatures10 {
                 VkFeatures10::MultiViewport => ash_features.multi_viewport(true),
                 VkFeatures10::SamplerAnisotropy => ash_features.sampler_anisotropy(true),
                 VkFeatures10::TextureCompressionEtc2 => ash_features.texture_compression_etc2(true),
-                VkFeatures10::TextureCompressionAstcLdr => ash_features.texture_compression_astc_ldr(true),
+                VkFeatures10::TextureCompressionAstcLdr => {
+                    ash_features.texture_compression_astc_ldr(true)
+                }
                 VkFeatures10::TextureCompressionBc => ash_features.texture_compression_bc(true),
                 VkFeatures10::OcclusionQueryPrecise => ash_features.occlusion_query_precise(true),
-                VkFeatures10::PipelineStatisticsQuery => ash_features.pipeline_statistics_query(true),
-                VkFeatures10::VertexPipelineStoresAndAtomics => ash_features.vertex_pipeline_stores_and_atomics(true),
-                VkFeatures10::FragmentStoresAndAtomics => ash_features.fragment_stores_and_atomics(true),
-                VkFeatures10::ShaderTessellationAndGeometryPointSize => ash_features.shader_tessellation_and_geometry_point_size(true),
-                VkFeatures10::ShaderImageGatherExtended => ash_features.shader_image_gather_extended(true),
-                VkFeatures10::ShaderStorageImageExtendedFormats => ash_features.shader_storage_image_extended_formats(true),
-                VkFeatures10::ShaderStorageImageMultisample => ash_features.shader_storage_image_multisample(true),
-                VkFeatures10::ShaderStorageImageReadWithoutFormat => ash_features.shader_storage_image_read_without_format(true),
-                VkFeatures10::ShaderStorageImageWriteWithoutFormat => ash_features.shader_storage_image_write_without_format(true),
-                VkFeatures10::ShaderUniformBufferArrayDynamicIndexing => ash_features.shader_uniform_buffer_array_dynamic_indexing(true),
-                VkFeatures10::ShaderSampledImageArrayDynamicIndexing => ash_features.shader_sampled_image_array_dynamic_indexing(true),
-                VkFeatures10::ShaderStorageBufferArrayDynamicIndexing => ash_features.shader_storage_buffer_array_dynamic_indexing(true),
-                VkFeatures10::ShaderStorageImageArrayDynamicIndexing => ash_features.shader_storage_image_array_dynamic_indexing(true),
+                VkFeatures10::PipelineStatisticsQuery => {
+                    ash_features.pipeline_statistics_query(true)
+                }
+                VkFeatures10::VertexPipelineStoresAndAtomics => {
+                    ash_features.vertex_pipeline_stores_and_atomics(true)
+                }
+                VkFeatures10::FragmentStoresAndAtomics => {
+                    ash_features.fragment_stores_and_atomics(true)
+                }
+                VkFeatures10::ShaderTessellationAndGeometryPointSize => {
+                    ash_features.shader_tessellation_and_geometry_point_size(true)
+                }
+                VkFeatures10::ShaderImageGatherExtended => {
+                    ash_features.shader_image_gather_extended(true)
+                }
+                VkFeatures10::ShaderStorageImageExtendedFormats => {
+                    ash_features.shader_storage_image_extended_formats(true)
+                }
+                VkFeatures10::ShaderStorageImageMultisample => {
+                    ash_features.shader_storage_image_multisample(true)
+                }
+                VkFeatures10::ShaderStorageImageReadWithoutFormat => {
+                    ash_features.shader_storage_image_read_without_format(true)
+                }
+                VkFeatures10::ShaderStorageImageWriteWithoutFormat => {
+                    ash_features.shader_storage_image_write_without_format(true)
+                }
+                VkFeatures10::ShaderUniformBufferArrayDynamicIndexing => {
+                    ash_features.shader_uniform_buffer_array_dynamic_indexing(true)
+                }
+                VkFeatures10::ShaderSampledImageArrayDynamicIndexing => {
+                    ash_features.shader_sampled_image_array_dynamic_indexing(true)
+                }
+                VkFeatures10::ShaderStorageBufferArrayDynamicIndexing => {
+                    ash_features.shader_storage_buffer_array_dynamic_indexing(true)
+                }
+                VkFeatures10::ShaderStorageImageArrayDynamicIndexing => {
+                    ash_features.shader_storage_image_array_dynamic_indexing(true)
+                }
                 VkFeatures10::ShaderClipDistance => ash_features.shader_clip_distance(true),
                 VkFeatures10::ShaderCullDistance => ash_features.shader_cull_distance(true),
                 VkFeatures10::ShaderFloat64 => ash_features.shader_float64(true),
                 VkFeatures10::ShaderInt64 => ash_features.shader_int64(true),
                 VkFeatures10::ShaderInt16 => ash_features.shader_int16(true),
-                VkFeatures10::ShaderResourceResidency => ash_features.shader_resource_residency(true),
+                VkFeatures10::ShaderResourceResidency => {
+                    ash_features.shader_resource_residency(true)
+                }
                 VkFeatures10::ShaderResourceMinLod => ash_features.shader_resource_min_lod(true),
                 VkFeatures10::SparseBinding => ash_features.sparse_binding(true),
                 VkFeatures10::SparseResidencyBuffer => ash_features.sparse_residency_buffer(true),
-                VkFeatures10::SparseResidencyImage2D => ash_features.sparse_residency_image2_d(true),
-                VkFeatures10::SparseResidencyImage3D => ash_features.sparse_residency_image3_d(true),
-                VkFeatures10::SparseResidency2Samples => ash_features.sparse_residency2_samples(true),
-                VkFeatures10::SparseResidency4Samples => ash_features.sparse_residency4_samples(true),
-                VkFeatures10::SparseResidency8Samples => ash_features.sparse_residency8_samples(true),
-                VkFeatures10::SparseResidency16Samples => ash_features.sparse_residency16_samples(true),
+                VkFeatures10::SparseResidencyImage2D => {
+                    ash_features.sparse_residency_image2_d(true)
+                }
+                VkFeatures10::SparseResidencyImage3D => {
+                    ash_features.sparse_residency_image3_d(true)
+                }
+                VkFeatures10::SparseResidency2Samples => {
+                    ash_features.sparse_residency2_samples(true)
+                }
+                VkFeatures10::SparseResidency4Samples => {
+                    ash_features.sparse_residency4_samples(true)
+                }
+                VkFeatures10::SparseResidency8Samples => {
+                    ash_features.sparse_residency8_samples(true)
+                }
+                VkFeatures10::SparseResidency16Samples => {
+                    ash_features.sparse_residency16_samples(true)
+                }
                 VkFeatures10::SparseResidencyAliased => ash_features.sparse_residency_aliased(true),
-                VkFeatures10::VariableMultisampleRate => ash_features.variable_multisample_rate(true),
+                VkFeatures10::VariableMultisampleRate => {
+                    ash_features.variable_multisample_rate(true)
+                }
                 VkFeatures10::InheritedQueries => ash_features.inherited_queries(true),
             }
         }
@@ -310,25 +356,34 @@ pub(crate) enum VkFeatures11 {
 
 impl VkFeatures11 {
     /// Converts as Ash features
-    pub(crate) fn as_ash_features<'a>(features: &'a[Self]) -> ash::vk::PhysicalDeviceVulkan11Features<'a> {
+    pub(crate) fn as_ash_features<'a>(
+        features: &'a [Self],
+    ) -> ash::vk::PhysicalDeviceVulkan11Features<'a> {
         let mut ash_features = ash::vk::PhysicalDeviceVulkan11Features::default();
         for feature in features {
             ash_features = match feature {
-                VkFeatures11::ProtectedMemory => ash_features.protected_memory(true) ,
-                VkFeatures11::Multiview => ash_features.multiview(true) ,
-                VkFeatures11::MultiviewGeometryShader => ash_features.multiview_geometry_shader(true) ,
-                VkFeatures11::MultiviewTessellationShader => 
-                    ash_features.multiview_tessellation_shader(true),
-                VkFeatures11::VariablePointersStorageBuffer => 
-                    ash_features.variable_pointers_storage_buffer(true),
-                VkFeatures11::VariablePointers => ash_features.variable_pointers(true) ,
-                VkFeatures11::StorageBuffer16BitAccess => ash_features.storage_buffer16_bit_access(true) ,
-                VkFeatures11::UniformAndStorageBuffer16BitAccess => 
-                    ash_features.uniform_and_storage_buffer16_bit_access(true),
-                VkFeatures11::StoragePushConstant16 => ash_features.storage_push_constant16(true) ,
-                VkFeatures11::StorageInputOutput16 => ash_features.storage_input_output16(true) ,
-                VkFeatures11::SamplerYcbcrConversion => ash_features.sampler_ycbcr_conversion(true) ,
-                VkFeatures11::ShaderDrawParameters => ash_features.shader_draw_parameters(true) ,
+                VkFeatures11::ProtectedMemory => ash_features.protected_memory(true),
+                VkFeatures11::Multiview => ash_features.multiview(true),
+                VkFeatures11::MultiviewGeometryShader => {
+                    ash_features.multiview_geometry_shader(true)
+                }
+                VkFeatures11::MultiviewTessellationShader => {
+                    ash_features.multiview_tessellation_shader(true)
+                }
+                VkFeatures11::VariablePointersStorageBuffer => {
+                    ash_features.variable_pointers_storage_buffer(true)
+                }
+                VkFeatures11::VariablePointers => ash_features.variable_pointers(true),
+                VkFeatures11::StorageBuffer16BitAccess => {
+                    ash_features.storage_buffer16_bit_access(true)
+                }
+                VkFeatures11::UniformAndStorageBuffer16BitAccess => {
+                    ash_features.uniform_and_storage_buffer16_bit_access(true)
+                }
+                VkFeatures11::StoragePushConstant16 => ash_features.storage_push_constant16(true),
+                VkFeatures11::StorageInputOutput16 => ash_features.storage_input_output16(true),
+                VkFeatures11::SamplerYcbcrConversion => ash_features.sampler_ycbcr_conversion(true),
+                VkFeatures11::ShaderDrawParameters => ash_features.shader_draw_parameters(true),
             }
         }
 
@@ -457,77 +512,115 @@ pub(crate) enum VkFeatures12 {
 }
 
 impl VkFeatures12 {
-    pub(crate) fn as_ash_features<'a>(features: &'a[Self]) -> ash::vk::PhysicalDeviceVulkan12Features<'a> {
+    pub(crate) fn as_ash_features<'a>(
+        features: &'a [Self],
+    ) -> ash::vk::PhysicalDeviceVulkan12Features<'a> {
         let mut ash_features = ash::vk::PhysicalDeviceVulkan12Features::default();
         for feature in features {
             ash_features = match feature {
-                VkFeatures12::SamplerMirrorClampToEdge => ash_features.sampler_mirror_clamp_to_edge(true),
+                VkFeatures12::SamplerMirrorClampToEdge => {
+                    ash_features.sampler_mirror_clamp_to_edge(true)
+                }
                 VkFeatures12::DrawIndirectCount => ash_features.draw_indirect_count(true),
-                VkFeatures12::StorageBuffer8BitAccess => ash_features.storage_buffer8_bit_access(true),
-                VkFeatures12::UniformAndStorageBuffer8BitAccess => 
-                    ash_features.uniform_and_storage_buffer8_bit_access(true),
+                VkFeatures12::StorageBuffer8BitAccess => {
+                    ash_features.storage_buffer8_bit_access(true)
+                }
+                VkFeatures12::UniformAndStorageBuffer8BitAccess => {
+                    ash_features.uniform_and_storage_buffer8_bit_access(true)
+                }
                 VkFeatures12::StoragePushConstant8 => ash_features.storage_push_constant8(true),
-                VkFeatures12::ShaderBufferInt64Atomics => ash_features.shader_buffer_int64_atomics(true),
-                VkFeatures12::ShaderSharedInt64Atomics => ash_features.shader_shared_int64_atomics(true),
+                VkFeatures12::ShaderBufferInt64Atomics => {
+                    ash_features.shader_buffer_int64_atomics(true)
+                }
+                VkFeatures12::ShaderSharedInt64Atomics => {
+                    ash_features.shader_shared_int64_atomics(true)
+                }
                 VkFeatures12::ShaderFloat16 => ash_features.shader_float16(true),
                 VkFeatures12::ShaderInt8 => ash_features.shader_int8(true),
                 VkFeatures12::DescriptorIndexing => ash_features.descriptor_indexing(true),
-                VkFeatures12::ShaderInputAttachmentArrayDynamicIndexing => 
-                    ash_features.shader_input_attachment_array_dynamic_indexing(true),
-                VkFeatures12::ShaderUniformTexelBufferArrayDynamicIndexing => 
-                    ash_features.shader_uniform_texel_buffer_array_dynamic_indexing(true),
-                VkFeatures12::ShaderStorageTexelBufferArrayDynamicIndexing => 
-                    ash_features.shader_storage_texel_buffer_array_dynamic_indexing(true),
-                VkFeatures12::ShaderUniformBufferArrayNonUniformIndexing => 
-                    ash_features.shader_uniform_buffer_array_non_uniform_indexing(true),
-                VkFeatures12::ShaderSampledImageArrayNonUniformIndexing => 
-                    ash_features.shader_sampled_image_array_non_uniform_indexing(true),
-                VkFeatures12::ShaderStorageBufferArrayNonUniformIndexing => 
-                    ash_features.shader_storage_buffer_array_non_uniform_indexing(true),
-                VkFeatures12::ShaderStorageImageArrayNonUniformIndexing => 
-                    ash_features.shader_storage_image_array_non_uniform_indexing(true),
-                VkFeatures12::DescriptorBindingUniformBufferUpdateAfterBind => 
-                    ash_features.descriptor_binding_uniform_buffer_update_after_bind(true),
-                VkFeatures12::DescriptorBindingSampledImageUpdateAfterBind => 
-                    ash_features.descriptor_binding_sampled_image_update_after_bind(true),
-                VkFeatures12::DescriptorBindingStorageImageUpdateAfterBind => 
-                    ash_features.descriptor_binding_storage_image_update_after_bind(true),
-                VkFeatures12::DescriptorBindingStorageBufferUpdateAfterBind => 
-                    ash_features.descriptor_binding_storage_buffer_update_after_bind(true),
-                VkFeatures12::DescriptorBindingUniformTexelBufferUpdateAfterBind => 
-                    ash_features.descriptor_binding_uniform_texel_buffer_update_after_bind(true),
-                VkFeatures12::DescriptorBindingStorageTexelBufferUpdateAfterBind => 
-                    ash_features.descriptor_binding_storage_texel_buffer_update_after_bind(true),
-                VkFeatures12::DescriptorBindingPartiallyBound => 
-                    ash_features.descriptor_binding_partially_bound(true),
-                VkFeatures12::DescriptorBindingVariableDescriptorCount => 
-                    ash_features.descriptor_binding_variable_descriptor_count(true),
-                VkFeatures12::DescriptorBindingUpdateUnusedWhilePending => 
-                    ash_features.descriptor_binding_update_unused_while_pending(true),
+                VkFeatures12::ShaderInputAttachmentArrayDynamicIndexing => {
+                    ash_features.shader_input_attachment_array_dynamic_indexing(true)
+                }
+                VkFeatures12::ShaderUniformTexelBufferArrayDynamicIndexing => {
+                    ash_features.shader_uniform_texel_buffer_array_dynamic_indexing(true)
+                }
+                VkFeatures12::ShaderStorageTexelBufferArrayDynamicIndexing => {
+                    ash_features.shader_storage_texel_buffer_array_dynamic_indexing(true)
+                }
+                VkFeatures12::ShaderUniformBufferArrayNonUniformIndexing => {
+                    ash_features.shader_uniform_buffer_array_non_uniform_indexing(true)
+                }
+                VkFeatures12::ShaderSampledImageArrayNonUniformIndexing => {
+                    ash_features.shader_sampled_image_array_non_uniform_indexing(true)
+                }
+                VkFeatures12::ShaderStorageBufferArrayNonUniformIndexing => {
+                    ash_features.shader_storage_buffer_array_non_uniform_indexing(true)
+                }
+                VkFeatures12::ShaderStorageImageArrayNonUniformIndexing => {
+                    ash_features.shader_storage_image_array_non_uniform_indexing(true)
+                }
+                VkFeatures12::DescriptorBindingUniformBufferUpdateAfterBind => {
+                    ash_features.descriptor_binding_uniform_buffer_update_after_bind(true)
+                }
+                VkFeatures12::DescriptorBindingSampledImageUpdateAfterBind => {
+                    ash_features.descriptor_binding_sampled_image_update_after_bind(true)
+                }
+                VkFeatures12::DescriptorBindingStorageImageUpdateAfterBind => {
+                    ash_features.descriptor_binding_storage_image_update_after_bind(true)
+                }
+                VkFeatures12::DescriptorBindingStorageBufferUpdateAfterBind => {
+                    ash_features.descriptor_binding_storage_buffer_update_after_bind(true)
+                }
+                VkFeatures12::DescriptorBindingUniformTexelBufferUpdateAfterBind => {
+                    ash_features.descriptor_binding_uniform_texel_buffer_update_after_bind(true)
+                }
+                VkFeatures12::DescriptorBindingStorageTexelBufferUpdateAfterBind => {
+                    ash_features.descriptor_binding_storage_texel_buffer_update_after_bind(true)
+                }
+                VkFeatures12::DescriptorBindingPartiallyBound => {
+                    ash_features.descriptor_binding_partially_bound(true)
+                }
+                VkFeatures12::DescriptorBindingVariableDescriptorCount => {
+                    ash_features.descriptor_binding_variable_descriptor_count(true)
+                }
+                VkFeatures12::DescriptorBindingUpdateUnusedWhilePending => {
+                    ash_features.descriptor_binding_update_unused_while_pending(true)
+                }
                 VkFeatures12::RuntimeDescriptorArray => ash_features.runtime_descriptor_array(true),
                 VkFeatures12::ScalarBlockLayout => ash_features.scalar_block_layout(true),
                 VkFeatures12::ImagelessFramebuffer => ash_features.imageless_framebuffer(true),
-                VkFeatures12::UniformBufferStandardLayout => 
-                    ash_features.uniform_buffer_standard_layout(true),
-                VkFeatures12::ShaderSubgroupExtendedTypes => 
-                    ash_features.shader_subgroup_extended_types(true),
-                VkFeatures12::SeparateDepthStencilLayouts => 
-                    ash_features.separate_depth_stencil_layouts(true),
+                VkFeatures12::UniformBufferStandardLayout => {
+                    ash_features.uniform_buffer_standard_layout(true)
+                }
+                VkFeatures12::ShaderSubgroupExtendedTypes => {
+                    ash_features.shader_subgroup_extended_types(true)
+                }
+                VkFeatures12::SeparateDepthStencilLayouts => {
+                    ash_features.separate_depth_stencil_layouts(true)
+                }
                 VkFeatures12::HostQueryReset => ash_features.host_query_reset(true),
                 VkFeatures12::TimelineSemaphore => ash_features.timeline_semaphore(true),
                 VkFeatures12::BufferDeviceAddress => ash_features.buffer_device_address(true),
-                VkFeatures12::BufferDeviceAddressCaptureReplay => 
-                    ash_features.buffer_device_address_capture_replay(true),
-                VkFeatures12::BufferDeviceAddressMultiDevice => 
-                    ash_features.buffer_device_address_multi_device(true),
+                VkFeatures12::BufferDeviceAddressCaptureReplay => {
+                    ash_features.buffer_device_address_capture_replay(true)
+                }
+                VkFeatures12::BufferDeviceAddressMultiDevice => {
+                    ash_features.buffer_device_address_multi_device(true)
+                }
                 VkFeatures12::VulkanMemoryModel => ash_features.vulkan_memory_model(true),
-                VkFeatures12::VulkanMemoryModelDeviceScope => 
-                    ash_features.vulkan_memory_model_device_scope(true),
-                VkFeatures12::VulkanMemoryModelAvailabilityVisibilityChains => 
-                    ash_features.vulkan_memory_model_availability_visibility_chains(true),
-                VkFeatures12::ShaderOutputViewportIndex => ash_features.shader_output_viewport_index(true),
+                VkFeatures12::VulkanMemoryModelDeviceScope => {
+                    ash_features.vulkan_memory_model_device_scope(true)
+                }
+                VkFeatures12::VulkanMemoryModelAvailabilityVisibilityChains => {
+                    ash_features.vulkan_memory_model_availability_visibility_chains(true)
+                }
+                VkFeatures12::ShaderOutputViewportIndex => {
+                    ash_features.shader_output_viewport_index(true)
+                }
                 VkFeatures12::ShaderOutputLayer => ash_features.shader_output_layer(true),
-                VkFeatures12::SubgroupBroadcastDynamicId => ash_features.subgroup_broadcast_dynamic_id(true),
+                VkFeatures12::SubgroupBroadcastDynamicId => {
+                    ash_features.subgroup_broadcast_dynamic_id(true)
+                }
             }
         }
 
@@ -674,28 +767,40 @@ pub(crate) enum VkFeatures13 {
 
 impl VkFeatures13 {
     /// Converts as Ash features
-    pub(crate) fn as_ash_features<'a>(features: &'a[Self]) -> ash::vk::PhysicalDeviceVulkan13Features<'a> {
+    pub(crate) fn as_ash_features<'a>(
+        features: &'a [Self],
+    ) -> ash::vk::PhysicalDeviceVulkan13Features<'a> {
         let mut ash_features = ash::vk::PhysicalDeviceVulkan13Features::default();
         for feature in features {
             ash_features = match feature {
                 VkFeatures13::RobustImageAccess => ash_features.robust_image_access(true),
                 VkFeatures13::InlineUniformBlock => ash_features.inline_uniform_block(true),
-                VkFeatures13::DescriptorBindingInlineUniformBlockUpdateAfterBind => 
-                    ash_features.descriptor_binding_inline_uniform_block_update_after_bind(true),
-                VkFeatures13::PipelineCreationCacheControl => 
-                    ash_features.pipeline_creation_cache_control(true),
+                VkFeatures13::DescriptorBindingInlineUniformBlockUpdateAfterBind => {
+                    ash_features.descriptor_binding_inline_uniform_block_update_after_bind(true)
+                }
+                VkFeatures13::PipelineCreationCacheControl => {
+                    ash_features.pipeline_creation_cache_control(true)
+                }
                 VkFeatures13::PrivateData => ash_features.private_data(true),
-                VkFeatures13::ShaderDemoteToHelperInvocation => 
-                    ash_features.shader_demote_to_helper_invocation(true),
-                VkFeatures13::ShaderTerminateInvocation => ash_features.shader_terminate_invocation(true),
+                VkFeatures13::ShaderDemoteToHelperInvocation => {
+                    ash_features.shader_demote_to_helper_invocation(true)
+                }
+                VkFeatures13::ShaderTerminateInvocation => {
+                    ash_features.shader_terminate_invocation(true)
+                }
                 VkFeatures13::SubgroupSizeControl => ash_features.subgroup_size_control(true),
                 VkFeatures13::ComputeFullSubgroups => ash_features.compute_full_subgroups(true),
                 VkFeatures13::Synchronization2 => ash_features.synchronization2(true),
-                VkFeatures13::TextureCompressionAstcHdr => ash_features.texture_compression_astc_hdr(true),
-                VkFeatures13::ShaderZeroInitializeWorkgroupMemory => 
-                    ash_features.shader_zero_initialize_workgroup_memory(true),
+                VkFeatures13::TextureCompressionAstcHdr => {
+                    ash_features.texture_compression_astc_hdr(true)
+                }
+                VkFeatures13::ShaderZeroInitializeWorkgroupMemory => {
+                    ash_features.shader_zero_initialize_workgroup_memory(true)
+                }
                 VkFeatures13::DynamicRendering => ash_features.dynamic_rendering(true),
-                VkFeatures13::ShaderIntegerDotProduct => ash_features.shader_integer_dot_product(true),
+                VkFeatures13::ShaderIntegerDotProduct => {
+                    ash_features.shader_integer_dot_product(true)
+                }
                 VkFeatures13::Maintenance4 => ash_features.maintenance4(true),
             }
         }
@@ -842,3 +947,356 @@ pub(crate) enum VkFeatures14 {
 //         }
 //     }
 // }
+
+/// Custom enum for Vulkan features names coming from extensions
+#[derive(Debug, Clone, Copy)]
+#[allow(unused)]
+pub(crate) enum VkFeaturesExt {
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicStateFeaturesEXT.html
+    ExtendedDynamicState,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState2FeaturesEXT.html
+    ExtendedDynamicState2,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState2FeaturesEXT.html
+    ExtendedDynamicState2LogicOp,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState2FeaturesEXT.html
+    ExtendedDynamicState2PatchControlPoints,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3TessellationDomainOrigin,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3DepthClampEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3PolygonMode,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3RasterizationSamples,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3SampleMask,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3AlphaToCoverageEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3AlphaToOneEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3LogicOpEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ColorBlendEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ColorBlendEquation,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ColorWriteMask,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3RasterizationStream,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ConservativeRasterizationMode,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ExtraPrimitiveOverestimationSize,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3DepthClipEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3SampleLocationsEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ColorBlendAdvanced,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ProvokingVertexMode,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3LineRasterizationMode,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3LineStippleEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3DepthClipNegativeOneToOne,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ViewportWScalingEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ViewportSwizzle,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3CoverageToColorEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3CoverageToColorLocation,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3CoverageModulationMode,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3CoverageModulationTableEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3CoverageModulationTable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3CoverageReductionMode,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3RepresentativeFragmentTestEnable,
+    /// https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceExtendedDynamicState3FeaturesEXT.html
+    ExtendedDynamicState3ShadingRateImageEnable,
+}
+
+impl VkFeaturesExt {
+    /// Converts as Ash features
+    pub(crate) fn as_extended_dynamic_state<'a>(
+        features: &'a [Self],
+    ) -> ash::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT<'a> {
+        let mut ash_features = ash::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT::default();
+        for feature in features {
+            ash_features = match feature {
+                VkFeaturesExt::ExtendedDynamicState => ash_features.extended_dynamic_state(true),
+                _ => ash_features,
+            }
+        }
+        ash_features
+    }
+
+    /// Returns true if the feature is enabled
+    pub(crate) fn is_enabled_extended_dynamic_state(
+        &self,
+        features: &ash::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT<'_>,
+    ) -> bool {
+        match self {
+            VkFeaturesExt::ExtendedDynamicState => features.extended_dynamic_state != 0,
+            _ => true,
+        }
+    }
+}
+
+impl VkFeaturesExt {
+    /// Converts as Ash features
+    pub(crate) fn as_extended_dynamic_state2<'a>(
+        features: &'a [Self],
+    ) -> ash::vk::PhysicalDeviceExtendedDynamicState2FeaturesEXT<'a> {
+        let mut ash_features = ash::vk::PhysicalDeviceExtendedDynamicState2FeaturesEXT::default();
+        for feature in features {
+            ash_features = match feature {
+                VkFeaturesExt::ExtendedDynamicState2 => ash_features.extended_dynamic_state2(true),
+                VkFeaturesExt::ExtendedDynamicState2LogicOp => {
+                    ash_features.extended_dynamic_state2_logic_op(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState2PatchControlPoints => {
+                    ash_features.extended_dynamic_state2_patch_control_points(true)
+                }
+                _ => ash_features,
+            }
+        }
+        ash_features
+    }
+
+    /// Returns true if the feature is enabled
+    pub(crate) fn is_enabled_extended_dynamic_state2(
+        &self,
+        features: &ash::vk::PhysicalDeviceExtendedDynamicState2FeaturesEXT<'_>,
+    ) -> bool {
+        match self {
+            VkFeaturesExt::ExtendedDynamicState2 => features.extended_dynamic_state2 != 0,
+            VkFeaturesExt::ExtendedDynamicState2LogicOp => {
+                features.extended_dynamic_state2_logic_op != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState2PatchControlPoints => {
+                features.extended_dynamic_state2_patch_control_points != 0
+            }
+            _ => true,
+        }
+    }
+}
+
+impl VkFeaturesExt {
+    /// Converts as Ash features
+    pub(crate) fn as_extended_dynamic_state3<'a>(
+        features: &'a [Self],
+    ) -> ash::vk::PhysicalDeviceExtendedDynamicState3FeaturesEXT<'a> {
+        let mut ash_features = ash::vk::PhysicalDeviceExtendedDynamicState3FeaturesEXT::default();
+        for feature in features {
+            ash_features = match feature {
+                VkFeaturesExt::ExtendedDynamicState3TessellationDomainOrigin => {
+                    ash_features.extended_dynamic_state3_tessellation_domain_origin(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3DepthClampEnable => {
+                    ash_features.extended_dynamic_state3_depth_clamp_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3PolygonMode => {
+                    ash_features.extended_dynamic_state3_polygon_mode(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3RasterizationSamples => {
+                    ash_features.extended_dynamic_state3_rasterization_samples(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3SampleMask => {
+                    ash_features.extended_dynamic_state3_sample_mask(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3AlphaToCoverageEnable => {
+                    ash_features.extended_dynamic_state3_alpha_to_coverage_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3AlphaToOneEnable => {
+                    ash_features.extended_dynamic_state3_alpha_to_one_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3LogicOpEnable => {
+                    ash_features.extended_dynamic_state3_logic_op_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ColorBlendEnable => {
+                    ash_features.extended_dynamic_state3_color_blend_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ColorBlendEquation => {
+                    ash_features.extended_dynamic_state3_color_blend_equation(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ColorWriteMask => {
+                    ash_features.extended_dynamic_state3_color_write_mask(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3RasterizationStream => {
+                    ash_features.extended_dynamic_state3_rasterization_stream(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ConservativeRasterizationMode => {
+                    ash_features.extended_dynamic_state3_conservative_rasterization_mode(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ExtraPrimitiveOverestimationSize => {
+                    ash_features.extended_dynamic_state3_extra_primitive_overestimation_size(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3DepthClipEnable => {
+                    ash_features.extended_dynamic_state3_depth_clip_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3SampleLocationsEnable => {
+                    ash_features.extended_dynamic_state3_sample_locations_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ColorBlendAdvanced => {
+                    ash_features.extended_dynamic_state3_color_blend_advanced(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ProvokingVertexMode => {
+                    ash_features.extended_dynamic_state3_provoking_vertex_mode(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3LineRasterizationMode => {
+                    ash_features.extended_dynamic_state3_line_rasterization_mode(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3LineStippleEnable => {
+                    ash_features.extended_dynamic_state3_line_stipple_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3DepthClipNegativeOneToOne => {
+                    ash_features.extended_dynamic_state3_depth_clip_negative_one_to_one(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ViewportWScalingEnable => {
+                    ash_features.extended_dynamic_state3_viewport_w_scaling_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ViewportSwizzle => {
+                    ash_features.extended_dynamic_state3_viewport_swizzle(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3CoverageToColorEnable => {
+                    ash_features.extended_dynamic_state3_coverage_to_color_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3CoverageToColorLocation => {
+                    ash_features.extended_dynamic_state3_coverage_to_color_location(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3CoverageModulationMode => {
+                    ash_features.extended_dynamic_state3_coverage_modulation_mode(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3CoverageModulationTableEnable => {
+                    ash_features.extended_dynamic_state3_coverage_modulation_table_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3CoverageModulationTable => {
+                    ash_features.extended_dynamic_state3_coverage_modulation_table(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3CoverageReductionMode => {
+                    ash_features.extended_dynamic_state3_coverage_reduction_mode(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3RepresentativeFragmentTestEnable => {
+                    ash_features.extended_dynamic_state3_representative_fragment_test_enable(true)
+                }
+                VkFeaturesExt::ExtendedDynamicState3ShadingRateImageEnable => {
+                    ash_features.extended_dynamic_state3_shading_rate_image_enable(true)
+                }
+                _ => ash_features,
+            }
+        }
+        ash_features
+    }
+
+    /// Returns true if the feature is enabled
+    pub(crate) fn is_enabled_extended_dynamic_state3(
+        &self,
+        features: &ash::vk::PhysicalDeviceExtendedDynamicState3FeaturesEXT<'_>,
+    ) -> bool {
+        match self {
+            VkFeaturesExt::ExtendedDynamicState3TessellationDomainOrigin => {
+                features.extended_dynamic_state3_tessellation_domain_origin != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3DepthClampEnable => {
+                features.extended_dynamic_state3_depth_clamp_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3PolygonMode => {
+                features.extended_dynamic_state3_polygon_mode != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3RasterizationSamples => {
+                features.extended_dynamic_state3_rasterization_samples != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3SampleMask => {
+                features.extended_dynamic_state3_sample_mask != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3AlphaToCoverageEnable => {
+                features.extended_dynamic_state3_alpha_to_coverage_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3AlphaToOneEnable => {
+                features.extended_dynamic_state3_alpha_to_one_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3LogicOpEnable => {
+                features.extended_dynamic_state3_logic_op_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ColorBlendEnable => {
+                features.extended_dynamic_state3_color_blend_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ColorBlendEquation => {
+                features.extended_dynamic_state3_color_blend_equation != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ColorWriteMask => {
+                features.extended_dynamic_state3_color_write_mask != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3RasterizationStream => {
+                features.extended_dynamic_state3_rasterization_stream != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ConservativeRasterizationMode => {
+                features.extended_dynamic_state3_conservative_rasterization_mode != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ExtraPrimitiveOverestimationSize => {
+                features.extended_dynamic_state3_extra_primitive_overestimation_size != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3DepthClipEnable => {
+                features.extended_dynamic_state3_depth_clip_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3SampleLocationsEnable => {
+                features.extended_dynamic_state3_sample_locations_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ColorBlendAdvanced => {
+                features.extended_dynamic_state3_color_blend_advanced != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ProvokingVertexMode => {
+                features.extended_dynamic_state3_provoking_vertex_mode != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3LineRasterizationMode => {
+                features.extended_dynamic_state3_line_rasterization_mode != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3LineStippleEnable => {
+                features.extended_dynamic_state3_line_stipple_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3DepthClipNegativeOneToOne => {
+                features.extended_dynamic_state3_depth_clip_negative_one_to_one != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ViewportWScalingEnable => {
+                features.extended_dynamic_state3_viewport_w_scaling_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ViewportSwizzle => {
+                features.extended_dynamic_state3_viewport_swizzle != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3CoverageToColorEnable => {
+                features.extended_dynamic_state3_coverage_to_color_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3CoverageToColorLocation => {
+                features.extended_dynamic_state3_coverage_to_color_location != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3CoverageModulationMode => {
+                features.extended_dynamic_state3_coverage_modulation_mode != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3CoverageModulationTableEnable => {
+                features.extended_dynamic_state3_coverage_modulation_table_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3CoverageModulationTable => {
+                features.extended_dynamic_state3_coverage_modulation_table != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3CoverageReductionMode => {
+                features.extended_dynamic_state3_coverage_reduction_mode != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3RepresentativeFragmentTestEnable => {
+                features.extended_dynamic_state3_representative_fragment_test_enable != 0
+            }
+            VkFeaturesExt::ExtendedDynamicState3ShadingRateImageEnable => {
+                features.extended_dynamic_state3_shading_rate_image_enable != 0
+            }
+            _ => true,
+        }
+    }
+}

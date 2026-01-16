@@ -87,18 +87,48 @@ struct VkPhysicalDeviceScore {
 
 impl VkPhysicalDeviceScore {
     /// Gets the queues as an ordered list of u32
-    fn get_queues(queues: &Vec<ash::vk::QueueFamilyProperties>) -> Vec<u32> {
+    fn get_queues(queues: &[ash::vk::QueueFamilyProperties]) -> Vec<u32> {
         vec![
             queues.len() as u32,
-            queues.iter().any(|q|q.queue_flags.intersects(ash::vk::QueueFlags::GRAPHICS)) as u32,
-            queues.iter().any(|q|q.queue_flags.intersects(ash::vk::QueueFlags::COMPUTE)) as u32,
-            queues.iter().any(|q|q.queue_flags.intersects(ash::vk::QueueFlags::TRANSFER)) as u32,
-            queues.iter().any(|q|q.queue_flags.intersects(ash::vk::QueueFlags::SPARSE_BINDING)) as u32,
-            queues.iter().filter(|q|q.queue_flags.intersects(ash::vk::QueueFlags::GRAPHICS)).collect::<Vec<_>>().len() as u32,
-            queues.iter().filter(|q|q.queue_flags.intersects(ash::vk::QueueFlags::COMPUTE)).collect::<Vec<_>>().len() as u32,
-            queues.iter().filter(|q|q.queue_flags.intersects(ash::vk::QueueFlags::TRANSFER)).collect::<Vec<_>>().len() as u32,
-            queues.iter().filter(|q|q.queue_flags.intersects(ash::vk::QueueFlags::SPARSE_BINDING)).collect::<Vec<_>>().len() as u32,
-        ]  
+            queues
+                .iter()
+                .any(|q| q.queue_flags.intersects(ash::vk::QueueFlags::GRAPHICS))
+                as u32,
+            queues
+                .iter()
+                .any(|q| q.queue_flags.intersects(ash::vk::QueueFlags::COMPUTE)) as u32,
+            queues
+                .iter()
+                .any(|q| q.queue_flags.intersects(ash::vk::QueueFlags::TRANSFER))
+                as u32,
+            queues.iter().any(|q| {
+                q.queue_flags
+                    .intersects(ash::vk::QueueFlags::SPARSE_BINDING)
+            }) as u32,
+            queues
+                .iter()
+                .filter(|q| q.queue_flags.intersects(ash::vk::QueueFlags::GRAPHICS))
+                .collect::<Vec<_>>()
+                .len() as u32,
+            queues
+                .iter()
+                .filter(|q| q.queue_flags.intersects(ash::vk::QueueFlags::COMPUTE))
+                .collect::<Vec<_>>()
+                .len() as u32,
+            queues
+                .iter()
+                .filter(|q| q.queue_flags.intersects(ash::vk::QueueFlags::TRANSFER))
+                .collect::<Vec<_>>()
+                .len() as u32,
+            queues
+                .iter()
+                .filter(|q| {
+                    q.queue_flags
+                        .intersects(ash::vk::QueueFlags::SPARSE_BINDING)
+                })
+                .collect::<Vec<_>>()
+                .len() as u32,
+        ]
     }
 
     /// Gets the limits as an ordered list of u32
@@ -810,6 +840,13 @@ fn check_physical_device_features(
     let mut available_features_1_3 = ash::vk::PhysicalDeviceVulkan13Features::default();
     // TODO: Update to ash 0.39 and Vulkan 1.4
     // let mut available_features_1_4 = ash::vk::PhysicalDeviceVulkan14Features::default();
+    // TODO: add other ext features
+    let mut available_features_extended_dynamic_state =
+        ash::vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT::default();
+    let mut available_features_extended_dynamic_state2 =
+        ash::vk::PhysicalDeviceExtendedDynamicState2FeaturesEXT::default();
+    let mut available_features_extended_dynamic_state3 =
+        ash::vk::PhysicalDeviceExtendedDynamicState3FeaturesEXT::default();
 
     let mut features_2 = ash::vk::PhysicalDeviceFeatures2::default()
         .push_next(&mut available_features_1_1)
@@ -817,7 +854,10 @@ fn check_physical_device_features(
         .push_next(&mut available_features_1_3)
         // TODO: Update to ash 0.39 and Vulkan 1.4
         // .push_next(&mut available_features_1_4)
-    ;
+        // TODO: add other ext features
+        .push_next(&mut available_features_extended_dynamic_state)
+        .push_next(&mut available_features_extended_dynamic_state2)
+        .push_next(&mut available_features_extended_dynamic_state3);
 
     unsafe {
         instance.get_physical_device_features2(*device, &mut features_2);
@@ -945,6 +985,50 @@ fn check_physical_device_features(
     if !missing_1_4_features {
         log_info!("\t\t- None");
     }
+
+    let required_features_ext = &config
+        .renderer_config
+        .vulkan_parameters
+        .required_device_features_ext;
+    log_info!("\t- Missing required extended dynamic state features:");
+    let mut missing_ext_features = false;
+    for required in required_features_ext {
+        if !required.is_enabled_extended_dynamic_state(&available_features_extended_dynamic_state) {
+            log_info!("\t\t- {:?}", &required);
+            is_valid = false;
+            missing_ext_features = true;
+        }
+    }
+    if !missing_ext_features {
+        log_info!("\t\t- None");
+    }
+    log_info!("\t- Missing required extended dynamic state2 features:");
+    let mut missing_ext_features = false;
+    for required in required_features_ext {
+        if !required.is_enabled_extended_dynamic_state2(&available_features_extended_dynamic_state2)
+        {
+            log_info!("\t\t- {:?}", &required);
+            is_valid = false;
+            missing_ext_features = true;
+        }
+    }
+    if !missing_ext_features {
+        log_info!("\t\t- None");
+    }
+    log_info!("\t- Missing required extended dynamic state3 features:");
+    let mut missing_ext_features = false;
+    for required in required_features_ext {
+        if !required.is_enabled_extended_dynamic_state3(&available_features_extended_dynamic_state3)
+        {
+            log_info!("\t\t- {:?}", &required);
+            is_valid = false;
+            missing_ext_features = true;
+        }
+    }
+    if !missing_ext_features {
+        log_info!("\t\t- None");
+    }
+    // TODO: add other ext features
 
     Ok(is_valid)
 }
@@ -1199,6 +1283,14 @@ fn pick_best_physical_device<'a>(
         .renderer_config
         .vulkan_parameters
         .required_physical_device_features_1_4
+    {
+        log_info!("\t\t- {:?}", feature);
+    }
+    log_info!("\t- Features Ext:");
+    for feature in &config
+        .renderer_config
+        .vulkan_parameters
+        .required_device_features_ext
     {
         log_info!("\t\t- {:?}", feature);
     }

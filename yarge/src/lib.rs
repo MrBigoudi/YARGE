@@ -5,8 +5,6 @@
 #![warn(macro_use_extern_crate)]
 #![warn(meta_variable_misuse)]
 #![warn(missing_abi)]
-// #![warn(missing_docs)]
-// #![warn(clippy::missing_docs_in_private_items)]
 #![warn(non_ascii_idents)]
 #![warn(noop_method_call)]
 #![warn(single_use_lifetimes)]
@@ -22,6 +20,10 @@
 #![warn(unused_qualifications)]
 #![warn(unused_results)]
 #![warn(variant_size_differences)]
+// For now
+// #![warn(missing_docs)]
+// #![warn(clippy::missing_docs_in_private_items)]
+#![allow(dead_code)]
 #![feature(portable_simd)]
 #![cfg_attr(bare_metal, no_std)]
 
