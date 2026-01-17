@@ -62,7 +62,7 @@ impl Default for Vector3u64 {
 }
 
 /// Creates a 3 dimensional u64 vector
-pub fn vec3u64(x: u64, y: u64, z: u64) -> Vector3u64 {
+pub const fn vec3u64(x: u64, y: u64, z: u64) -> Vector3u64 {
     Vector3u64::new(x, y, z)
 }
 
@@ -144,6 +144,19 @@ impl Vector3u64 {
     /// Returns the length of the vector
     pub fn length(&self) -> f32 {
         (Self::dot(self, self) as f32).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> u64 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> u64 {
+        self.data.as_array()[1]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn z_const(&self) -> u64 {
+        self.data.as_array()[2]
     }
 }
 
@@ -638,6 +651,32 @@ impl std::ops::DivAssign<&u64> for Vector3u64 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector3u64 {
+    type Output = u64;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector3u64 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -738,5 +777,14 @@ mod tests {
         let v1 = vec3u64(3, 4, 6);
         assert_eq!(v1.to_string(), "(3, 4, 6)");
         assert_eq!(format!("{:?}", v1), "Vector3u64 { x: 3, y: 4, z: 6 }");
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec3u64(2, 3, 1);
+        assert_eq!(v1[2], 1);
+        v1[1] = 2;
+        assert_eq!(v1[1], 2);
     }
 }

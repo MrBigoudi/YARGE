@@ -1,6 +1,6 @@
 use std::simd::prelude::*;
 
-use crate::maths::Vector4f32;
+use crate::maths::{Vector4f32, vec4f32};
 
 /// A structure to represent a 4x4 f32 matrix stored in column-major order
 #[derive(Clone, Copy)]
@@ -112,26 +112,12 @@ impl Default for Matrix4x4f32 {
 
 /// Creates a 4x4 f32 matrix
 pub fn mat4x4f32(
-    m00: f32,
-    m01: f32,
-    m02: f32,
-    m03: f32,
-    m10: f32,
-    m11: f32,
-    m12: f32,
-    m13: f32,
-    m20: f32,
-    m21: f32,
-    m22: f32,
-    m23: f32,
-    m30: f32,
-    m31: f32,
-    m32: f32,
-    m33: f32,
+    row_0: &Vector4f32,
+    row_1: &Vector4f32,
+    row_2: &Vector4f32,
+    row_3: &Vector4f32,
 ) -> Matrix4x4f32 {
-    Matrix4x4f32::new(
-        m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33,
-    )
+    Matrix4x4f32::new(row_0, row_1, row_2, row_3)
 }
 
 impl Matrix4x4f32 {
@@ -141,36 +127,46 @@ impl Matrix4x4f32 {
 
     /// Creates a new matrix given its elements in row-major order
     pub const fn new(
-        m00: f32,
-        m01: f32,
-        m02: f32,
-        m03: f32,
-        m10: f32,
-        m11: f32,
-        m12: f32,
-        m13: f32,
-        m20: f32,
-        m21: f32,
-        m22: f32,
-        m23: f32,
-        m30: f32,
-        m31: f32,
-        m32: f32,
-        m33: f32,
+        row_0: &Vector4f32,
+        row_1: &Vector4f32,
+        row_2: &Vector4f32,
+        row_3: &Vector4f32,
     ) -> Self {
         Self {
-            col0: f32x4::from_array([m00, m10, m20, m30]),
-            col1: f32x4::from_array([m01, m11, m21, m31]),
-            col2: f32x4::from_array([m02, m12, m22, m32]),
-            col3: f32x4::from_array([m03, m13, m23, m33]),
+            col0: f32x4::from_array([
+                row_0.x_const(),
+                row_1.x_const(),
+                row_2.x_const(),
+                row_3.x_const(),
+            ]),
+            col1: f32x4::from_array([
+                row_0.y_const(),
+                row_1.y_const(),
+                row_2.y_const(),
+                row_3.y_const(),
+            ]),
+            col2: f32x4::from_array([
+                row_0.z_const(),
+                row_1.z_const(),
+                row_2.z_const(),
+                row_3.z_const(),
+            ]),
+            col3: f32x4::from_array([
+                row_0.w_const(),
+                row_1.w_const(),
+                row_2.w_const(),
+                row_3.w_const(),
+            ]),
         }
     }
 
     /// Creates a new matrix with all elements set to `value`
     const fn splat(value: f32) -> Self {
         Self::new(
-            value, value, value, value, value, value, value, value, value, value, value, value,
-            value, value, value, value,
+            &vec4f32(value, value, value, value),
+            &vec4f32(value, value, value, value),
+            &vec4f32(value, value, value, value),
+            &vec4f32(value, value, value, value),
         )
     }
 
@@ -186,14 +182,15 @@ impl Matrix4x4f32 {
     pub const ZEROS: Self = Self::splat(0.);
 
     /// Creates an identity matrix
-    pub const IDENTITY: Self = Self::new(
-        1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
-    );
+    pub const IDENTITY: Self = Self::diagonal(1., 1., 1., 1.);
 
     /// Creates a diagonal matrix
     pub const fn diagonal(d0: f32, d1: f32, d2: f32, d3: f32) -> Self {
         Self::new(
-            d0, 0., 0., 0., 0., d1, 0., 0., 0., 0., d2, 0., 0., 0., 0., d3,
+            &vec4f32(d0, 0., 0., 0.),
+            &vec4f32(0., d1, 0., 0.),
+            &vec4f32(0., 0., d2, 0.),
+            &vec4f32(0., 0., 0., d3),
         )
     }
 
@@ -237,8 +234,10 @@ impl Matrix4x4f32 {
     /// Returns the transpose of the matrix
     pub fn transpose(&self) -> Self {
         Self::new(
-            self.m00, self.m10, self.m20, self.m30, self.m01, self.m11, self.m21, self.m31,
-            self.m02, self.m12, self.m22, self.m32, self.m03, self.m13, self.m23, self.m33,
+            &vec4f32(self.m00, self.m10, self.m20, self.m30),
+            &vec4f32(self.m01, self.m11, self.m21, self.m31),
+            &vec4f32(self.m02, self.m12, self.m22, self.m32),
+            &vec4f32(self.m03, self.m13, self.m23, self.m33),
         )
     }
 
@@ -318,22 +317,10 @@ impl Matrix4x4f32 {
 
         // Transpose of cofactor matrix divided by determinant
         Some(Self::new(
-            c00 * inv_det,
-            c10 * inv_det,
-            c20 * inv_det,
-            c30 * inv_det,
-            c01 * inv_det,
-            c11 * inv_det,
-            c21 * inv_det,
-            c31 * inv_det,
-            c02 * inv_det,
-            c12 * inv_det,
-            c22 * inv_det,
-            c32 * inv_det,
-            c03 * inv_det,
-            c13 * inv_det,
-            c23 * inv_det,
-            c33 * inv_det,
+            &vec4f32(c00 * inv_det, c10 * inv_det, c20 * inv_det, c30 * inv_det),
+            &vec4f32(c01 * inv_det, c11 * inv_det, c21 * inv_det, c31 * inv_det),
+            &vec4f32(c02 * inv_det, c12 * inv_det, c22 * inv_det, c32 * inv_det),
+            &vec4f32(c03 * inv_det, c13 * inv_det, c23 * inv_det, c33 * inv_det),
         ))
     }
 
@@ -342,7 +329,10 @@ impl Matrix4x4f32 {
         let cos = angle.cos();
         let sin = angle.sin();
         Self::new(
-            1., 0., 0., 0., 0., cos, -sin, 0., 0., sin, cos, 0., 0., 0., 0., 1.,
+            &vec4f32(1., 0., 0., 0.),
+            &vec4f32(0., cos, -sin, 0.),
+            &vec4f32(0., sin, cos, 0.),
+            &vec4f32(0., 0., 0., 1.),
         )
     }
 
@@ -351,7 +341,10 @@ impl Matrix4x4f32 {
         let cos = angle.cos();
         let sin = angle.sin();
         Self::new(
-            cos, 0., sin, 0., 0., 1., 0., 0., -sin, 0., cos, 0., 0., 0., 0., 1.,
+            &vec4f32(cos, 0., sin, 0.),
+            &vec4f32(0., 1., 0., 0.),
+            &vec4f32(-sin, 0., cos, 0.),
+            &vec4f32(0., 0., 0., 1.),
         )
     }
 
@@ -360,7 +353,10 @@ impl Matrix4x4f32 {
         let cos = angle.cos();
         let sin = angle.sin();
         Self::new(
-            cos, -sin, 0., 0., sin, cos, 0., 0., 0., 0., 1., 0., 0., 0., 0., 1.,
+            &vec4f32(cos, -sin, 0., 0.),
+            &vec4f32(sin, cos, 0., 0.),
+            &vec4f32(0., 0., 1., 0.),
+            &vec4f32(0., 0., 0., 1.),
         )
     }
 
@@ -372,7 +368,10 @@ impl Matrix4x4f32 {
     /// Creates a translation matrix
     pub const fn translation(tx: f32, ty: f32, tz: f32) -> Self {
         Self::new(
-            1., 0., 0., tx, 0., 1., 0., ty, 0., 0., 1., tz, 0., 0., 0., 1.,
+            &vec4f32(1., 0., 0., tx),
+            &vec4f32(0., 1., 0., ty),
+            &vec4f32(0., 0., 1., tz),
+            &vec4f32(0., 0., 0., 1.),
         )
     }
 
@@ -384,10 +383,10 @@ impl Matrix4x4f32 {
     pub fn get_row(&self, row: usize) -> Vector4f32 {
         assert!(row < 4, "Row index out of bounds");
         match row {
-            0 => Vector4f32::new(self.m00, self.m01, self.m02, self.m03),
-            1 => Vector4f32::new(self.m10, self.m11, self.m12, self.m13),
-            2 => Vector4f32::new(self.m20, self.m21, self.m22, self.m23),
-            3 => Vector4f32::new(self.m30, self.m31, self.m32, self.m33),
+            0 => vec4f32(self.m00, self.m01, self.m02, self.m03),
+            1 => vec4f32(self.m10, self.m11, self.m12, self.m13),
+            2 => vec4f32(self.m20, self.m21, self.m22, self.m23),
+            3 => vec4f32(self.m30, self.m31, self.m32, self.m33),
             _ => unreachable!(),
         }
     }
@@ -396,16 +395,16 @@ impl Matrix4x4f32 {
     pub fn get_col(&self, col: usize) -> Vector4f32 {
         assert!(col < 4, "Column index out of bounds");
         match col {
-            0 => Vector4f32::new(self.m00, self.m10, self.m20, self.m30),
-            1 => Vector4f32::new(self.m01, self.m11, self.m21, self.m31),
-            2 => Vector4f32::new(self.m02, self.m12, self.m22, self.m32),
-            3 => Vector4f32::new(self.m03, self.m13, self.m23, self.m33),
+            0 => vec4f32(self.m00, self.m10, self.m20, self.m30),
+            1 => vec4f32(self.m01, self.m11, self.m21, self.m31),
+            2 => vec4f32(self.m02, self.m12, self.m22, self.m32),
+            3 => vec4f32(self.m03, self.m13, self.m23, self.m33),
             _ => unreachable!(),
         }
     }
 
     /// Sets the specified row from a Vector4f32
-    pub fn set_row(&mut self, row: usize, v: Vector4f32) {
+    pub fn set_row(&mut self, row: usize, v: &Vector4f32) {
         assert!(row < 4, "Row index out of bounds");
         match row {
             0 => {
@@ -437,7 +436,7 @@ impl Matrix4x4f32 {
     }
 
     /// Sets the specified column from a Vector4f32
-    pub fn set_col(&mut self, col: usize, v: Vector4f32) {
+    pub fn set_col(&mut self, col: usize, v: &Vector4f32) {
         assert!(col < 4, "Column index out of bounds");
         match col {
             0 => {
@@ -676,22 +675,30 @@ impl std::ops::Mul<Matrix4x4f32> for Matrix4x4f32 {
 
     fn mul(self, rhs: Matrix4x4f32) -> Self::Output {
         Matrix4x4f32::new(
-            self.m00 * rhs.m00 + self.m01 * rhs.m10 + self.m02 * rhs.m20 + self.m03 * rhs.m30,
-            self.m00 * rhs.m01 + self.m01 * rhs.m11 + self.m02 * rhs.m21 + self.m03 * rhs.m31,
-            self.m00 * rhs.m02 + self.m01 * rhs.m12 + self.m02 * rhs.m22 + self.m03 * rhs.m32,
-            self.m00 * rhs.m03 + self.m01 * rhs.m13 + self.m02 * rhs.m23 + self.m03 * rhs.m33,
-            self.m10 * rhs.m00 + self.m11 * rhs.m10 + self.m12 * rhs.m20 + self.m13 * rhs.m30,
-            self.m10 * rhs.m01 + self.m11 * rhs.m11 + self.m12 * rhs.m21 + self.m13 * rhs.m31,
-            self.m10 * rhs.m02 + self.m11 * rhs.m12 + self.m12 * rhs.m22 + self.m13 * rhs.m32,
-            self.m10 * rhs.m03 + self.m11 * rhs.m13 + self.m12 * rhs.m23 + self.m13 * rhs.m33,
-            self.m20 * rhs.m00 + self.m21 * rhs.m10 + self.m22 * rhs.m20 + self.m23 * rhs.m30,
-            self.m20 * rhs.m01 + self.m21 * rhs.m11 + self.m22 * rhs.m21 + self.m23 * rhs.m31,
-            self.m20 * rhs.m02 + self.m21 * rhs.m12 + self.m22 * rhs.m22 + self.m23 * rhs.m32,
-            self.m20 * rhs.m03 + self.m21 * rhs.m13 + self.m22 * rhs.m23 + self.m23 * rhs.m33,
-            self.m30 * rhs.m00 + self.m31 * rhs.m10 + self.m32 * rhs.m20 + self.m33 * rhs.m30,
-            self.m30 * rhs.m01 + self.m31 * rhs.m11 + self.m32 * rhs.m21 + self.m33 * rhs.m31,
-            self.m30 * rhs.m02 + self.m31 * rhs.m12 + self.m32 * rhs.m22 + self.m33 * rhs.m32,
-            self.m30 * rhs.m03 + self.m31 * rhs.m13 + self.m32 * rhs.m23 + self.m33 * rhs.m33,
+            &vec4f32(
+                self.m00 * rhs.m00 + self.m01 * rhs.m10 + self.m02 * rhs.m20 + self.m03 * rhs.m30,
+                self.m00 * rhs.m01 + self.m01 * rhs.m11 + self.m02 * rhs.m21 + self.m03 * rhs.m31,
+                self.m00 * rhs.m02 + self.m01 * rhs.m12 + self.m02 * rhs.m22 + self.m03 * rhs.m32,
+                self.m00 * rhs.m03 + self.m01 * rhs.m13 + self.m02 * rhs.m23 + self.m03 * rhs.m33,
+            ),
+            &vec4f32(
+                self.m10 * rhs.m00 + self.m11 * rhs.m10 + self.m12 * rhs.m20 + self.m13 * rhs.m30,
+                self.m10 * rhs.m01 + self.m11 * rhs.m11 + self.m12 * rhs.m21 + self.m13 * rhs.m31,
+                self.m10 * rhs.m02 + self.m11 * rhs.m12 + self.m12 * rhs.m22 + self.m13 * rhs.m32,
+                self.m10 * rhs.m03 + self.m11 * rhs.m13 + self.m12 * rhs.m23 + self.m13 * rhs.m33,
+            ),
+            &vec4f32(
+                self.m20 * rhs.m00 + self.m21 * rhs.m10 + self.m22 * rhs.m20 + self.m23 * rhs.m30,
+                self.m20 * rhs.m01 + self.m21 * rhs.m11 + self.m22 * rhs.m21 + self.m23 * rhs.m31,
+                self.m20 * rhs.m02 + self.m21 * rhs.m12 + self.m22 * rhs.m22 + self.m23 * rhs.m32,
+                self.m20 * rhs.m03 + self.m21 * rhs.m13 + self.m22 * rhs.m23 + self.m23 * rhs.m33,
+            ),
+            &vec4f32(
+                self.m30 * rhs.m00 + self.m31 * rhs.m10 + self.m32 * rhs.m20 + self.m33 * rhs.m30,
+                self.m30 * rhs.m01 + self.m31 * rhs.m11 + self.m32 * rhs.m21 + self.m33 * rhs.m31,
+                self.m30 * rhs.m02 + self.m31 * rhs.m12 + self.m32 * rhs.m22 + self.m33 * rhs.m32,
+                self.m30 * rhs.m03 + self.m31 * rhs.m13 + self.m32 * rhs.m23 + self.m33 * rhs.m33,
+            ),
         )
     }
 }
@@ -974,7 +981,7 @@ impl std::ops::Mul<Vector4f32> for Matrix4x4f32 {
     type Output = Vector4f32;
 
     fn mul(self, rhs: Vector4f32) -> Self::Output {
-        Vector4f32::new(
+        vec4f32(
             self.m00 * rhs.x + self.m01 * rhs.y + self.m02 * rhs.z + self.m03 * rhs.w,
             self.m10 * rhs.x + self.m11 * rhs.y + self.m12 * rhs.z + self.m13 * rhs.w,
             self.m20 * rhs.x + self.m21 * rhs.y + self.m22 * rhs.z + self.m23 * rhs.w,
@@ -1008,6 +1015,59 @@ impl std::ops::Mul<&Vector4f32> for &Matrix4x4f32 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     matrix indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<(usize, usize)> for Matrix4x4f32 {
+    type Output = f32;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        match index {
+            (0, 0) => &self.m00,
+            (0, 1) => &self.m01,
+            (0, 2) => &self.m02,
+            (0, 3) => &self.m03,
+            (1, 0) => &self.m10,
+            (1, 1) => &self.m11,
+            (1, 2) => &self.m12,
+            (1, 3) => &self.m13,
+            (2, 0) => &self.m20,
+            (2, 1) => &self.m21,
+            (2, 2) => &self.m22,
+            (2, 3) => &self.m23,
+            (3, 0) => &self.m30,
+            (3, 1) => &self.m31,
+            (3, 2) => &self.m32,
+            (3, 3) => &self.m33,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<(usize, usize)> for Matrix4x4f32 {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        match index {
+            (0, 0) => &mut self.m00,
+            (0, 1) => &mut self.m01,
+            (0, 2) => &mut self.m02,
+            (0, 3) => &mut self.m03,
+            (1, 0) => &mut self.m10,
+            (1, 1) => &mut self.m11,
+            (1, 2) => &mut self.m12,
+            (1, 3) => &mut self.m13,
+            (2, 0) => &mut self.m20,
+            (2, 1) => &mut self.m21,
+            (2, 2) => &mut self.m22,
+            (2, 3) => &mut self.m23,
+            (3, 0) => &mut self.m30,
+            (3, 1) => &mut self.m31,
+            (3, 2) => &mut self.m32,
+            (3, 3) => &mut self.m33,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     matrix tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -1017,10 +1077,16 @@ mod tests {
     #[test]
     fn initialization() {
         let m1 = mat4x4f32(
-            1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(5., 6., 7., 8.),
+            &vec4f32(9., 10., 11., 12.),
+            &vec4f32(13., 14., 15., 16.),
         );
         let m2 = Matrix4x4f32::new(
-            1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(5., 6., 7., 8.),
+            &vec4f32(9., 10., 11., 12.),
+            &vec4f32(13., 14., 15., 16.),
         );
         assert_eq!(m1, m2);
 
@@ -1036,17 +1102,26 @@ mod tests {
     #[test]
     fn operators() {
         let m1 = mat4x4f32(
-            1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(5., 6., 7., 8.),
+            &vec4f32(9., 10., 11., 12.),
+            &vec4f32(13., 14., 15., 16.),
         );
         let m2 = mat4x4f32(
-            16., 15., 14., 13., 12., 11., 10., 9., 8., 7., 6., 5., 4., 3., 2., 1.,
+            &vec4f32(16., 15., 14., 13.),
+            &vec4f32(12., 11., 10., 9.),
+            &vec4f32(8., 7., 6., 5.),
+            &vec4f32(4., 3., 2., 1.),
         );
 
         let add = m1 + m2;
         assert_eq!(
             add,
             mat4x4f32(
-                17., 17., 17., 17., 17., 17., 17., 17., 17., 17., 17., 17., 17., 17., 17., 17.
+                &vec4f32(17., 17., 17., 17.),
+                &vec4f32(17., 17., 17., 17.),
+                &vec4f32(17., 17., 17., 17.),
+                &vec4f32(17., 17., 17., 17.)
             )
         );
 
@@ -1054,7 +1129,10 @@ mod tests {
         assert_eq!(
             scaled,
             mat4x4f32(
-                2., 4., 6., 8., 10., 12., 14., 16., 18., 20., 22., 24., 26., 28., 30., 32.
+                &vec4f32(2., 4., 6., 8.),
+                &vec4f32(10., 12., 14., 16.),
+                &vec4f32(18., 20., 22., 24.),
+                &vec4f32(26., 28., 30., 32.)
             )
         );
     }
@@ -1062,7 +1140,10 @@ mod tests {
     #[test]
     fn matrix_multiplication() {
         let m = mat4x4f32(
-            1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(5., 6., 7., 8.),
+            &vec4f32(9., 10., 11., 12.),
+            &vec4f32(13., 14., 15., 16.),
         );
 
         let identity = Matrix4x4f32::IDENTITY;
@@ -1070,7 +1151,10 @@ mod tests {
         assert_eq!(identity * m, m);
 
         let scale = mat4x4f32(
-            2., 0., 0., 0., 0., 2., 0., 0., 0., 0., 2., 0., 0., 0., 0., 2.,
+            &vec4f32(2., 0., 0., 0.),
+            &vec4f32(0., 2., 0., 0.),
+            &vec4f32(0., 0., 2., 0.),
+            &vec4f32(0., 0., 0., 2.),
         );
         assert_eq!(m * scale, m * 2.);
     }
@@ -1081,7 +1165,10 @@ mod tests {
         assert_eq!(identity.determinant(), 1.);
 
         let singular = mat4x4f32(
-            1., 2., 3., 4., 2., 4., 6., 8., 3., 6., 9., 12., 4., 8., 12., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(2., 4., 6., 8.),
+            &vec4f32(3., 6., 9., 12.),
+            &vec4f32(4., 8., 12., 16.),
         );
         assert_eq!(singular.determinant(), 0.);
     }
@@ -1089,13 +1176,19 @@ mod tests {
     #[test]
     fn transpose() {
         let m = mat4x4f32(
-            1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(5., 6., 7., 8.),
+            &vec4f32(9., 10., 11., 12.),
+            &vec4f32(13., 14., 15., 16.),
         );
         let t = m.transpose();
         assert_eq!(
             t,
             mat4x4f32(
-                1., 5., 9., 13., 2., 6., 10., 14., 3., 7., 11., 15., 4., 8., 12., 16.
+                &vec4f32(1., 5., 9., 13.),
+                &vec4f32(2., 6., 10., 14.),
+                &vec4f32(3., 7., 11., 15.),
+                &vec4f32(4., 8., 12., 16.)
             )
         );
     }
@@ -1107,7 +1200,10 @@ mod tests {
         assert_eq!(inv, Matrix4x4f32::IDENTITY);
 
         let singular = mat4x4f32(
-            1., 2., 3., 4., 2., 4., 6., 8., 3., 6., 9., 12., 4., 8., 12., 16.,
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(2., 4., 6., 8.),
+            &vec4f32(3., 6., 9., 12.),
+            &vec4f32(4., 8., 12., 16.),
         );
         assert!(singular.inverse().is_none());
     }
@@ -1130,7 +1226,10 @@ mod tests {
     #[test]
     fn trace() {
         let m = mat4x4f32(
-            1., 0., 0., 0., 0., 2., 0., 0., 0., 0., 3., 0., 0., 0., 0., 4.,
+            &vec4f32(1., 0., 0., 0.),
+            &vec4f32(0., 2., 0., 0.),
+            &vec4f32(0., 0., 3., 0.),
+            &vec4f32(0., 0., 0., 4.),
         );
         assert_eq!(m.trace(), 10.);
     }
@@ -1156,26 +1255,101 @@ mod tests {
     fn row_col_access() {
         let mut m = Matrix4x4f32::ZEROS;
 
-        m.set_row(0, Vector4f32::new(1., 2., 3., 4.));
-        m.set_col(0, Vector4f32::new(1., 5., 9., 13.));
+        m.set_row(0, &vec4f32(1., 2., 3., 4.));
+        m.set_col(0, &vec4f32(1., 5., 9., 13.));
 
-        assert_eq!(m.get_row(0), Vector4f32::new(1., 2., 3., 4.));
-        assert_eq!(m.get_col(0), Vector4f32::new(1., 5., 9., 13.));
+        assert_eq!(m.get_row(0), vec4f32(1., 2., 3., 4.));
+        assert_eq!(m.get_col(0), vec4f32(1., 5., 9., 13.));
     }
 
     #[test]
     fn matrix_vector_multiplication() {
         let m = Matrix4x4f32::IDENTITY;
-        let v = Vector4f32::new(1., 2., 3., 1.);
+        let v = vec4f32(1., 2., 3., 1.);
 
         assert_eq!(m * v, v);
 
         use std::f32::consts::PI;
         let rot = Matrix4x4f32::rotation_z(PI / 4.);
-        let v2 = Vector4f32::new(1., 0., 0., 1.);
+        let v2 = vec4f32(1., 0., 0., 1.);
         let rotated = rot * v2;
 
         let eps = 1e-5;
         assert!((rotated.length() - v2.length()).abs() < eps);
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut m = mat4x4f32(
+            &vec4f32(1., 2., 3., 4.),
+            &vec4f32(5., 6., 7., 8.),
+            &vec4f32(9., 10., 11., 12.),
+            &vec4f32(13., 14., 15., 16.),
+        );
+        assert_eq!(m[(0, 0)], 1.);
+        assert_eq!(m[(0, 1)], 2.);
+        assert_eq!(m[(0, 2)], 3.);
+        assert_eq!(m[(0, 3)], 4.);
+        assert_eq!(m[(1, 0)], 5.);
+        assert_eq!(m[(1, 1)], 6.);
+        assert_eq!(m[(1, 2)], 7.);
+        assert_eq!(m[(1, 3)], 8.);
+        assert_eq!(m[(2, 0)], 9.);
+        assert_eq!(m[(2, 1)], 10.);
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(2, 3)], 12.);
+        assert_eq!(m[(3, 0)], 13.);
+        assert_eq!(m[(3, 1)], 14.);
+        assert_eq!(m[(3, 2)], 15.);
+        assert_eq!(m[(3, 3)], 16.);
+
+        m[(0, 0)] = 2.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(0, 0)], 2.);
+        m[(0, 1)] = 3.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(0, 1)], 3.);
+        m[(0, 2)] = 4.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(0, 2)], 4.);
+        m[(0, 3)] = 5.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(0, 3)], 5.);
+        m[(1, 0)] = 6.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(1, 0)], 6.);
+        m[(1, 1)] = 7.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(1, 1)], 7.);
+        m[(1, 2)] = 8.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(1, 2)], 8.);
+        m[(1, 3)] = 9.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(1, 3)], 9.);
+        m[(2, 0)] = 10.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(2, 0)], 10.);
+        m[(2, 1)] = 11.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(2, 1)], 11.);
+        m[(2, 2)] = 12.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(2, 2)], 12.);
+        m[(2, 3)] = 13.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(2, 3)], 13.);
+        m[(3, 0)] = 14.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(3, 0)], 14.);
+        m[(3, 1)] = 15.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(3, 1)], 15.);
+        m[(3, 2)] = 16.;
+        assert_eq!(m[(3, 3)], 16.);
+        assert_eq!(m[(3, 2)], 16.);
+        m[(3, 3)] = 17.;
+        assert_eq!(m[(3, 3)], 17.);
     }
 }

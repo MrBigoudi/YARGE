@@ -9,8 +9,6 @@
 - Add tests for the ECS methods
 - Create an example folder with many testbeds and way to run them from cargo directly
 
-## Events
-
 ## ECS
 
 - Add tests for the generational indices list
@@ -26,18 +24,13 @@
 
 ## Maths
 
-- Replace 9 / 16 parameters constructors by rows / cols constructors
 - Add other matrix types (i32, etc...)
 - Add other matrix structures (2x3, 2x4, ...)
-- Add other matrix vector operations 
-- Add other matrix vector constructions and selections (from vec, ...)
+- Add other matrix vector operations
 - Add other tests + better docs for matrices
 
 ## Vulkan
 
 - Put the physical device rate strategy in the configuration
 - Add other strategies depending on the config: AR / VR / Raytracing / Embedded app / Offline simulation ...
-- Add other features: PhysicalDeviceExtendedDynamicStateFeaturesEXT:
-    - add a struct containing every other features
-    - add a function "as_..." and "is_enabled" for every type of supported features
-    - in these functions, only match with corresponding features and skip unrelated features
+- Add other features (ex PhysicalDeviceExtendedDynamicStateFeaturesEXT)

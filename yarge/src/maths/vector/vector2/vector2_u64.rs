@@ -59,7 +59,7 @@ impl Default for Vector2u64 {
 }
 
 /// Creates a 2 dimensional u64 vector
-pub fn vec2u64(x: u64, y: u64) -> Vector2u64 {
+pub const fn vec2u64(x: u64, y: u64) -> Vector2u64 {
     Vector2u64::new(x, y)
 }
 
@@ -124,6 +124,15 @@ impl Vector2u64 {
     /// Returns the length of the vector
     pub fn length(&self) -> f64 {
         (Self::dot(self, self) as f64).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> u64 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> u64 {
+        self.data.as_array()[1]
     }
 }
 
@@ -612,6 +621,30 @@ impl std::ops::DivAssign<&u64> for Vector2u64 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector2u64 {
+    type Output = u64;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector2u64 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -686,5 +719,14 @@ mod tests {
         let v1 = vec2u64(3, 4);
         assert_eq!(v1.to_string(), "(3, 4)");
         assert_eq!(format!("{:?}", v1), "Vector2u64 { x: 3, y: 4 }");
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec2u64(2, 3);
+        assert_eq!(v1[1], 3);
+        v1[0] = 4;
+        assert_eq!(v1[0], 4);
     }
 }

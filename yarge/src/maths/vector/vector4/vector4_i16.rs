@@ -63,7 +63,7 @@ impl Default for Vector4i16 {
 }
 
 /// Creates a 4 dimensional i16 vector
-pub fn vec4i16(x: i16, y: i16, z: i16, w: i16) -> Vector4i16 {
+pub const fn vec4i16(x: i16, y: i16, z: i16, w: i16) -> Vector4i16 {
     Vector4i16::new(x, y, z, w)
 }
 
@@ -154,6 +154,23 @@ impl Vector4i16 {
     /// Returns the length of the vector
     pub fn length(&self) -> f32 {
         (Self::dot(self, self) as f32).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> i16 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> i16 {
+        self.data.as_array()[1]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn z_const(&self) -> i16 {
+        self.data.as_array()[2]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn w_const(&self) -> i16 {
+        self.data.as_array()[3]
     }
 }
 
@@ -652,6 +669,34 @@ impl std::ops::DivAssign<&i16> for Vector4i16 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector4i16 {
+    type Output = i16;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            3 => &self.w,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector4i16 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            3 => &mut self.w,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -736,5 +781,14 @@ mod tests {
         let v1 = vec4i16(3, 4, 6, 1);
         assert_eq!(v1.to_string(), "(3, 4, 6, 1)");
         assert_eq!(format!("{:?}", v1), "Vector4i16 { x: 3, y: 4, z: 6, w: 1 }");
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec4i16(2, 3, 1, 5);
+        assert_eq!(v1[2], 1);
+        v1[3] = 2;
+        assert_eq!(v1[3], 2);
     }
 }

@@ -62,7 +62,7 @@ impl Default for Vector3f32 {
 }
 
 /// Creates a 3 dimensional f32 vector
-pub fn vec3f32(x: f32, y: f32, z: f32) -> Vector3f32 {
+pub const fn vec3f32(x: f32, y: f32, z: f32) -> Vector3f32 {
     Vector3f32::new(x, y, z)
 }
 
@@ -162,6 +162,19 @@ impl Vector3f32 {
     /// Returns the length of the vector
     pub fn length(&self) -> f32 {
         Self::dot(self, self).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> f32 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> f32 {
+        self.data.as_array()[1]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn z_const(&self) -> f32 {
+        self.data.as_array()[2]
     }
 }
 
@@ -666,6 +679,32 @@ impl std::ops::DivAssign<&f32> for Vector3f32 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector3f32 {
+    type Output = f32;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector3f32 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -764,5 +803,14 @@ mod tests {
         let v1 = vec3f32(3.1, 4.2, 6.9);
         assert_eq!(v1.to_string(), "(3.1, 4.2, 6.9)");
         assert_eq!(format!("{:?}", v1), "Vector3f32 { x: 3.1, y: 4.2, z: 6.9 }");
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec3f32(2., 3., 1.);
+        assert_eq!(v1[2], 1.);
+        v1[1] = 2.;
+        assert_eq!(v1[1], 2.);
     }
 }

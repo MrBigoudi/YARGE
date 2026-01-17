@@ -63,7 +63,7 @@ impl Default for Vector4u8 {
 }
 
 /// Creates a 4 dimensional u8 vector
-pub fn vec4u8(x: u8, y: u8, z: u8, w: u8) -> Vector4u8 {
+pub const fn vec4u8(x: u8, y: u8, z: u8, w: u8) -> Vector4u8 {
     Vector4u8::new(x, y, z, w)
 }
 
@@ -139,6 +139,23 @@ impl Vector4u8 {
     /// Returns the length of the vector
     pub fn length(&self) -> f32 {
         (Self::dot(self, self) as f32).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> u8 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> u8 {
+        self.data.as_array()[1]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn z_const(&self) -> u8 {
+        self.data.as_array()[2]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn w_const(&self) -> u8 {
+        self.data.as_array()[3]
     }
 }
 
@@ -627,6 +644,34 @@ impl std::ops::DivAssign<&u8> for Vector4u8 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector4u8 {
+    type Output = u8;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            3 => &self.w,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector4u8 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            3 => &mut self.w,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -711,5 +756,14 @@ mod tests {
         let v1 = vec4u8(3, 4, 6, 1);
         assert_eq!(v1.to_string(), "(3, 4, 6, 1)");
         assert_eq!(format!("{:?}", v1), "Vector4u8 { x: 3, y: 4, z: 6, w: 1 }");
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec4u8(2, 3, 1, 5);
+        assert_eq!(v1[2], 1);
+        v1[3] = 2;
+        assert_eq!(v1[3], 2);
     }
 }

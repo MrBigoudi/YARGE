@@ -1,6 +1,6 @@
 use std::simd::prelude::*;
 
-use crate::maths::Vector3f32;
+use crate::maths::{Vector3f32, vec3f32};
 
 /// A structure to represent a 3x3 f32 matrix stored in column-major order
 #[derive(Clone, Copy)]
@@ -92,18 +92,8 @@ impl Default for Matrix3x3f32 {
 }
 
 /// Creates a 3x3 f32 matrix
-pub fn mat3x3f32(
-    m00: f32,
-    m01: f32,
-    m02: f32,
-    m10: f32,
-    m11: f32,
-    m12: f32,
-    m20: f32,
-    m21: f32,
-    m22: f32,
-) -> Matrix3x3f32 {
-    Matrix3x3f32::new(m00, m01, m02, m10, m11, m12, m20, m21, m22)
+pub const fn mat3x3f32(row_0: &Vector3f32, row_1: &Vector3f32, row_2: &Vector3f32) -> Matrix3x3f32 {
+    Matrix3x3f32::new(row_0, row_1, row_2)
 }
 
 impl Matrix3x3f32 {
@@ -112,28 +102,20 @@ impl Matrix3x3f32 {
     //////////////////////////////////////////////////////////
 
     /// Creates a new matrix given its elements in row-major order
-    pub const fn new(
-        m00: f32,
-        m01: f32,
-        m02: f32,
-        m10: f32,
-        m11: f32,
-        m12: f32,
-        m20: f32,
-        m21: f32,
-        m22: f32,
-    ) -> Self {
+    pub const fn new(row_0: &Vector3f32, row_1: &Vector3f32, row_2: &Vector3f32) -> Self {
         Self {
-            col0: f32x4::from_array([m00, m10, m20, 0.]),
-            col1: f32x4::from_array([m01, m11, m21, 0.]),
-            col2: f32x4::from_array([m02, m12, m22, 0.]),
+            col0: f32x4::from_array([row_0.x_const(), row_1.x_const(), row_2.x_const(), 0.]),
+            col1: f32x4::from_array([row_0.y_const(), row_1.y_const(), row_2.y_const(), 0.]),
+            col2: f32x4::from_array([row_0.z_const(), row_1.z_const(), row_2.z_const(), 0.]),
         }
     }
 
     /// Creates a new matrix with all elements set to `value`
     const fn splat(value: f32) -> Self {
         Self::new(
-            value, value, value, value, value, value, value, value, value,
+            &vec3f32(value, value, value),
+            &vec3f32(value, value, value),
+            &vec3f32(value, value, value),
         )
     }
 
@@ -149,11 +131,15 @@ impl Matrix3x3f32 {
     pub const ZEROS: Self = Self::splat(0.);
 
     /// Creates an identity matrix
-    pub const IDENTITY: Self = Self::new(1., 0., 0., 0., 1., 0., 0., 0., 1.);
+    pub const IDENTITY: Self = Self::diagonal(1., 1., 1.);
 
     /// Creates a diagonal matrix
     pub const fn diagonal(d0: f32, d1: f32, d2: f32) -> Self {
-        Self::new(d0, 0., 0., 0., d1, 0., 0., 0., d2)
+        Self::new(
+            &vec3f32(d0, 0., 0.),
+            &vec3f32(0., d1, 0.),
+            &vec3f32(0., 0., d2),
+        )
     }
 
     //////////////////////////////////////////////////////////
@@ -175,8 +161,9 @@ impl Matrix3x3f32 {
     /// Returns the transpose of the matrix
     pub fn transpose(&self) -> Self {
         Self::new(
-            self.m00, self.m10, self.m20, self.m01, self.m11, self.m21, self.m02, self.m12,
-            self.m22,
+            &vec3f32(self.m00, self.m10, self.m20),
+            &vec3f32(self.m01, self.m11, self.m21),
+            &vec3f32(self.m02, self.m12, self.m22),
         )
     }
 
@@ -204,15 +191,9 @@ impl Matrix3x3f32 {
 
         // Transpose of cofactor matrix divided by determinant
         Some(Self::new(
-            c00 * inv_det,
-            c10 * inv_det,
-            c20 * inv_det,
-            c01 * inv_det,
-            c11 * inv_det,
-            c21 * inv_det,
-            c02 * inv_det,
-            c12 * inv_det,
-            c22 * inv_det,
+            &vec3f32(c00 * inv_det, c10 * inv_det, c20 * inv_det),
+            &vec3f32(c01 * inv_det, c11 * inv_det, c21 * inv_det),
+            &vec3f32(c02 * inv_det, c12 * inv_det, c22 * inv_det),
         ))
     }
 
@@ -220,21 +201,33 @@ impl Matrix3x3f32 {
     pub fn rotation_x(angle: f32) -> Self {
         let cos = angle.cos();
         let sin = angle.sin();
-        Self::new(1., 0., 0., 0., cos, -sin, 0., sin, cos)
+        Self::new(
+            &vec3f32(1., 0., 0.),
+            &vec3f32(0., cos, -sin),
+            &vec3f32(0., sin, cos),
+        )
     }
 
     /// Creates a rotation matrix around the Y axis
     pub fn rotation_y(angle: f32) -> Self {
         let cos = angle.cos();
         let sin = angle.sin();
-        Self::new(cos, 0., sin, 0., 1., 0., -sin, 0., cos)
+        Self::new(
+            &vec3f32(cos, 0., sin),
+            &vec3f32(0., 1., 0.),
+            &vec3f32(-sin, 0., cos),
+        )
     }
 
     /// Creates a rotation matrix around the Z axis
     pub fn rotation_z(angle: f32) -> Self {
         let cos = angle.cos();
         let sin = angle.sin();
-        Self::new(cos, -sin, 0., sin, cos, 0., 0., 0., 1.)
+        Self::new(
+            &vec3f32(cos, -sin, 0.),
+            &vec3f32(sin, cos, 0.),
+            &vec3f32(0., 0., 1.),
+        )
     }
 
     /// Creates a scaling matrix
@@ -250,9 +243,9 @@ impl Matrix3x3f32 {
     pub fn get_row(&self, row: usize) -> Vector3f32 {
         assert!(row < 3, "Row index out of bounds");
         match row {
-            0 => Vector3f32::new(self.m00, self.m01, self.m02),
-            1 => Vector3f32::new(self.m10, self.m11, self.m12),
-            2 => Vector3f32::new(self.m20, self.m21, self.m22),
+            0 => vec3f32(self.m00, self.m01, self.m02),
+            1 => vec3f32(self.m10, self.m11, self.m12),
+            2 => vec3f32(self.m20, self.m21, self.m22),
             _ => unreachable!(),
         }
     }
@@ -261,15 +254,15 @@ impl Matrix3x3f32 {
     pub fn get_col(&self, col: usize) -> Vector3f32 {
         assert!(col < 3, "Column index out of bounds");
         match col {
-            0 => Vector3f32::new(self.m00, self.m10, self.m20),
-            1 => Vector3f32::new(self.m01, self.m11, self.m21),
-            2 => Vector3f32::new(self.m02, self.m12, self.m22),
+            0 => vec3f32(self.m00, self.m10, self.m20),
+            1 => vec3f32(self.m01, self.m11, self.m21),
+            2 => vec3f32(self.m02, self.m12, self.m22),
             _ => unreachable!(),
         }
     }
 
     /// Sets the specified row from a Vector3f32
-    pub fn set_row(&mut self, row: usize, v: Vector3f32) {
+    pub fn set_row(&mut self, row: usize, v: &Vector3f32) {
         assert!(row < 3, "Row index out of bounds");
         match row {
             0 => {
@@ -292,7 +285,7 @@ impl Matrix3x3f32 {
     }
 
     /// Sets the specified column from a Vector3f32
-    pub fn set_col(&mut self, col: usize, v: Vector3f32) {
+    pub fn set_col(&mut self, col: usize, v: &Vector3f32) {
         assert!(col < 3, "Column index out of bounds");
         match col {
             0 => {
@@ -510,15 +503,21 @@ impl std::ops::Mul<Matrix3x3f32> for Matrix3x3f32 {
 
     fn mul(self, rhs: Matrix3x3f32) -> Self::Output {
         Matrix3x3f32::new(
-            self.m00 * rhs.m00 + self.m01 * rhs.m10 + self.m02 * rhs.m20,
-            self.m00 * rhs.m01 + self.m01 * rhs.m11 + self.m02 * rhs.m21,
-            self.m00 * rhs.m02 + self.m01 * rhs.m12 + self.m02 * rhs.m22,
-            self.m10 * rhs.m00 + self.m11 * rhs.m10 + self.m12 * rhs.m20,
-            self.m10 * rhs.m01 + self.m11 * rhs.m11 + self.m12 * rhs.m21,
-            self.m10 * rhs.m02 + self.m11 * rhs.m12 + self.m12 * rhs.m22,
-            self.m20 * rhs.m00 + self.m21 * rhs.m10 + self.m22 * rhs.m20,
-            self.m20 * rhs.m01 + self.m21 * rhs.m11 + self.m22 * rhs.m21,
-            self.m20 * rhs.m02 + self.m21 * rhs.m12 + self.m22 * rhs.m22,
+            &vec3f32(
+                self.m00 * rhs.m00 + self.m01 * rhs.m10 + self.m02 * rhs.m20,
+                self.m00 * rhs.m01 + self.m01 * rhs.m11 + self.m02 * rhs.m21,
+                self.m00 * rhs.m02 + self.m01 * rhs.m12 + self.m02 * rhs.m22,
+            ),
+            &vec3f32(
+                self.m10 * rhs.m00 + self.m11 * rhs.m10 + self.m12 * rhs.m20,
+                self.m10 * rhs.m01 + self.m11 * rhs.m11 + self.m12 * rhs.m21,
+                self.m10 * rhs.m02 + self.m11 * rhs.m12 + self.m12 * rhs.m22,
+            ),
+            &vec3f32(
+                self.m20 * rhs.m00 + self.m21 * rhs.m10 + self.m22 * rhs.m20,
+                self.m20 * rhs.m01 + self.m21 * rhs.m11 + self.m22 * rhs.m21,
+                self.m20 * rhs.m02 + self.m21 * rhs.m12 + self.m22 * rhs.m22,
+            ),
         )
     }
 }
@@ -791,7 +790,7 @@ impl std::ops::Mul<Vector3f32> for Matrix3x3f32 {
     type Output = Vector3f32;
 
     fn mul(self, rhs: Vector3f32) -> Self::Output {
-        Vector3f32::new(
+        vec3f32(
             self.m00 * rhs.x + self.m01 * rhs.y + self.m02 * rhs.z,
             self.m10 * rhs.x + self.m11 * rhs.y + self.m12 * rhs.z,
             self.m20 * rhs.x + self.m21 * rhs.y + self.m22 * rhs.z,
@@ -824,16 +823,64 @@ impl std::ops::Mul<&Vector3f32> for &Matrix3x3f32 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     matrix indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<(usize, usize)> for Matrix3x3f32 {
+    type Output = f32;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        match index {
+            (0, 0) => &self.m00,
+            (0, 1) => &self.m01,
+            (0, 2) => &self.m02,
+            (1, 0) => &self.m10,
+            (1, 1) => &self.m11,
+            (1, 2) => &self.m12,
+            (2, 0) => &self.m20,
+            (2, 1) => &self.m21,
+            (2, 2) => &self.m22,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<(usize, usize)> for Matrix3x3f32 {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        match index {
+            (0, 0) => &mut self.m00,
+            (0, 1) => &mut self.m01,
+            (0, 2) => &mut self.m02,
+            (1, 0) => &mut self.m10,
+            (1, 1) => &mut self.m11,
+            (1, 2) => &mut self.m12,
+            (2, 0) => &mut self.m20,
+            (2, 1) => &mut self.m21,
+            (2, 2) => &mut self.m22,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     matrix tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::maths::vec3f32;
 
     #[test]
     fn initialization() {
-        let m1 = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
-        let m2 = Matrix3x3f32::new(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m1 = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
+        let m2 = Matrix3x3f32::new(
+            &&vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
         assert_eq!(m1, m2);
 
         let identity = Matrix3x3f32::IDENTITY;
@@ -846,49 +893,102 @@ mod tests {
 
     #[test]
     fn operators() {
-        let m1 = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
-        let m2 = mat3x3f32(9., 8., 7., 6., 5., 4., 3., 2., 1.);
+        let m1 = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
+        let m2 = mat3x3f32(
+            &vec3f32(9., 8., 7.),
+            &vec3f32(6., 5., 4.),
+            &vec3f32(3., 2., 1.),
+        );
 
         let add = m1 + m2;
-        assert_eq!(add, mat3x3f32(10., 10., 10., 10., 10., 10., 10., 10., 10.));
+        assert_eq!(
+            add,
+            mat3x3f32(
+                &vec3f32(10., 10., 10.),
+                &vec3f32(10., 10., 10.),
+                &vec3f32(10., 10., 10.),
+            )
+        );
 
         let scaled = m1 * 2.;
-        assert_eq!(scaled, mat3x3f32(2., 4., 6., 8., 10., 12., 14., 16., 18.));
+        assert_eq!(
+            scaled,
+            mat3x3f32(
+                &vec3f32(2., 4., 6.),
+                &vec3f32(8., 10., 12.),
+                &vec3f32(14., 16., 18.),
+            )
+        );
     }
 
     #[test]
     fn matrix_multiplication() {
-        let m1 = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m1 = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
         let identity = Matrix3x3f32::IDENTITY;
         assert_eq!(m1 * identity, m1);
         assert_eq!(identity * m1, m1);
 
-        let m2 = mat3x3f32(2., 0., 0., 0., 2., 0., 0., 0., 2.);
+        let m2 = mat3x3f32(
+            &vec3f32(2., 0., 0.),
+            &vec3f32(0., 2., 0.),
+            &vec3f32(0., 0., 2.),
+        );
         assert_eq!(m1 * m2, m1 * 2.);
     }
 
     #[test]
     fn determinant() {
-        let m = mat3x3f32(1., 2., 3., 0., 1., 4., 5., 6., 0.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(0., 1., 4.),
+            &vec3f32(5., 6., 0.),
+        );
         assert_eq!(m.determinant(), 1.);
 
         let identity = Matrix3x3f32::IDENTITY;
         assert_eq!(identity.determinant(), 1.);
 
-        let singular = mat3x3f32(1., 2., 3., 2., 4., 6., 3., 6., 9.);
+        let singular = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(2., 4., 6.),
+            &vec3f32(3., 6., 9.),
+        );
         assert_eq!(singular.determinant(), 0.);
     }
 
     #[test]
     fn transpose() {
-        let m = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
         let t = m.transpose();
-        assert_eq!(t, mat3x3f32(1., 4., 7., 2., 5., 8., 3., 6., 9.));
+        assert_eq!(
+            t,
+            mat3x3f32(
+                &vec3f32(1., 4., 7.),
+                &vec3f32(2., 5., 8.),
+                &vec3f32(3., 6., 9.),
+            )
+        );
     }
 
     #[test]
     fn inverse() {
-        let m = mat3x3f32(1., 2., 3., 0., 1., 4., 5., 6., 0.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(0., 1., 4.),
+            &vec3f32(5., 6., 0.),
+        );
         let inv = m.inverse().unwrap();
         let product = m * inv;
 
@@ -903,7 +1003,11 @@ mod tests {
         assert!((product.m20).abs() < eps);
         assert!((product.m21).abs() < eps);
 
-        let singular = mat3x3f32(1., 2., 3., 2., 4., 6., 3., 6., 9.);
+        let singular = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(2., 4., 6.),
+            &vec3f32(3., 6., 9.),
+        );
         assert!(singular.inverse().is_none());
     }
 
@@ -935,13 +1039,21 @@ mod tests {
 
     #[test]
     fn trace() {
-        let m = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
         assert_eq!(m.trace(), 15.);
     }
 
     #[test]
     fn deref() {
-        let m = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
         assert_eq!(m.m00, 1.);
         assert_eq!(m.m01, 2.);
         assert_eq!(m.m02, 3.);
@@ -959,47 +1071,59 @@ mod tests {
 
     #[test]
     fn format() {
-        let m = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
         let display = format!("{}", m);
         assert_eq!(display, "[1, 2, 3],[4, 5, 6],[7, 8, 9]");
     }
 
     #[test]
     fn row_col_access() {
-        let m = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
 
         // Test get_row
-        assert_eq!(m.get_row(0), Vector3f32::new(1., 2., 3.));
-        assert_eq!(m.get_row(1), Vector3f32::new(4., 5., 6.));
-        assert_eq!(m.get_row(2), Vector3f32::new(7., 8., 9.));
+        assert_eq!(m.get_row(0), vec3f32(1., 2., 3.));
+        assert_eq!(m.get_row(1), vec3f32(4., 5., 6.));
+        assert_eq!(m.get_row(2), vec3f32(7., 8., 9.));
 
         // Test get_col
-        assert_eq!(m.get_col(0), Vector3f32::new(1., 4., 7.));
-        assert_eq!(m.get_col(1), Vector3f32::new(2., 5., 8.));
-        assert_eq!(m.get_col(2), Vector3f32::new(3., 6., 9.));
+        assert_eq!(m.get_col(0), vec3f32(1., 4., 7.));
+        assert_eq!(m.get_col(1), vec3f32(2., 5., 8.));
+        assert_eq!(m.get_col(2), vec3f32(3., 6., 9.));
 
         // Test set_row
         let mut m2 = Matrix3x3f32::ZEROS;
-        m2.set_row(0, Vector3f32::new(1., 2., 3.));
-        m2.set_row(1, Vector3f32::new(4., 5., 6.));
-        m2.set_row(2, Vector3f32::new(7., 8., 9.));
+        m2.set_row(0, &vec3f32(1., 2., 3.));
+        m2.set_row(1, &vec3f32(4., 5., 6.));
+        m2.set_row(2, &vec3f32(7., 8., 9.));
         assert_eq!(m2, m);
 
         // Test set_col
         let mut m3 = Matrix3x3f32::ZEROS;
-        m3.set_col(0, Vector3f32::new(1., 4., 7.));
-        m3.set_col(1, Vector3f32::new(2., 5., 8.));
-        m3.set_col(2, Vector3f32::new(3., 6., 9.));
+        m3.set_col(0, &vec3f32(1., 4., 7.));
+        m3.set_col(1, &vec3f32(2., 5., 8.));
+        m3.set_col(2, &vec3f32(3., 6., 9.));
         assert_eq!(m3, m);
     }
 
     #[test]
     fn matrix_vector_multiplication() {
-        let m = mat3x3f32(1., 2., 3., 4., 5., 6., 7., 8., 9.);
-        let v = Vector3f32::new(1., 2., 3.);
+        let m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(4., 5., 6.),
+            &vec3f32(7., 8., 9.),
+        );
+        let v = vec3f32(1., 2., 3.);
 
         let result = m * v;
-        assert_eq!(result, Vector3f32::new(14., 32., 50.));
+        assert_eq!(result, vec3f32(14., 32., 50.));
 
         // Test with identity matrix
         let identity = Matrix3x3f32::IDENTITY;
@@ -1008,9 +1132,55 @@ mod tests {
         // Test rotation preserves length
         use std::f32::consts::PI;
         let rot = Matrix3x3f32::rotation_z(PI / 4.);
-        let v2 = Vector3f32::new(1., 0., 0.);
+        let v2 = vec3f32(1., 0., 0.);
         let rotated = rot * v2;
         let eps = 1e-5;
         assert!((rotated.length() - v2.length()).abs() < eps);
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut m = mat3x3f32(
+            &vec3f32(1., 2., 3.),
+            &vec3f32(5., 6., 7.),
+            &vec3f32(9., 10., 11.),
+        );
+        assert_eq!(m[(0, 0)], 1.);
+        assert_eq!(m[(0, 1)], 2.);
+        assert_eq!(m[(0, 2)], 3.);
+        assert_eq!(m[(1, 0)], 5.);
+        assert_eq!(m[(1, 1)], 6.);
+        assert_eq!(m[(1, 2)], 7.);
+        assert_eq!(m[(2, 0)], 9.);
+        assert_eq!(m[(2, 1)], 10.);
+        assert_eq!(m[(2, 2)], 11.);
+
+        m[(0, 0)] = 2.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(0, 0)], 2.);
+        m[(0, 1)] = 3.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(0, 1)], 3.);
+        m[(0, 2)] = 4.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(0, 2)], 4.);
+        m[(1, 0)] = 6.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(1, 0)], 6.);
+        m[(1, 1)] = 7.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(1, 1)], 7.);
+        m[(1, 2)] = 8.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(1, 2)], 8.);
+        m[(2, 0)] = 10.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(2, 0)], 10.);
+        m[(2, 1)] = 11.;
+        assert_eq!(m[(2, 2)], 11.);
+        assert_eq!(m[(2, 1)], 11.);
+        m[(2, 2)] = 12.;
+        assert_eq!(m[(2, 2)], 12.);
     }
 }

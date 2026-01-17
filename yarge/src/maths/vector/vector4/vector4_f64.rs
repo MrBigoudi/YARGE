@@ -63,7 +63,7 @@ impl Default for Vector4f64 {
 }
 
 /// Creates a 4 dimensional f64 vector
-pub fn vec4f64(x: f64, y: f64, z: f64, w: f64) -> Vector4f64 {
+pub const fn vec4f64(x: f64, y: f64, z: f64, w: f64) -> Vector4f64 {
     Vector4f64::new(x, y, z, w)
 }
 
@@ -160,6 +160,23 @@ impl Vector4f64 {
     /// Returns the length of the vector
     pub fn length(&self) -> f64 {
         Self::dot(self, self).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> f64 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> f64 {
+        self.data.as_array()[1]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn z_const(&self) -> f64 {
+        self.data.as_array()[2]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn w_const(&self) -> f64 {
+        self.data.as_array()[3]
     }
 }
 
@@ -658,6 +675,34 @@ impl std::ops::DivAssign<&f64> for Vector4f64 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector4f64 {
+    type Output = f64;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            3 => &self.w,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector4f64 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            3 => &mut self.w,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -745,5 +790,14 @@ mod tests {
             format!("{:?}", v1),
             "Vector4f64 { x: 3.1, y: 4.2, z: 6.9, w: 0.1 }"
         );
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec4f64(2., 3., 1., 5.);
+        assert_eq!(v1[2], 1.);
+        v1[3] = 2.;
+        assert_eq!(v1[3], 2.);
     }
 }

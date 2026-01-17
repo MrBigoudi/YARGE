@@ -1,6 +1,6 @@
 use std::simd::prelude::*;
 
-use crate::maths::Vector2f32;
+use crate::maths::{Vector2f32, vec2f32};
 
 /// A structure to represent a 2x2 f32 matrix stored in column-major order
 #[derive(Clone, Copy, PartialEq)]
@@ -69,8 +69,8 @@ impl Default for Matrix2x2f32 {
 }
 
 /// Creates a 2x2 f32 matrix
-pub fn mat2x2f32(m00: f32, m01: f32, m10: f32, m11: f32) -> Matrix2x2f32 {
-    Matrix2x2f32::new(m00, m01, m10, m11)
+pub fn mat2x2f32(row_0: &Vector2f32, row_1: &Vector2f32) -> Matrix2x2f32 {
+    Matrix2x2f32::new(row_0, row_1)
 }
 
 /// A union to cast simd to array and allow const construction
@@ -85,18 +85,20 @@ impl Matrix2x2f32 {
     //////////////////////////////////////////////////////////
 
     /// Creates a new matrix given its elements in row-major order
-    pub const fn new(m00: f32, m01: f32, m10: f32, m11: f32) -> Self {
-        unsafe {
-            UnionCast {
-                array: [m00, m10, m01, m11], // Store in column-major
-            }
-            .simd
+    pub const fn new(row_0: &Vector2f32, row_1: &Vector2f32) -> Self {
+        Self {
+            data: f32x4::from_array([
+                row_0.x_const(),
+                row_1.x_const(),
+                row_0.y_const(),
+                row_1.y_const(),
+            ]),
         }
     }
 
     /// Creates a new matrix with all elements set to `value`
     const fn splat(value: f32) -> Self {
-        Self::new(value, value, value, value)
+        Self::new(&vec2f32(value, value), &vec2f32(value, value))
     }
 
     /// Creates a new matrix filled with `value`
@@ -111,11 +113,11 @@ impl Matrix2x2f32 {
     pub const ZEROS: Self = Self::splat(0.);
 
     /// Creates an identity matrix
-    pub const IDENTITY: Self = Self::new(1., 0., 0., 1.);
+    pub const IDENTITY: Self = Self::diagonal(1., 1.);
 
     /// Creates a diagonal matrix
     pub const fn diagonal(d0: f32, d1: f32) -> Self {
-        Self::new(d0, 0., 0., d1)
+        Self::new(&vec2f32(d0, 0.), &vec2f32(0., d1))
     }
 
     //////////////////////////////////////////////////////////
@@ -134,7 +136,7 @@ impl Matrix2x2f32 {
 
     /// Returns the transpose of the matrix
     pub fn transpose(&self) -> Self {
-        Self::new(self.m00, self.m10, self.m01, self.m11)
+        Self::new(&vec2f32(self.m00, self.m10), &vec2f32(self.m01, self.m11))
     }
 
     /// Returns the inverse of the matrix, or None if not invertible
@@ -145,10 +147,8 @@ impl Matrix2x2f32 {
         }
         let inv_det = 1.0 / det;
         Some(Self::new(
-            self.m11 * inv_det,
-            -self.m01 * inv_det,
-            -self.m10 * inv_det,
-            self.m00 * inv_det,
+            &vec2f32(self.m11 * inv_det, -self.m01 * inv_det),
+            &vec2f32(-self.m10 * inv_det, self.m00 * inv_det),
         ))
     }
 
@@ -156,7 +156,7 @@ impl Matrix2x2f32 {
     pub fn rotation(angle: f32) -> Self {
         let cos = angle.cos();
         let sin = angle.sin();
-        Self::new(cos, -sin, sin, cos)
+        Self::new(&vec2f32(cos, -sin), &vec2f32(sin, cos))
     }
 
     /// Creates a scaling matrix
@@ -172,8 +172,8 @@ impl Matrix2x2f32 {
     pub fn get_row(&self, row: usize) -> Vector2f32 {
         assert!(row < 2, "Row index out of bounds");
         match row {
-            0 => Vector2f32::new(self.m00, self.m01),
-            1 => Vector2f32::new(self.m10, self.m11),
+            0 => vec2f32(self.m00, self.m01),
+            1 => vec2f32(self.m10, self.m11),
             _ => unreachable!(),
         }
     }
@@ -182,14 +182,14 @@ impl Matrix2x2f32 {
     pub fn get_col(&self, col: usize) -> Vector2f32 {
         assert!(col < 2, "Column index out of bounds");
         match col {
-            0 => Vector2f32::new(self.m00, self.m10),
-            1 => Vector2f32::new(self.m01, self.m11),
+            0 => vec2f32(self.m00, self.m10),
+            1 => vec2f32(self.m01, self.m11),
             _ => unreachable!(),
         }
     }
 
     /// Sets the specified row from a Vector2f32
-    pub fn set_row(&mut self, row: usize, v: Vector2f32) {
+    pub fn set_row(&mut self, row: usize, v: &Vector2f32) {
         assert!(row < 2, "Row index out of bounds");
         match row {
             0 => {
@@ -205,7 +205,7 @@ impl Matrix2x2f32 {
     }
 
     /// Sets the specified column from a Vector2f32
-    pub fn set_col(&mut self, col: usize, v: Vector2f32) {
+    pub fn set_col(&mut self, col: usize, v: &Vector2f32) {
         assert!(col < 2, "Column index out of bounds");
         match col {
             0 => {
@@ -388,10 +388,14 @@ impl std::ops::Mul<Matrix2x2f32> for Matrix2x2f32 {
 
     fn mul(self, rhs: Matrix2x2f32) -> Self::Output {
         Matrix2x2f32::new(
-            self.m00 * rhs.m00 + self.m01 * rhs.m10,
-            self.m00 * rhs.m01 + self.m01 * rhs.m11,
-            self.m10 * rhs.m00 + self.m11 * rhs.m10,
-            self.m10 * rhs.m01 + self.m11 * rhs.m11,
+            &vec2f32(
+                self.m00 * rhs.m00 + self.m01 * rhs.m10,
+                self.m00 * rhs.m01 + self.m01 * rhs.m11,
+            ),
+            &vec2f32(
+                self.m10 * rhs.m00 + self.m11 * rhs.m10,
+                self.m10 * rhs.m01 + self.m11 * rhs.m11,
+            ),
         )
     }
 }
@@ -638,7 +642,7 @@ impl std::ops::Mul<Vector2f32> for Matrix2x2f32 {
     type Output = Vector2f32;
 
     fn mul(self, rhs: Vector2f32) -> Self::Output {
-        Vector2f32::new(
+        vec2f32(
             self.m00 * rhs.x + self.m01 * rhs.y,
             self.m10 * rhs.x + self.m11 * rhs.y,
         )
@@ -670,6 +674,35 @@ impl std::ops::Mul<&Vector2f32> for &Matrix2x2f32 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     matrix indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<(usize, usize)> for Matrix2x2f32 {
+    type Output = f32;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        match index {
+            (0, 0) => &self.m00,
+            (0, 1) => &self.m01,
+            (1, 0) => &self.m10,
+            (1, 1) => &self.m11,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<(usize, usize)> for Matrix2x2f32 {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        match index {
+            (0, 0) => &mut self.m00,
+            (0, 1) => &mut self.m01,
+            (1, 0) => &mut self.m10,
+            (1, 1) => &mut self.m11,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     matrix tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -678,8 +711,8 @@ mod tests {
 
     #[test]
     fn initialization() {
-        let m1 = mat2x2f32(1., 2., 3., 4.);
-        let m2 = Matrix2x2f32::new(1., 2., 3., 4.);
+        let m1 = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
+        let m2 = Matrix2x2f32::new(&vec2f32(1., 2.), &vec2f32(3., 4.));
         assert_eq!(m1, m2);
 
         let identity = Matrix2x2f32::IDENTITY;
@@ -691,25 +724,25 @@ mod tests {
 
     #[test]
     fn operators() {
-        let m1 = mat2x2f32(1., 2., 3., 4.);
-        let m2 = mat2x2f32(5., 6., 7., 8.);
+        let m1 = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
+        let m2 = mat2x2f32(&vec2f32(5., 6.), &vec2f32(7., 8.));
 
         let add = m1 + m2;
-        assert_eq!(add, mat2x2f32(6., 8., 10., 12.));
+        assert_eq!(add, mat2x2f32(&vec2f32(6., 8.), &vec2f32(10., 12.)));
 
         let sub = m2 - m1;
-        assert_eq!(sub, mat2x2f32(4., 4., 4., 4.));
+        assert_eq!(sub, mat2x2f32(&vec2f32(4., 4.), &vec2f32(4., 4.)));
 
         let scaled = m1 * 2.;
-        assert_eq!(scaled, mat2x2f32(2., 4., 6., 8.));
+        assert_eq!(scaled, mat2x2f32(&vec2f32(2., 4.), &vec2f32(6., 8.)));
     }
 
     #[test]
     fn matrix_multiplication() {
-        let m1 = mat2x2f32(1., 2., 3., 4.);
-        let m2 = mat2x2f32(2., 0., 1., 2.);
+        let m1 = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
+        let m2 = mat2x2f32(&vec2f32(2., 0.), &vec2f32(1., 2.));
         let result = m1 * m2;
-        assert_eq!(result, mat2x2f32(4., 4., 10., 8.));
+        assert_eq!(result, mat2x2f32(&vec2f32(4., 4.), &vec2f32(10., 8.)));
 
         let identity = Matrix2x2f32::IDENTITY;
         assert_eq!(m1 * identity, m1);
@@ -717,7 +750,7 @@ mod tests {
 
     #[test]
     fn determinant() {
-        let m = mat2x2f32(1., 2., 3., 4.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
         assert_eq!(m.determinant(), -2.);
 
         let identity = Matrix2x2f32::IDENTITY;
@@ -726,14 +759,14 @@ mod tests {
 
     #[test]
     fn transpose() {
-        let m = mat2x2f32(1., 2., 3., 4.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
         let t = m.transpose();
-        assert_eq!(t, mat2x2f32(1., 3., 2., 4.));
+        assert_eq!(t, mat2x2f32(&vec2f32(1., 3.), &vec2f32(2., 4.)));
     }
 
     #[test]
     fn inverse() {
-        let m = mat2x2f32(1., 2., 3., 4.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
         let inv = m.inverse().unwrap();
         let product = m * inv;
 
@@ -742,7 +775,7 @@ mod tests {
         assert!((product.m01).abs() < 1e-5);
         assert!((product.m10).abs() < 1e-5);
 
-        let singular = mat2x2f32(1., 2., 2., 4.);
+        let singular = mat2x2f32(&vec2f32(1., 2.), &vec2f32(2., 4.));
         assert!(singular.inverse().is_none());
     }
 
@@ -759,13 +792,13 @@ mod tests {
 
     #[test]
     fn trace() {
-        let m = mat2x2f32(1., 2., 3., 4.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
         assert_eq!(m.trace(), 5.);
     }
 
     #[test]
     fn deref() {
-        let m = mat2x2f32(1., 2., 3., 4.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
         assert_eq!(m.m00, 1.);
         assert_eq!(m.m01, 2.);
         assert_eq!(m.m10, 3.);
@@ -778,43 +811,43 @@ mod tests {
 
     #[test]
     fn format() {
-        let m = mat2x2f32(1., 2., 3., 4.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(3., 4.));
         let display = format!("{}", m);
         assert_eq!(display, "[1, 2],[3, 4]");
     }
 
     #[test]
     fn row_col_access() {
-        let m = mat2x2f32(1., 2., 4., 5.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(4., 5.));
 
         // Test get_row
-        assert_eq!(m.get_row(0), Vector2f32::new(1., 2.));
-        assert_eq!(m.get_row(1), Vector2f32::new(4., 5.));
+        assert_eq!(m.get_row(0), vec2f32(1., 2.));
+        assert_eq!(m.get_row(1), vec2f32(4., 5.));
 
         // Test get_col
-        assert_eq!(m.get_col(0), Vector2f32::new(1., 4.));
-        assert_eq!(m.get_col(1), Vector2f32::new(2., 5.));
+        assert_eq!(m.get_col(0), vec2f32(1., 4.));
+        assert_eq!(m.get_col(1), vec2f32(2., 5.));
 
         // Test set_row
         let mut m2 = Matrix2x2f32::ZEROS;
-        m2.set_row(0, Vector2f32::new(1., 2.));
-        m2.set_row(1, Vector2f32::new(4., 5.));
+        m2.set_row(0, &vec2f32(1., 2.));
+        m2.set_row(1, &vec2f32(4., 5.));
         assert_eq!(m2, m);
 
         // Test set_col
         let mut m3 = Matrix2x2f32::ZEROS;
-        m3.set_col(0, Vector2f32::new(1., 4.));
-        m3.set_col(1, Vector2f32::new(2., 5.));
+        m3.set_col(0, &vec2f32(1., 4.));
+        m3.set_col(1, &vec2f32(2., 5.));
         assert_eq!(m3, m);
     }
 
     #[test]
     fn matrix_vector_multiplication() {
-        let m = mat2x2f32(1., 2., 4., 5.);
-        let v = Vector2f32::new(1., 2.);
+        let m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(4., 5.));
+        let v = vec2f32(1., 2.);
 
         let result = m * v;
-        assert_eq!(result, Vector2f32::new(5., 14.));
+        assert_eq!(result, vec2f32(5., 14.));
 
         // Test with identity matrix
         let identity = Matrix2x2f32::IDENTITY;
@@ -823,9 +856,31 @@ mod tests {
         // Test rotation preserves length
         use std::f32::consts::PI;
         let rot = Matrix2x2f32::rotation(PI / 4.);
-        let v2 = Vector2f32::new(1., 0.);
+        let v2 = vec2f32(1., 0.);
         let rotated = rot * v2;
         let eps = 1e-5;
         assert!((rotated.length() - v2.length()).abs() < eps);
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut m = mat2x2f32(&vec2f32(1., 2.), &vec2f32(5., 6.));
+        assert_eq!(m[(0, 0)], 1.);
+        assert_eq!(m[(0, 1)], 2.);
+        assert_eq!(m[(1, 0)], 5.);
+        assert_eq!(m[(1, 1)], 6.);
+
+        m[(0, 0)] = 2.;
+        assert_eq!(m[(1, 1)], 6.);
+        assert_eq!(m[(0, 0)], 2.);
+        m[(0, 1)] = 3.;
+        assert_eq!(m[(1, 1)], 6.);
+        assert_eq!(m[(0, 1)], 3.);
+        m[(1, 0)] = 6.;
+        assert_eq!(m[(1, 1)], 6.);
+        assert_eq!(m[(1, 0)], 6.);
+        m[(1, 1)] = 7.;
+        assert_eq!(m[(1, 1)], 7.);
     }
 }

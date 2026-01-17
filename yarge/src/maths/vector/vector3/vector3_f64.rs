@@ -62,7 +62,7 @@ impl Default for Vector3f64 {
 }
 
 /// Creates a 3 dimensional f64 vector
-pub fn vec3f64(x: f64, y: f64, z: f64) -> Vector3f64 {
+pub const fn vec3f64(x: f64, y: f64, z: f64) -> Vector3f64 {
     Vector3f64::new(x, y, z)
 }
 
@@ -162,6 +162,19 @@ impl Vector3f64 {
     /// Returns the length of the vector
     pub fn length(&self) -> f64 {
         Self::dot(self, self).sqrt()
+    }
+
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn x_const(&self) -> f64 {
+        self.data.as_array()[0]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn y_const(&self) -> f64 {
+        self.data.as_array()[1]
+    }
+    /// Const accessor, only used for matrix initialization
+    pub(in crate::maths) const fn z_const(&self) -> f64 {
+        self.data.as_array()[2]
     }
 }
 
@@ -666,6 +679,32 @@ impl std::ops::DivAssign<&f64> for Vector3f64 {
 }
 
 //////////////////////////////////////////////////////////
+///////////////     vector indices     ///////////////////
+//////////////////////////////////////////////////////////
+impl std::ops::Index<usize> for Vector3f64 {
+    type Output = f64;
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Vector3f64 {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Index out of bounds"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////
 ///////////////     vector tests      ////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
@@ -764,5 +803,14 @@ mod tests {
         let v1 = vec3f64(3.1, 4.2, 6.9);
         assert_eq!(v1.to_string(), "(3.1, 4.2, 6.9)");
         assert_eq!(format!("{:?}", v1), "Vector3f64 { x: 3.1, y: 4.2, z: 6.9 }");
+    }
+
+    /// Tests indices access
+    #[test]
+    fn indices() {
+        let mut v1 = vec3f64(2., 3., 1.);
+        assert_eq!(v1[2], 1.);
+        v1[1] = 2.;
+        assert_eq!(v1[1], 2.);
     }
 }
