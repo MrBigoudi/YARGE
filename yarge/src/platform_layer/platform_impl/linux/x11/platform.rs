@@ -40,6 +40,10 @@ impl PlatformLayer for LinuxX11PlatformLayer {
         &mut self.window
     }
 
+    fn get_window_ref(&self, _window_id: u8) -> &impl Window {
+        &self.window
+    }
+
     fn poll_event(&mut self) -> Result<Event, ErrorType> {
         match self.window.poll_event() {
             Ok(event) => Ok(event),

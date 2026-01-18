@@ -3,9 +3,12 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
     config::Config,
-    rendering_layer::rendering_impl::types::{
-        extensions::VkExtension,
-        features::{VkFeatures10, VkFeatures11, VkFeatures12, VkFeatures13, VkFeaturesExt},
+    rendering_layer::rendering_impl::{
+        types::{
+            extensions::VkExtension,
+            features::{VkFeatures10, VkFeatures11, VkFeatures12, VkFeatures13, VkFeaturesExt},
+        },
+        vulkan::init::surface::VkSurface,
     },
 };
 
@@ -27,6 +30,8 @@ pub(crate) struct VkQueues {
     pub(crate) compute: Vec<ash::vk::Queue>,
     /// The queues supporting transfer commands
     pub(crate) transfer: Vec<ash::vk::Queue>,
+    /// The queues supporting present commands
+    pub(crate) present: Vec<ash::vk::Queue>,
 }
 
 impl VkQueues {
@@ -62,10 +67,21 @@ impl VkQueues {
             return Err(ErrorType::DoesNotExist);
         }
 
+        let present: Vec<ash::vk::Queue> = (0..queue_families.present.count)
+            .map(|queue_index| unsafe {
+                device.get_device_queue(queue_families.present.index as u32, queue_index as u32)
+            })
+            .collect();
+        if present.is_empty() {
+            log_error!("Failed to get at least a present queue from the Vulkan device");
+            return Err(ErrorType::DoesNotExist);
+        }
+
         Ok(Self {
             graphics,
             compute,
             transfer,
+            present,
         })
     }
 }
@@ -79,12 +95,26 @@ pub(crate) struct VkQueueFamilies {
     pub(crate) compute: VkQueueFamily,
     /// The queue family supporting transfer commands
     pub(crate) transfer: VkQueueFamily,
+    /// The queue family supporting present commands
+    pub(crate) present: VkQueueFamily,
 }
 
 impl VkQueueFamilies {
-    /// Creates the needed queue families from the properties
-    fn new(queue_family_properties: &[ash::vk::QueueFamilyProperties]) -> Result<Self, ErrorType> {
-        let graphics = match VkQueueFamily::new_graphics(queue_family_properties) {
+    /// Creates the needed queue families
+    fn new(
+        instance: &ash::Instance,
+        surface: &VkSurface,
+        physical_device: &ash::vk::PhysicalDevice,
+    ) -> Result<Self, ErrorType> {
+        let queue_family_properties =
+            unsafe { instance.get_physical_device_queue_family_properties(*physical_device) };
+        log_info!("queue family properties: {:?}", queue_family_properties);
+
+        let graphics = match VkQueueFamily::new_graphics(
+            &queue_family_properties,
+            physical_device,
+            surface,
+        ) {
             Ok(index) => index,
             Err(err) => {
                 log_error!(
@@ -94,7 +124,7 @@ impl VkQueueFamilies {
                 return Err(ErrorType::Unknown);
             }
         };
-        let compute = match VkQueueFamily::new_compute(queue_family_properties) {
+        let compute = match VkQueueFamily::new_compute(&queue_family_properties) {
             Ok(index) => index,
             Err(err) => {
                 log_error!(
@@ -104,11 +134,25 @@ impl VkQueueFamilies {
                 return Err(ErrorType::Unknown);
             }
         };
-        let transfer = match VkQueueFamily::new_transfer(queue_family_properties) {
+        let transfer = match VkQueueFamily::new_transfer(&queue_family_properties) {
             Ok(index) => index,
             Err(err) => {
                 log_error!(
                     "Failed to creeate a transfer queue family when initializing the Vulkan queues: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        let present = match VkQueueFamily::new_present(
+            &queue_family_properties,
+            physical_device,
+            surface,
+        ) {
+            Ok(index) => index,
+            Err(err) => {
+                log_error!(
+                    "Failed to creeate a present queue family when initializing the Vulkan queues: {:?}",
                     err
                 );
                 return Err(ErrorType::Unknown);
@@ -119,11 +163,13 @@ impl VkQueueFamilies {
         log_info!("\t- Graphics: {:?}", graphics);
         log_info!("\t- Compute: {:?}", compute);
         log_info!("\t- Transfer: {:?}", transfer);
+        log_info!("\t- Present: {:?}", present);
 
         Ok(Self {
             graphics,
             compute,
             transfer,
+            present,
         })
     }
 }
@@ -145,41 +191,81 @@ const GRAPHICS_QUEUE_PRIORITY: f32 = 0.;
 const COMPUTE_QUEUE_PRIORITY: f32 = 0.5;
 /// The priority for the transfer queue
 const TRANSFER_QUEUE_PRIORITY: f32 = 1.;
+/// The priority for the present queue
+const PRESENT_QUEUE_PRIORITY: f32 = 1.;
+
+/// Checks if the given physical device supports presenting to a surface
+fn check_present_support(
+    physical_device: &ash::vk::PhysicalDevice,
+    surface: &VkSurface,
+    index: usize,
+) -> Result<bool, ErrorType> {
+    match unsafe {
+        surface.instance.get_physical_device_surface_support(
+            *physical_device,
+            index as u32,
+            surface.surface,
+        )
+    } {
+        Ok(supports) => Ok(supports),
+        Err(err) => {
+            log_error!(
+                "Failed to check if the Vulkan physical device supports present: {:?}",
+                err
+            );
+            Err(ErrorType::VulkanError)
+        }
+    }
+}
 
 impl VkQueueFamily {
     /// Creates a queue capable of handling graphics commands
     /// If a queue is only able to handle graphics commands it will be prefered
     fn new_graphics(
         queue_family_properties: &[ash::vk::QueueFamilyProperties],
+        physical_device: &ash::vk::PhysicalDevice,
+        surface: &VkSurface,
     ) -> Result<Self, ErrorType> {
         let mut graphics_index = None;
         let mut count = 0;
         'outter_loop: for (index, property) in queue_family_properties.iter().enumerate() {
+            let supports_present = match check_present_support(physical_device, surface, index) {
+                Ok(supports) => supports,
+                Err(err) => {
+                    log_error!(
+                        "Failed to check if a Vulkan queue family supports both graphics and present: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
+
             if property
                 .queue_flags
                 .intersects(ash::vk::QueueFlags::GRAPHICS)
             {
+                // Default match
                 if graphics_index.is_none() {
                     graphics_index = Some(index);
                     count = property.queue_count as usize;
                 } else {
-                    if !property
-                        .queue_flags
-                        .intersects(ash::vk::QueueFlags::COMPUTE)
+                    // Better match
+                    if supports_present
+                        || !property
+                            .queue_flags
+                            .intersects(ash::vk::QueueFlags::COMPUTE)
+                        || !property
+                            .queue_flags
+                            .intersects(ash::vk::QueueFlags::TRANSFER)
                     {
                         graphics_index = Some(index);
                         count = property.queue_count as usize;
                     }
-                    if !property
-                        .queue_flags
-                        .intersects(ash::vk::QueueFlags::TRANSFER)
-                    {
-                        graphics_index = Some(index);
-                        count = property.queue_count as usize;
-                    }
-                    if !property
-                        .queue_flags
-                        .intersects(ash::vk::QueueFlags::COMPUTE)
+                    // Perfect match
+                    if supports_present
+                        && !property
+                            .queue_flags
+                            .intersects(ash::vk::QueueFlags::COMPUTE)
                         && !property
                             .queue_flags
                             .intersects(ash::vk::QueueFlags::TRANSFER)
@@ -216,24 +302,23 @@ impl VkQueueFamily {
                 .queue_flags
                 .intersects(ash::vk::QueueFlags::COMPUTE)
             {
+                // Default match
                 if compute_index.is_none() {
                     compute_index = Some(index);
                     count = property.queue_count as usize;
                 } else {
+                    // Better match
                     if !property
                         .queue_flags
                         .intersects(ash::vk::QueueFlags::GRAPHICS)
+                        || !property
+                            .queue_flags
+                            .intersects(ash::vk::QueueFlags::TRANSFER)
                     {
                         compute_index = Some(index);
                         count = property.queue_count as usize;
                     }
-                    if !property
-                        .queue_flags
-                        .intersects(ash::vk::QueueFlags::TRANSFER)
-                    {
-                        compute_index = Some(index);
-                        count = property.queue_count as usize;
-                    }
+                    // Perfect match
                     if !property
                         .queue_flags
                         .intersects(ash::vk::QueueFlags::GRAPHICS)
@@ -273,24 +358,23 @@ impl VkQueueFamily {
                 .queue_flags
                 .intersects(ash::vk::QueueFlags::TRANSFER)
             {
+                // Default match
                 if transfer_index.is_none() {
                     transfer_index = Some(index);
                     count = property.queue_count as usize;
                 } else {
+                    // Better match
                     if !property
                         .queue_flags
                         .intersects(ash::vk::QueueFlags::GRAPHICS)
+                        || !property
+                            .queue_flags
+                            .intersects(ash::vk::QueueFlags::COMPUTE)
                     {
                         transfer_index = Some(index);
                         count = property.queue_count as usize;
                     }
-                    if !property
-                        .queue_flags
-                        .intersects(ash::vk::QueueFlags::COMPUTE)
-                    {
-                        transfer_index = Some(index);
-                        count = property.queue_count as usize;
-                    }
+                    // Perfect match
                     if !property
                         .queue_flags
                         .intersects(ash::vk::QueueFlags::COMPUTE)
@@ -317,20 +401,79 @@ impl VkQueueFamily {
             }),
         }
     }
+
+    /// Creates a queue capable of handling present commands
+    /// If a queue is only able to handle present and graphics commands it will be prefered
+    fn new_present(
+        queue_family_properties: &[ash::vk::QueueFamilyProperties],
+        physical_device: &ash::vk::PhysicalDevice,
+        surface: &VkSurface,
+    ) -> Result<Self, ErrorType> {
+        let mut present_index = None;
+        let mut count = 0;
+        'outter_loop: for (index, property) in queue_family_properties.iter().enumerate() {
+            let supports_present = match check_present_support(physical_device, surface, index) {
+                Ok(supports) => supports,
+                Err(err) => {
+                    log_error!(
+                        "Failed to check if a Vulkan queue family supports present: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
+
+            if supports_present {
+                // Default match
+                if present_index.is_none() {
+                    present_index = Some(index);
+                    count = property.queue_count as usize;
+                }
+                // Better match
+                if property
+                    .queue_flags
+                    .intersects(ash::vk::QueueFlags::GRAPHICS)
+                {
+                    present_index = Some(index);
+                    count = property.queue_count as usize;
+
+                    // Perfect match
+                    if !property
+                        .queue_flags
+                        .intersects(ash::vk::QueueFlags::COMPUTE)
+                        && !property
+                            .queue_flags
+                            .intersects(ash::vk::QueueFlags::TRANSFER)
+                    {
+                        break 'outter_loop;
+                    }
+                }
+            }
+        }
+        match present_index {
+            None => {
+                log_error!("Failed to find a queue supporting presentation commands");
+                Err(ErrorType::DoesNotExist)
+            }
+            Some(index) => Ok(Self {
+                index,
+                count,
+                priority: PRESENT_QUEUE_PRIORITY,
+            }),
+        }
+    }
 }
 
 /// Initializes the logical device
 pub(crate) fn init_device(
     config: &Config,
     instance: &ash::Instance,
+    surface: &VkSurface,
     physical_device: &ash::vk::PhysicalDevice,
     allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
 ) -> Result<VkDevice, ErrorType> {
     // Queues
-    let queue_family_properties =
-        unsafe { instance.get_physical_device_queue_family_properties(*physical_device) };
-    log_info!("queue family properties: {:?}", queue_family_properties);
-    let queue_families = match VkQueueFamilies::new(&queue_family_properties) {
+    let queue_families = match VkQueueFamilies::new(instance, surface, physical_device) {
         Ok(queue_families) => queue_families,
         Err(err) => {
             log_error!(

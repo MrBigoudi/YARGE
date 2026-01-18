@@ -106,6 +106,6 @@ pub(crate) trait Window {
         &self,
         vk_entry: &ash::Entry,
         vk_instance: &ash::Instance,
-        allocator: &Option<ash::vk::AllocationCallbacks<'_>>,
+        allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
     ) -> Result<ash::vk::SurfaceKHR, ErrorType>;
 }

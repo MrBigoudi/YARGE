@@ -932,7 +932,7 @@ impl Window for LinuxX11Window {
         &self,
         vk_entry: &ash::Entry,
         vk_instance: &ash::Instance,
-        allocator: &Option<ash::vk::AllocationCallbacks<'_>>,
+        allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
     ) -> Result<ash::vk::SurfaceKHR, ErrorType> {
         let create_info_khr = ash::vk::XcbSurfaceCreateInfoKHR::default()
             .connection(self.connection.get_raw_conn() as *mut std::os::raw::c_void)
@@ -942,7 +942,7 @@ impl Window for LinuxX11Window {
         let surface_instance = ash::khr::xcb_surface::Instance::new(vk_entry, vk_instance);
         // create the surface
         let surface = unsafe {
-            match surface_instance.create_xcb_surface(&create_info_khr, allocator.as_ref()) {
+            match surface_instance.create_xcb_surface(&create_info_khr, allocator) {
                 Ok(surface) => surface,
                 Err(err) => {
                     log_error!(

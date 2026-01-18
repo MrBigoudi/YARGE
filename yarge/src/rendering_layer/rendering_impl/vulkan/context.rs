@@ -11,6 +11,7 @@ use crate::{
         entry::init_entry,
         instance::init_instance,
         physical_device::init_physical_device,
+        surface::init_surface,
     },
 };
 
@@ -24,6 +25,8 @@ pub(crate) struct VulkanContext<'a> {
     pub(crate) instance: ash::Instance,
     /// The debug messenger
     pub(crate) debug_messenger: Option<VkDebugMessenger>,
+    /// The window surface
+    pub(crate) surface: super::init::surface::VkSurface,
     /// The physical device
     pub(crate) physical_device: ash::vk::PhysicalDevice,
     /// The logical device
@@ -79,6 +82,17 @@ impl VulkanContext<'_> {
             }
         };
 
+        let surface = match init_surface(platform_layer, &entry, &instance, allocator.as_ref()) {
+            Ok(surface) => surface,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the surface in the Vulkan context: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
         let physical_device = match init_physical_device(config, &instance) {
             Ok(device) => device,
             Err(err) => {
@@ -90,17 +104,22 @@ impl VulkanContext<'_> {
             }
         };
 
-        let device_wrapper =
-            match init_device(config, &instance, &physical_device, allocator.as_ref()) {
-                Ok(device) => device,
-                Err(err) => {
-                    log_error!(
-                        "Failed to initialize the device in the Vulkan context: {:?}",
-                        err
-                    );
-                    return Err(ErrorType::Unknown);
-                }
-            };
+        let device_wrapper = match init_device(
+            config,
+            &instance,
+            &surface,
+            &physical_device,
+            allocator.as_ref(),
+        ) {
+            Ok(device) => device,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the device in the Vulkan context: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
 
         log_info!("Vulkan context initialized");
         Ok(Self {
@@ -108,6 +127,7 @@ impl VulkanContext<'_> {
             allocator,
             instance,
             debug_messenger,
+            surface,
             physical_device,
             device_wrapper,
         })

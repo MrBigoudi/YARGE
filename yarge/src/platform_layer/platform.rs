@@ -19,6 +19,9 @@ pub trait PlatformLayer {
     fn shutdown(&mut self) -> Result<(), ErrorType>;
 
     /// Accessor to a window
+    fn get_window_ref(&self, window_id: u8) -> &impl Window;
+
+    /// Mutable accessor to a window
     fn get_window(&mut self, window_id: u8) -> &mut impl Window;
 
     /// Poll the next event

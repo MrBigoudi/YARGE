@@ -5,15 +5,15 @@ use crate::{config::Version, rendering_layer::types::ImageFormat};
 
 #[derive(Debug, Clone)]
 /// The config for an OpenGl context
-pub struct OpenglConfig {
+pub(crate) struct OpenglConfig {
     /// The opengl version
-    pub version: Version,
+    pub(crate) version: Version,
     /// The framebuffer format
-    pub framebuffer_format: ImageFormat,
+    pub(crate) framebuffer_format: ImageFormat,
     /// The depthbuffer format
-    pub depthbuffer_format: Option<ImageFormat>,
+    pub(crate) depthbuffer_format: Option<ImageFormat>,
     /// The stencilbuffer format
-    pub stencilbuffer_format: Option<ImageFormat>,
+    pub(crate) stencilbuffer_format: Option<ImageFormat>,
 }
 
 impl Default for OpenglConfig {
