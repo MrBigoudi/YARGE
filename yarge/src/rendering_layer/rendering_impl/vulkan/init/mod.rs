@@ -1,7 +1,7 @@
-pub(crate) mod allocator;
-pub(crate) mod debug_messenger;
-pub(crate) mod device;
-pub(crate) mod entry;
-pub(crate) mod instance;
-pub(crate) mod physical_device;
-pub(crate) mod surface;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod allocator;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod debug_messenger;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod device;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod entry;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod instance;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod physical_device;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod surface;

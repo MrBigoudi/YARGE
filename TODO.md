@@ -2,8 +2,9 @@
 
 ## Global
 
+- Create log to file
 - Add debug specific code
-- Move the "init" logs inside the structures methods
+- Move the "init" and "shutdowns" logs inside the structures methods
 - Add better documentation everywhere
 - Check / Fix update function not running when window not focused ?
 - Add tests for the ECS methods

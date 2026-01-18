@@ -8,7 +8,7 @@ use crate::{PlatformLayerImpl, RenderingLayer, config::Config};
 use super::context::VulkanContext;
 
 pub(crate) struct VulkanRenderingLayer<'a> {
-    pub(crate) context: VulkanContext<'a>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) context: VulkanContext<'a>,
 }
 
 impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
@@ -30,7 +30,11 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
     }
 
     fn shutdown(&mut self) -> Result<(), ErrorType> {
-        log_debug!("Vulkan renderer shutted down");
+        if let Err(err) = self.context.shutdown() {
+            log_error!("Failed to shutdown the Vulkan context: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+        log_info!("Vulkan renderer shutted down");
         Ok(())
     }
 

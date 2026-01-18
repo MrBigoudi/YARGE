@@ -47,6 +47,7 @@ impl ECS {
         let system_manager = system::SystemManager::init();
         let resource_manager = resource::ResourceManager::init();
 
+        log_info!("ECS initialized");
         Ok(ECS {
             entities: vec![],
             component_manager,
@@ -56,20 +57,30 @@ impl ECS {
     }
 
     /// Shuts down the ECS
-    pub(crate) fn shutdown() -> Result<(), ErrorType> {
+    pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
         match entity::GLOBAL_ENTITY_GENERATOR.write() {
             Ok(mut generator) => {
                 generator.shutdown();
-                Ok(())
             }
             Err(err) => {
                 log_error!(
                     "Failed to access the global entity generator when shutting down the ECS: {:?}",
                     err
                 );
-                Err(ErrorType::Unknown)
+                return Err(ErrorType::Unknown);
             }
         }
+
+        if let Err(err) = self.resource_manager.shutdown() {
+            log_error!(
+                "Failed to shut down the resource manager when shutting down the ECS: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+
+        log_info!("ECS shutted down");
+        Ok(())
     }
 
     /// Creates empty entities

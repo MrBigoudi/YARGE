@@ -146,6 +146,12 @@ pub(crate) struct ResourceIdGenerator {
 }
 
 impl ResourceIdGenerator {
+    /// Shuts down the ID generator
+    pub(crate) fn shutdown(&mut self) {
+        self.table = HashMap::new();
+        self.inv_table = HashMap::new();
+    }
+
     /// Creates a new generator
     pub(crate) fn init() -> Self {
         Self {
@@ -241,15 +247,34 @@ pub(crate) struct ResourceManager {
 }
 
 impl ResourceManager {
+    pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
+        match GLOBAL_RESOURCE_ID_GENERATOR.write() {
+            Ok(mut generator) => {
+                generator.shutdown();
+            }
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global resource id generator when shutting down the resource manager: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        }
+        log_info!("Resource manager shutted down");
+        Ok(())
+    }
+
     pub(crate) fn init() -> Self {
-        Self {
+        let res = Self {
             loading_functions: HashMap::new(),
             resources: ResourcesStorage(
                 super::generational::GenerationalVec::<RealResource>::init_empty(),
             ),
             real_resources: HashMap::new(),
             loading_resources: HashSet::new(),
-        }
+        };
+        log_info!("Resource manager initialized");
+        res
     }
 
     /// Creates a new resource

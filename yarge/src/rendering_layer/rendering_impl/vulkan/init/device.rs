@@ -13,25 +13,25 @@ use crate::{
 };
 
 /// A structure representing a Vulkan device and its associated queues
-pub(crate) struct VkDevice {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkDevice {
     /// The logical device
-    pub(crate) device: ash::Device,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) device: ash::Device,
     /// The associated queue families
-    pub(crate) queue_families: VkQueueFamilies,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) queue_families: VkQueueFamilies,
     /// The associated queues
-    pub(crate) queues: VkQueues,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) queues: VkQueues,
 }
 
 /// A structrue representing Vulkan queues
-pub(crate) struct VkQueues {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkQueues {
     /// The queues supporting graphics commands
-    pub(crate) graphics: Vec<ash::vk::Queue>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) graphics: Vec<ash::vk::Queue>,
     /// The queues supporting compute commands
-    pub(crate) compute: Vec<ash::vk::Queue>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) compute: Vec<ash::vk::Queue>,
     /// The queues supporting transfer commands
-    pub(crate) transfer: Vec<ash::vk::Queue>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) transfer: Vec<ash::vk::Queue>,
     /// The queues supporting present commands
-    pub(crate) present: Vec<ash::vk::Queue>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) present: Vec<ash::vk::Queue>,
 }
 
 impl VkQueues {
@@ -88,15 +88,15 @@ impl VkQueues {
 
 /// A structrue representing Vulkan queue families
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct VkQueueFamilies {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkQueueFamilies {
     /// The queue family supporting graphics commands
-    pub(crate) graphics: VkQueueFamily,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) graphics: VkQueueFamily,
     /// The queue family supporting compute commands
-    pub(crate) compute: VkQueueFamily,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) compute: VkQueueFamily,
     /// The queue family supporting transfer commands
-    pub(crate) transfer: VkQueueFamily,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) transfer: VkQueueFamily,
     /// The queue family supporting present commands
-    pub(crate) present: VkQueueFamily,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) present: VkQueueFamily,
 }
 
 impl VkQueueFamilies {
@@ -176,13 +176,13 @@ impl VkQueueFamilies {
 
 /// A structure representing a single queue
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct VkQueueFamily {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkQueueFamily {
     /// The index in the queue family
-    pub(crate) index: usize,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) index: usize,
     /// The number of queues in the family
-    pub(crate) count: usize,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) count: usize,
     /// The priority of the queue
-    pub(crate) priority: f32,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) priority: f32,
 }
 
 /// The priority for the graphics queue
@@ -465,7 +465,7 @@ impl VkQueueFamily {
 }
 
 /// Initializes the logical device
-pub(crate) fn init_device(
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_device(
     config: &Config,
     instance: &ash::Instance,
     surface: &VkSurface,
@@ -619,4 +619,13 @@ pub(crate) fn init_device(
         queue_families,
         queues,
     })
+}
+
+/// Shuts down the Vulkan device
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_device(
+    device: &VkDevice,
+    allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+) {
+    unsafe { device.device.destroy_device(allocator) };
+    log_info!("Vulkan device shutted down");
 }

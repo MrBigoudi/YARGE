@@ -1337,7 +1337,7 @@ fn pick_best_physical_device<'a>(
 }
 
 /// Initializes a physical device
-pub(crate) fn init_physical_device(
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_physical_device(
     config: &Config,
     instance: &ash::Instance,
 ) -> Result<ash::vk::PhysicalDevice, ErrorType> {
@@ -1374,4 +1374,12 @@ pub(crate) fn init_physical_device(
 
     log_info!("Vulkan physical device initialized");
     Ok(*physical_device)
+}
+
+/// Shuts down the Vulkan physical device
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_device(
+    _physical_device: &ash::vk::PhysicalDevice,
+    _allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+) {
+    log_info!("Vulkan physical device shutted down");
 }

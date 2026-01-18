@@ -72,15 +72,17 @@ unsafe extern "system" fn pfn_user_callback(
 }
 
 /// The debug messenger
-pub(crate) struct VkDebugMessenger {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkDebugMessenger {
     /// The debug utils instance
-    pub(crate) _instance: ash::ext::debug_utils::Instance,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) instance:
+        ash::ext::debug_utils::Instance,
     /// The debug messenger
-    pub(crate) _messenger: ash::vk::DebugUtilsMessengerEXT,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) messenger:
+        ash::vk::DebugUtilsMessengerEXT,
 }
 
 /// Helper function to initiate the Vulkan debug messenger
-pub(crate) fn init_debug_messenger(
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_debug_messenger(
     entry: &ash::Entry,
     allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
     instance: &ash::Instance,
@@ -124,8 +126,23 @@ pub(crate) fn init_debug_messenger(
 
         log_info!("Vulkan debug messenger initialized");
         Ok(Some(VkDebugMessenger {
-            _instance: debug_instance,
-            _messenger: debug_messenger,
+            instance: debug_instance,
+            messenger: debug_messenger,
         }))
     }
+}
+
+/// Shuts down the Vulkan debug messenger
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_debug_messenger(
+    debug_messenger: &Option<VkDebugMessenger>,
+    allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+) {
+    if let Some(debugger) = debug_messenger {
+        unsafe {
+            debugger
+                .instance
+                .destroy_debug_utils_messenger(debugger.messenger, allocator)
+        };
+    }
+    log_info!("Vulkan debug messenger shutted down");
 }

@@ -1,11 +1,6 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use ash::{
-    Entry, Instance,
-    vk::{self, ApplicationInfo, InstanceCreateInfo},
-};
-
 use crate::{
     PlatformLayerImpl,
     config::{Config, Version},
@@ -17,11 +12,17 @@ use crate::{
     },
 };
 
+struct ApplicationInfoOwned {
+    _app_name: std::ffi::CString,
+    _engine_name: std::ffi::CString,
+    info: ash::vk::ApplicationInfo<'static>,
+}
+
 /// Helper function to create the application info
 fn init_application_info<'a>(
     config: &'a Config,
-    entry: &'a Entry,
-) -> Result<ApplicationInfo<'a>, ErrorType> {
+    entry: &'a ash::Entry,
+) -> Result<ApplicationInfoOwned, ErrorType> {
     // Get user game info
     let application_name = match std::ffi::CString::new(config.application_config.name.clone()) {
         Ok(name) => name,
@@ -33,7 +34,7 @@ fn init_application_info<'a>(
             return Err(ErrorType::Unknown);
         }
     };
-    let application_version = vk::make_api_version(
+    let application_version = ash::vk::make_api_version(
         config.application_config.version.variant as u32,
         config.application_config.version.major as u32,
         config.application_config.version.minor as u32,
@@ -62,16 +63,16 @@ fn init_application_info<'a>(
         [maj] => (*maj, 0, 0),
         _ => (0, 0, 0),
     };
-    let engine_version = vk::make_api_version(0, major, minor, patch);
+    let engine_version = ash::vk::make_api_version(0, major, minor, patch);
 
     // Get Vulkan info
     let vk_config = &config.renderer_config.vulkan_parameters;
     let supported_version = match unsafe { entry.try_enumerate_instance_version() } {
         Ok(Some(version)) => Version::new(
-            vk::api_version_variant(version) as u8,
-            vk::api_version_major(version) as u8,
-            vk::api_version_minor(version) as u8,
-            vk::api_version_patch(version) as u8,
+            ash::vk::api_version_variant(version) as u8,
+            ash::vk::api_version_major(version) as u8,
+            ash::vk::api_version_minor(version) as u8,
+            ash::vk::api_version_patch(version) as u8,
         ),
         Ok(None) => Version::new(0, 1, 0, 0),
         Err(err) => {
@@ -90,7 +91,7 @@ fn init_application_info<'a>(
         );
         return Err(ErrorType::Unknown);
     };
-    let api_version = vk::make_api_version(
+    let api_version = ash::vk::make_api_version(
         vk_config.version.variant as u32,
         vk_config.version.major as u32,
         vk_config.version.minor as u32,
@@ -98,7 +99,7 @@ fn init_application_info<'a>(
     );
 
     // Bulid the application info
-    let application_info = ApplicationInfo {
+    let application_info = ash::vk::ApplicationInfo {
         p_application_name: application_name.as_ptr() as *const std::ffi::c_char,
         p_engine_name: engine_name.as_ptr() as *const std::ffi::c_char,
         ..Default::default()
@@ -107,14 +108,18 @@ fn init_application_info<'a>(
     .application_version(application_version)
     .engine_version(engine_version);
 
-    Ok(application_info)
+    Ok(ApplicationInfoOwned {
+        _app_name: application_name,
+        _engine_name: engine_name,
+        info: application_info,
+    })
 }
 
 /// Helper function to fetch the required layers
 /// Checks if all required layers are available
 fn get_required_layers(
     config: &Config,
-    entry: &Entry,
+    entry: &ash::Entry,
 ) -> Result<(Vec<VkLayers>, VkNames), ErrorType> {
     let vk_config = &config.renderer_config.vulkan_parameters;
     let required_layers: Vec<VkLayers> = [
@@ -220,7 +225,7 @@ fn get_required_layers(
 /// Checks if all required extensions are available
 fn get_required_extensions(
     config: &Config,
-    entry: &Entry,
+    entry: &ash::Entry,
     platform_layer: &PlatformLayerImpl,
 ) -> Result<(Vec<VkInstanceExtensions>, VkNames), ErrorType> {
     let mut required_extensions = match platform_layer
@@ -334,12 +339,12 @@ fn get_required_extensions(
     Ok((required_extensions, required_extensions_names))
 }
 
-pub(crate) fn init_instance(
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_instance(
     config: &Config,
-    entry: &Entry,
+    entry: &ash::Entry,
     platform_layer: &PlatformLayerImpl,
-    allocator: Option<&vk::AllocationCallbacks<'_>>,
-) -> Result<Instance, ErrorType> {
+    allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+) -> Result<ash::Instance, ErrorType> {
     // Create application
     let application_info = match init_application_info(config, entry) {
         Ok(info) => info,
@@ -394,16 +399,16 @@ pub(crate) fn init_instance(
         };
         layers_settings.extend(settings);
     }
-    let layers_settings_ext: Vec<vk::LayerSettingEXT<'_>> = layers_settings
+    let layers_settings_ext: Vec<ash::vk::LayerSettingEXT<'_>> = layers_settings
         .iter()
         .map(|setting| setting.as_vk_validation_setting_ext())
         .collect();
     let mut layers_settings_info =
-        vk::LayerSettingsCreateInfoEXT::default().settings(&layers_settings_ext);
+        ash::vk::LayerSettingsCreateInfoEXT::default().settings(&layers_settings_ext);
 
     // Create the instance
-    let instance_info = InstanceCreateInfo::default()
-        .application_info(&application_info)
+    let instance_info = ash::vk::InstanceCreateInfo::default()
+        .application_info(&application_info.info)
         .enabled_extension_names(&required_extensions_names.names)
         .enabled_layer_names(&required_layers_names.names)
         .push_next(&mut layers_settings_info);
@@ -418,4 +423,13 @@ pub(crate) fn init_instance(
 
     log_info!("Vulkan instance initialized");
     Ok(instance)
+}
+
+/// Shuts down the Vulkan instance
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_instance(
+    instance: &ash::Instance,
+    allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+) {
+    unsafe { instance.destroy_instance(allocator) };
+    log_info!("Vulkan instance shutted down");
 }

@@ -5,40 +5,36 @@ use crate::{
     PlatformLayerImpl,
     config::Config,
     rendering_layer::rendering_impl::vulkan::init::{
-        allocator::init_allocator,
-        debug_messenger::{VkDebugMessenger, init_debug_messenger},
-        device::init_device,
-        entry::init_entry,
-        instance::init_instance,
-        physical_device::init_physical_device,
-        surface::init_surface,
+        allocator, debug_messenger, device, entry, instance, physical_device, surface,
     },
 };
 
 /// The Vulkan context
-pub(crate) struct VulkanContext<'a> {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VulkanContext<'a> {
     /// The entry
-    pub(crate) entry: ash::Entry,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) entry: ash::Entry,
     /// The allocation callback
-    pub(crate) allocator: Option<ash::vk::AllocationCallbacks<'a>>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) allocator:
+        Option<ash::vk::AllocationCallbacks<'a>>,
     /// The instance
-    pub(crate) instance: ash::Instance,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) instance: ash::Instance,
     /// The debug messenger
-    pub(crate) debug_messenger: Option<VkDebugMessenger>,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) debug_messenger:
+        Option<debug_messenger::VkDebugMessenger>,
     /// The window surface
-    pub(crate) surface: super::init::surface::VkSurface,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) surface_wrapper: surface::VkSurface,
     /// The physical device
-    pub(crate) physical_device: ash::vk::PhysicalDevice,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) physical_device: ash::vk::PhysicalDevice,
     /// The logical device
-    pub(crate) device_wrapper: super::init::device::VkDevice,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) device_wrapper: device::VkDevice,
 }
 
 impl VulkanContext<'_> {
-    pub(crate) fn init(
+    pub(in crate::rendering_layer::rendering_impl::vulkan) fn init(
         config: &Config,
         platform_layer: &PlatformLayerImpl,
     ) -> Result<Self, ErrorType> {
-        let entry = match init_entry() {
+        let entry = match entry::init_entry() {
             Ok(entry) => entry,
             Err(err) => {
                 log_error!(
@@ -49,7 +45,7 @@ impl VulkanContext<'_> {
             }
         };
 
-        let allocator = match init_allocator() {
+        let allocator = match allocator::init_allocator() {
             Ok(allocator) => allocator,
             Err(err) => {
                 log_error!(
@@ -60,40 +56,43 @@ impl VulkanContext<'_> {
             }
         };
 
-        let instance = match init_instance(config, &entry, platform_layer, allocator.as_ref()) {
-            Ok(instance) => instance,
-            Err(err) => {
-                log_error!(
-                    "Failed to initialize the instance in the Vulkan context: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
+        let instance =
+            match instance::init_instance(config, &entry, platform_layer, allocator.as_ref()) {
+                Ok(instance) => instance,
+                Err(err) => {
+                    log_error!(
+                        "Failed to initialize the instance in the Vulkan context: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
 
-        let debug_messenger = match init_debug_messenger(&entry, allocator.as_ref(), &instance) {
-            Ok(messenger) => messenger,
-            Err(err) => {
-                log_error!(
-                    "Failed to initialize the debug messenger in the Vulkan context: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
+        let debug_messenger =
+            match debug_messenger::init_debug_messenger(&entry, allocator.as_ref(), &instance) {
+                Ok(messenger) => messenger,
+                Err(err) => {
+                    log_error!(
+                        "Failed to initialize the debug messenger in the Vulkan context: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
 
-        let surface = match init_surface(platform_layer, &entry, &instance, allocator.as_ref()) {
-            Ok(surface) => surface,
-            Err(err) => {
-                log_error!(
-                    "Failed to initialize the surface in the Vulkan context: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
+        let surface_wrapper =
+            match surface::init_surface(platform_layer, &entry, &instance, allocator.as_ref()) {
+                Ok(surface) => surface,
+                Err(err) => {
+                    log_error!(
+                        "Failed to initialize the surface in the Vulkan context: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
 
-        let physical_device = match init_physical_device(config, &instance) {
+        let physical_device = match physical_device::init_physical_device(config, &instance) {
             Ok(device) => device,
             Err(err) => {
                 log_error!(
@@ -104,10 +103,10 @@ impl VulkanContext<'_> {
             }
         };
 
-        let device_wrapper = match init_device(
+        let device_wrapper = match device::init_device(
             config,
             &instance,
-            &surface,
+            &surface_wrapper,
             &physical_device,
             allocator.as_ref(),
         ) {
@@ -127,9 +126,33 @@ impl VulkanContext<'_> {
             allocator,
             instance,
             debug_messenger,
-            surface,
+            surface_wrapper,
             physical_device,
             device_wrapper,
         })
+    }
+
+    pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown(
+        &mut self,
+    ) -> Result<(), ErrorType> {
+        let allocator = self.allocator.as_ref();
+
+        device::shutdown_device(&self.device_wrapper, allocator);
+
+        physical_device::shutdown_device(&self.physical_device, allocator);
+
+        surface::shutdown_surface(&self.surface_wrapper, allocator);
+
+        debug_messenger::shutdown_debug_messenger(&self.debug_messenger, allocator);
+        self.debug_messenger = None;
+
+        instance::shutdown_instance(&self.instance, allocator);
+
+        allocator::shutdown_allocator(&self.allocator);
+        self.allocator = None;
+
+        entry::shutdown_entry(&self.entry);
+
+        Ok(())
     }
 }

@@ -5,7 +5,7 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 use crate::rendering_layer::rendering_impl::OpenglConfig;
 
 #[cfg(vulkan_renderer)]
-use crate::rendering_layer::rendering_impl::types::VulkanConfig;
+use crate::rendering_layer::rendering_impl::types::config::VulkanConfig;
 
 /// The configuration for the renderer
 #[derive(Clone)]

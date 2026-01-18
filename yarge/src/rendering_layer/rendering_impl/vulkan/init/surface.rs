@@ -4,15 +4,15 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 use crate::{PlatformLayer, PlatformLayerImpl, platform_layer::window::Window};
 
 /// A wrapper around a surface
-pub(crate) struct VkSurface {
+pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkSurface {
     /// The surface instance
-    pub(crate) instance: ash::khr::surface::Instance,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) instance: ash::khr::surface::Instance,
     /// The actual surface
-    pub(crate) surface: ash::vk::SurfaceKHR,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) surface: ash::vk::SurfaceKHR,
 }
 
 /// Initializes the surface
-pub(crate) fn init_surface(
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_surface(
     platform_layer: &PlatformLayerImpl,
     entry: &ash::Entry,
     instance: &ash::Instance,
@@ -39,4 +39,13 @@ pub(crate) fn init_surface(
         instance: surface_instance,
         surface,
     })
+}
+
+/// Shuts down the Vulkan surface
+pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_surface(
+    surface: &VkSurface,
+    allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
+) {
+    unsafe { surface.instance.destroy_surface(surface.surface, allocator) };
+    log_info!("Vulkan surface shutted down");
 }

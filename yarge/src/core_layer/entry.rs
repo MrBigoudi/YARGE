@@ -39,6 +39,7 @@ impl Entry {
             }
         };
 
+        let mut has_found_error = false;
         // Runs the application
         'infinite_loop: loop {
             // Handle events
@@ -50,12 +51,16 @@ impl Entry {
                         &mut core_layer.rendering_layer,
                     ) {
                         Err(err) => {
-                            log_error!("Failed to handle an event: {:?}", err);
-                            return Err(ErrorType::Unknown);
+                            log_error!(
+                                "Failed to run an iteration of the application's loop when handling an event: {:?}",
+                                err
+                            );
+                            has_found_error = true;
+                            true
                         }
-                        Ok(event) => event,
+                        Ok(should_quit) => should_quit,
                     };
-                    if event == crate::platform_layer::event::Event::WindowClosed || should_quit {
+                    if should_quit || event == crate::platform_layer::event::Event::WindowClosed {
                         log_info!("The window is closing");
                         break 'infinite_loop;
                     }
@@ -63,7 +68,7 @@ impl Entry {
                 Err(err) => {
                     // TODO: add logging messages
                     log_error!("Failed to poll an event: {:?}", err);
-                    return Err(ErrorType::Unknown);
+                    has_found_error = true;
                 }
             };
         }
@@ -72,6 +77,11 @@ impl Entry {
         if let Err(err) = core_layer.shutdown() {
             // TODO: add better logging messages when the logging system is not available
             eprintln!("Failed to shutdown the core layer: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
+
+        if has_found_error {
+            eprintln!("Failed to run the entry successfully");
             return Err(ErrorType::Unknown);
         }
 

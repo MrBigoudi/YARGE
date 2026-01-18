@@ -141,7 +141,7 @@ impl VkLayerSettingWithData {
             convert_string_to_vknames(&[layer_name.to_string()])?.names_cstrings[0].clone();
         let setting_name =
             convert_string_to_vknames(&[setting_name.to_string()])?.names_cstrings[0].clone();
-        let value_vec = vec![true as u8];
+        let value_vec = vec![true as u8; 4];
 
         Ok(Self {
             layer_name,

@@ -48,7 +48,6 @@ impl<'a> ApplicationSystem<'a> {
                 return Err(ErrorType::Unknown);
             }
         };
-        log_info!("ECS initialized");
 
         let mut application = Self {
             name,
@@ -197,14 +196,13 @@ impl<'a> ApplicationSystem<'a> {
     /// Shuts down the application
     pub(crate) fn shutdown(&mut self) -> Result<(), ErrorType> {
         // Shuts down the ECS system
-        if let Err(err) = ECS::shutdown() {
+        if let Err(err) = self.ecs.shutdown() {
             log_error!(
                 "Failed to shut down the ECS system when shutting down the application: {:?}",
                 err
             );
             return Err(ErrorType::Unknown);
         }
-        log_info!("ECS shutted down");
 
         // Shuts down the user's game
         if let Err(err) = self.user_game.on_shutdown() {
