@@ -1,7 +1,7 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::{config::Version, rendering_layer::types::ImageFormat};
+use crate::{config::Version, rendering_layer::types::formats::ImageFormat};
 
 #[derive(Debug, Clone)]
 /// The config for an OpenGl context
@@ -19,9 +19,9 @@ pub(crate) struct OpenglConfig {
 impl Default for OpenglConfig {
     fn default() -> Self {
         let version = Version::default().major(4).minor(6);
-        let framebuffer_format = ImageFormat::R8G8B8A8_SFLOAT;
-        let depthbuffer_format = Some(ImageFormat::R8G8B8_SFLOAT);
-        let stencilbuffer_format = Some(ImageFormat::R8_SFLOAT);
+        let framebuffer_format = ImageFormat::R8G8B8A8_SRGB;
+        let depthbuffer_format = Some(ImageFormat::R8G8B8A8_SRGB);
+        let stencilbuffer_format = Some(ImageFormat::R8_UNORM);
 
         Self {
             version,

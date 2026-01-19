@@ -35,3 +35,7 @@
 - Put the physical device rate strategy in the configuration
 - Add other strategies depending on the config: AR / VR / Raytracing / Embedded app / Offline simulation ...
 - Add other features (ex PhysicalDeviceExtendedDynamicStateFeaturesEXT)
+
+## Renderer
+
+- Add user defined post processing effects

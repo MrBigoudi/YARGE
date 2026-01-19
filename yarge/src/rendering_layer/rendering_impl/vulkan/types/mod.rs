@@ -1,10 +1,13 @@
+use crate::renderer_types::FinalTransform;
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 pub(crate) mod config;
 pub(crate) mod extensions;
 pub(crate) mod features;
+pub(crate) mod formats;
 pub(crate) mod layers;
+pub(crate) mod usages;
 
 /// Custrom structure for Vulkan names
 pub(crate) struct VkNames {
@@ -35,4 +38,29 @@ fn convert_string_to_vknames(names_string: &[String]) -> Result<VkNames, ErrorTy
         names_cstrings,
         names,
     })
+}
+
+impl FinalTransform {
+    /// Gets the ash equivalent of a FinalTransform
+    pub(crate) fn as_ash(&self) -> ash::vk::SurfaceTransformFlagsKHR {
+        match self {
+            FinalTransform::Automatic => ash::vk::SurfaceTransformFlagsKHR::INHERIT,
+            FinalTransform::Identity => ash::vk::SurfaceTransformFlagsKHR::IDENTITY,
+            FinalTransform::Rotate90Clockwise => ash::vk::SurfaceTransformFlagsKHR::ROTATE_90,
+            FinalTransform::Rotate90CounterClockwise => {
+                ash::vk::SurfaceTransformFlagsKHR::ROTATE_270
+            }
+            FinalTransform::Rotate180 => ash::vk::SurfaceTransformFlagsKHR::ROTATE_180,
+            FinalTransform::HorizontalFlip => ash::vk::SurfaceTransformFlagsKHR::HORIZONTAL_MIRROR,
+            FinalTransform::HorizontalFlipRotate90ClockWise => {
+                ash::vk::SurfaceTransformFlagsKHR::HORIZONTAL_MIRROR_ROTATE_90
+            }
+            FinalTransform::HorizontalFlipRotate90CounterClockWise => {
+                ash::vk::SurfaceTransformFlagsKHR::HORIZONTAL_MIRROR_ROTATE_270
+            }
+            FinalTransform::HorizontalFlipRotate180 => {
+                ash::vk::SurfaceTransformFlagsKHR::HORIZONTAL_MIRROR_ROTATE_180
+            }
+        }
+    }
 }

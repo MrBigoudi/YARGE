@@ -5,3 +5,4 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) mod entry;
 pub(in crate::rendering_layer::rendering_impl::vulkan) mod instance;
 pub(in crate::rendering_layer::rendering_impl::vulkan) mod physical_device;
 pub(in crate::rendering_layer::rendering_impl::vulkan) mod surface;
+pub(in crate::rendering_layer::rendering_impl::vulkan) mod swapchain;

@@ -5,7 +5,7 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
     maths::{Vector2, Vector3, Vector4},
-    renderer_types::ImageFormat,
+    renderer_types::formats::ImageFormat,
     shaders::ShaderLocation,
 };
 

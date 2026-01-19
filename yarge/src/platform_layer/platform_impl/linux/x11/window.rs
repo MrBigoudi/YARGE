@@ -10,7 +10,7 @@ use crate::platform_layer::{
 #[cfg(vulkan_renderer)]
 use crate::rendering_layer::rendering_impl::types::extensions::VkInstanceExtensions;
 #[cfg(opengl_renderer)]
-use crate::rendering_layer::types::ImageFormat;
+use crate::rendering_layer::types::formats::ImageFormat;
 
 use crate::{config::Config, keyboard::KeyboardKey};
 
@@ -74,7 +74,7 @@ impl LinuxX11OpenglWindow {
     /// Gets the glx render type bit from the framebuffer image format
     fn get_glx_render_type_bit(framebuffer_format: &ImageFormat) -> std::os::raw::c_int {
         match framebuffer_format {
-            ImageFormat::R8G8B8A8_SFLOAT
+            ImageFormat::R8G8B8A8_SRGB
             | ImageFormat::R8G8B8A8_UNORM
             | ImageFormat::R16G16B16A16_SFLOAT
             | ImageFormat::R16G16B16A16_UNORM
@@ -87,7 +87,7 @@ impl LinuxX11OpenglWindow {
     /// Gets the glx render type from the framebuffer image format
     fn get_glx_render_type(framebuffer_format: &ImageFormat) -> std::os::raw::c_int {
         match framebuffer_format {
-            ImageFormat::R8G8B8A8_SFLOAT
+            ImageFormat::R8G8B8A8_SRGB
             | ImageFormat::R8G8B8A8_UNORM
             | ImageFormat::R16G16B16A16_SFLOAT
             | ImageFormat::R16G16B16A16_UNORM
@@ -102,10 +102,10 @@ impl LinuxX11OpenglWindow {
         format.get_channel_size() as std::os::raw::c_int
     }
 
-    /// Gets the alphaa channel sizes from the framebuffer image format
+    /// Gets the alpha channel sizes from the framebuffer image format
     fn get_alpha_channel_size(framebuffer_format: &ImageFormat) -> Option<std::os::raw::c_int> {
         match framebuffer_format {
-            ImageFormat::R8G8B8A8_SFLOAT
+            ImageFormat::R8G8B8A8_SRGB
             | ImageFormat::R8G8B8A8_UNORM
             | ImageFormat::R16G16B16A16_SFLOAT
             | ImageFormat::R16G16B16A16_UNORM
@@ -862,6 +862,14 @@ impl Window for LinuxX11Window {
                 }
             },
         }
+    }
+
+    fn get_framebuffer_width(&self) -> u16 {
+        (self.properties.width * (self.screen.width as f32)) as u16
+    }
+
+    fn get_framebuffer_height(&self) -> u16 {
+        (self.properties.height * (self.screen.height as f32)) as u16
     }
 
     #[cfg(opengl_renderer)]

@@ -5,7 +5,7 @@ use crate::{
     PlatformLayerImpl,
     config::Config,
     rendering_layer::rendering_impl::vulkan::init::{
-        allocator, debug_messenger, device, entry, instance, physical_device, surface,
+        allocator, debug_messenger, device, entry, instance, physical_device, surface, swapchain,
     },
 };
 
@@ -27,6 +27,9 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) struct VulkanContext<'a> 
     pub(in crate::rendering_layer::rendering_impl::vulkan) physical_device: ash::vk::PhysicalDevice,
     /// The logical device
     pub(in crate::rendering_layer::rendering_impl::vulkan) device_wrapper: device::VkDevice,
+    /// The swapchain
+    pub(in crate::rendering_layer::rendering_impl::vulkan) swapchain_wrapper:
+        swapchain::VkSwapchain,
 }
 
 impl VulkanContext<'_> {
@@ -120,6 +123,26 @@ impl VulkanContext<'_> {
             }
         };
 
+        let swapchain_wrapper = match swapchain::init_swapchain(
+            config,
+            platform_layer,
+            &entry,
+            &instance,
+            &physical_device,
+            &device_wrapper,
+            &surface_wrapper,
+            allocator.as_ref(),
+        ) {
+            Ok(swapchain) => swapchain,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the swapchain in the Vulkan context: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
         log_info!("Vulkan context initialized");
         Ok(Self {
             entry,
@@ -129,6 +152,7 @@ impl VulkanContext<'_> {
             surface_wrapper,
             physical_device,
             device_wrapper,
+            swapchain_wrapper,
         })
     }
 
@@ -136,6 +160,7 @@ impl VulkanContext<'_> {
         &mut self,
     ) -> Result<(), ErrorType> {
         let allocator = self.allocator.as_ref();
+        swapchain::shutdown_swapchain(&self.swapchain_wrapper, allocator);
 
         device::shutdown_device(&self.device_wrapper, allocator);
 

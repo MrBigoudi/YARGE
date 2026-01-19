@@ -3,6 +3,7 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
     config::Version,
+    renderer_types::{formats::ImageFormat, present::PresentMode, usages::ImageUsage},
     rendering_layer::rendering_impl::types::{
         extensions::{VkDeviceExtensions, VkInstanceExtensions},
         features::{
@@ -39,6 +40,14 @@ pub(crate) struct VulkanConfig {
     pub(crate) required_device_features_ext: Vec<VkFeaturesExt>,
     /// The required device extensions in normal mode
     pub(crate) required_device_extensions: Vec<VkDeviceExtensions>,
+    /// The prefered swapchain formats in order of preference
+    pub(crate) prefered_swapchain_formats: Vec<ImageFormat>,
+    /// The prefered swapchain present modes in order of preference
+    pub(crate) prefered_swapchain_present_modes: Vec<PresentMode>,
+    /// The prefered minimum number of images in the swapchain
+    pub(crate) prefered_swapchain_min_image_count: u32,
+    /// The image usage flags for the swapchain
+    pub(crate) swapchain_image_usages: Vec<ImageUsage>,
 }
 
 impl Default for VulkanConfig {
@@ -109,6 +118,21 @@ impl Default for VulkanConfig {
             VkDeviceExtensions::KhrCreateRenderpass2,
         ];
 
+        let prefered_swapchain_formats =
+            vec![ImageFormat::R8G8B8A8_SRGB, ImageFormat::B8G8R8A8_SRGB];
+
+        let prefered_swapchain_present_modes =
+            vec![PresentMode::TripleBuffering, PresentMode::Vsync];
+
+        let prefered_swapchain_min_image_count = 3u32;
+
+        let swapchain_image_usages = vec![
+            ImageUsage::ColorAttachment,
+            ImageUsage::TransferDst, // To copy to swapchain images for indirect rendering
+            ImageUsage::TransferSrc, // For screens shots
+            ImageUsage::Sample,      // For UI compositing
+        ];
+
         Self {
             version,
             required_layers,
@@ -122,6 +146,10 @@ impl Default for VulkanConfig {
             required_physical_device_features_1_4,
             required_device_features_ext,
             required_device_extensions,
+            prefered_swapchain_formats,
+            prefered_swapchain_present_modes,
+            prefered_swapchain_min_image_count,
+            swapchain_image_usages,
         }
     }
 }

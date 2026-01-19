@@ -44,4 +44,7 @@ pub enum ErrorType {
 
     /// Thrown when a bad request is attempted
     BadRequest,
+
+    /// Thrown when something is not supported
+    NotSupported,
 }

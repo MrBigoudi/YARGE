@@ -76,6 +76,11 @@ pub(crate) trait Window {
     /// Gets the window's properties
     fn get_properties(&self) -> WindowCommonProperties;
 
+    /// Gets the framebuffer's width in pixels
+    fn get_framebuffer_width(&self) -> u16;
+    /// Gets the framebuffer's height in pixels
+    fn get_framebuffer_height(&self) -> u16;
+
     /// Poll the next event
     fn poll_event(&mut self) -> Result<Event, ErrorType>;
 
