@@ -12,6 +12,8 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkSwapchain {
     pub(in crate::rendering_layer::rendering_impl::vulkan) swapchain: ash::vk::SwapchainKHR,
     /// The swapchain images
     pub(in crate::rendering_layer::rendering_impl::vulkan) images: Vec<ash::vk::Image>,
+    /// The swapchain images views
+    pub(in crate::rendering_layer::rendering_impl::vulkan) images_views: Vec<ash::vk::ImageView>,
     /// The swapchain images format
     pub(in crate::rendering_layer::rendering_impl::vulkan) images_format: ash::vk::Format,
     /// The swapchain images extent
@@ -372,16 +374,26 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_swapchain(
             return Err(ErrorType::VulkanError);
         }
     };
+    let nb_images = images.len();
+    let images_views = Vec::with_capacity(nb_images);
 
-    log_info!("Vulkan swapchain initialized");
-    Ok(VkSwapchain {
+    let mut new_swapchain = VkSwapchain {
         instance: swapchain_instance,
         device: swapchain_device,
         swapchain,
         images,
+        images_views,
         images_format: best_surface_format.format,
         images_extent: best_extent,
-    })
+    };
+
+    if let Err(err) = new_swapchain.create_image_views(device_wrapper, allocator) {
+        log_error!("Failed to create the image views when initializing the Vulkan swapchain: {:?}", err);
+        return Err(ErrorType::Unknown);
+    }
+
+    log_info!("Vulkan swapchain initialized");
+    Ok(new_swapchain)
 }
 
 /// Shuts down the Vulkan swapchain
@@ -395,4 +407,45 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_swapchain(
             .destroy_swapchain(swapchain_wrapper.swapchain, allocator)
     };
     log_info!("Vulkan swapchain shutted down");
+}
+
+
+impl VkSwapchain {
+    /// Creates the image views
+    pub(in crate::rendering_layer::rendering_impl::vulkan) fn create_image_views(&mut self, device_wrapper: &super::device::VkDevice, allocator: Option<&ash::vk::AllocationCallbacks<'_>>) -> Result<(), ErrorType> {
+        self.images_views.clear();
+
+        // TODO: Change for different application type (AR / VR)
+        let view_info = ash::vk::ImageViewCreateInfo::default()
+            .view_type(ash::vk::ImageViewType::TYPE_2D)
+            .format(self.images_format)
+            .subresource_range(ash::vk::ImageSubresourceRange {
+                aspect_mask: ash::vk::ImageAspectFlags::COLOR,
+                base_mip_level: 0,
+                level_count: 1,
+                base_array_layer: 0,
+                layer_count: 1,
+            })
+            .components(ash::vk::ComponentMapping::default()
+                .r(ash::vk::ComponentSwizzle::IDENTITY)
+                .g(ash::vk::ComponentSwizzle::IDENTITY)
+                .b(ash::vk::ComponentSwizzle::IDENTITY)
+                .a(ash::vk::ComponentSwizzle::IDENTITY)
+            )
+        ;
+
+        for image in &self.images {
+            let view_info = view_info.image(*image);
+            let new_view = match unsafe { device_wrapper.device.create_image_view(&view_info, allocator) } {
+                Ok(view) => view,
+                Err(err) => {
+                    log_error!("Failed to create the Vulkan swapchain image views: {:?}", err);
+                    return Err(ErrorType::VulkanError);
+                },
+            };
+            self.images_views.push(new_view);
+        }
+
+        Ok(())
+    }
 }
