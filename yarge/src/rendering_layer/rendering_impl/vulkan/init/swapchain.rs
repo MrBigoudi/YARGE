@@ -398,9 +398,14 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_swapchain(
 
 /// Shuts down the Vulkan swapchain
 pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_swapchain(
+    device_wrapper: &super::device::VkDevice,
     swapchain_wrapper: &VkSwapchain,
     allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
 ) {
+    for view in &swapchain_wrapper.images_views {
+        unsafe { device_wrapper.device.destroy_image_view(*view, allocator) };
+    }
+
     unsafe {
         swapchain_wrapper
             .device

@@ -160,7 +160,7 @@ impl VulkanContext<'_> {
         &mut self,
     ) -> Result<(), ErrorType> {
         let allocator = self.allocator.as_ref();
-        swapchain::shutdown_swapchain(&self.swapchain_wrapper, allocator);
+        swapchain::shutdown_swapchain(&self.device_wrapper, &self.swapchain_wrapper, allocator);
 
         device::shutdown_device(&self.device_wrapper, allocator);
 
