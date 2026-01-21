@@ -52,6 +52,11 @@ pub use core_layer::application_system::ecs::system::SystemSchedule;
 pub use core_layer::application_system::events::builder as event_builder;
 pub use core_layer::application_system::events::user_events::UserEventWrapper as Event;
 
+pub use core_layer::application_system::ecs::query::{Query, UnsafeECSCell};
+pub use core_layer::application_system::ecs::system_v2::{
+    IntoSystem, SystemFuncWrapper, SystemParam, SystemTrait,
+};
+
 pub use core_layer::input_system::{gamepad, keyboard, mouse};
 
 pub use core_layer::logger_system::helpers::{LogLevel, LogTarget};
@@ -65,4 +70,4 @@ pub(crate) use rendering_layer::RenderingLayer;
 pub(crate) use rendering_layer::rendering_impl::RenderingLayerImpl;
 pub use rendering_layer::{shaders, types as renderer_types};
 
-pub use macros::{Component, Resource};
+pub use macros::{Component, Resource, system};

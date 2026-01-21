@@ -8,9 +8,10 @@ pub(crate) mod component;
 /// See https://austinmorlan.com/posts/entity_component_system/
 /// See https://kyren.github.io/2018/09/14/rustconf-talk.html
 pub(crate) mod entity;
+pub(crate) mod query;
 pub(crate) mod resource;
 pub(crate) mod system;
-pub(crate) mod query;
+pub(crate) mod system_v2;
 
 pub(crate) mod engine;
 
@@ -29,6 +30,8 @@ pub struct ECS {
 
     pub(crate) system_manager: system::SystemManager,
     pub(crate) resource_manager: resource::ResourceManager,
+
+    pub(crate) system_manager_2: system_v2::SystemManagerV2,
 }
 
 impl ECS {
@@ -48,12 +51,15 @@ impl ECS {
         let system_manager = system::SystemManager::init();
         let resource_manager = resource::ResourceManager::init();
 
+        let system_manager_2 = system_v2::SystemManagerV2::init();
+
         log_info!("ECS initialized");
         Ok(ECS {
             entities: vec![],
             component_manager,
             system_manager,
             resource_manager,
+            system_manager_2,
         })
     }
 
@@ -101,7 +107,9 @@ impl ECS {
 
     /// Gets a real entity from a user entity
     /// Returns None if the entity doesn't exist
-    pub(crate) fn get_real_entity(user_entity: &entity::UserEntity) -> Result<Option<entity::Entity>, ErrorType>{
+    pub(crate) fn get_real_entity(
+        user_entity: &entity::UserEntity,
+    ) -> Result<Option<entity::Entity>, ErrorType> {
         match entity::GLOBAL_ENTITY_GENERATOR.read() {
             Ok(generator) => match generator.get_real_entity(user_entity) {
                 Ok(entity) => Ok(Some(entity)),

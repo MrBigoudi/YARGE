@@ -1,6 +1,7 @@
-use crate::core_layer::application_system::ecs::entity::Entity;
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::core_layer::application_system::ecs::entity::Entity;
 
 pub(crate) type SystemCallback = Box<
     dyn Fn(&mut dyn crate::Game, &dyn super::component::RealComponent) -> Result<(), ErrorType>
