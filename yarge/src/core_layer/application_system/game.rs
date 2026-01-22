@@ -8,6 +8,25 @@ use crate::{
     keyboard::KeyboardKey, mouse::MouseButton,
 };
 
+pub struct UnsafeGameCell {
+    ptr: *mut dyn Game,
+}
+impl UnsafeGameCell {
+    pub(crate) fn new(game: &mut dyn Game) -> Self {
+        let ptr: *mut dyn Game = game;
+        Self { ptr }
+    }
+    #[inline]
+    pub(crate) unsafe fn get(&self) -> &dyn Game {
+        unsafe { &(*self.ptr) }
+    }
+    #[inline]
+    #[allow(clippy::mut_from_ref)]
+    pub(crate) unsafe fn get_mut(&self) -> &mut dyn Game {
+        unsafe { &mut (*self.ptr) }
+    }
+}
+
 /// The game trait that can be ovveride by the user
 pub trait Game: std::any::Any + 'static {
     /// Runs when the application starts

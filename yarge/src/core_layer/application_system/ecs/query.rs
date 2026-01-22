@@ -3,27 +3,6 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::core_layer::application_system::ecs::component::{Component, RealComponent};
 
-pub struct UnsafeECSCell {
-    ptr: *mut crate::ECS,
-}
-
-impl UnsafeECSCell {
-    pub(crate) fn new(ecs: &mut crate::ECS) -> Self {
-        let ptr: *mut crate::ECS = ecs;
-        Self { ptr }
-    }
-
-    #[inline]
-    pub(crate) unsafe fn get(&self) -> &crate::ECS {
-        unsafe { &(*self.ptr) }
-    }
-
-    #[inline]
-    #[allow(clippy::mut_from_ref)]
-    pub(crate) unsafe fn get_mut(&self) -> &mut crate::ECS {
-        unsafe { &mut (*self.ptr) }
-    }
-}
 
 pub trait QueryParam {
     /// Components this query reads
@@ -69,7 +48,7 @@ impl<A: QueryParam, B: QueryParam> QueryParam for (A, B) {
 pub unsafe trait QueryFetch<'w>: QueryParam {
     type Item;
     unsafe fn fetch(
-        ecs_ptr: &'w UnsafeECSCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
     ) -> Result<Option<Self::Item>, ErrorType>;
 }
@@ -78,7 +57,7 @@ unsafe impl<'w, T: Component> QueryFetch<'w> for &T {
     type Item = &'w T;
 
     unsafe fn fetch(
-        ecs_ptr: &'w UnsafeECSCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
     ) -> Result<Option<Self::Item>, ErrorType> {
         let component_manager = unsafe { &ecs_ptr.get().component_manager };
@@ -133,7 +112,7 @@ unsafe impl<'w, T: Component> QueryFetch<'w> for &mut T {
     type Item = &'w mut T;
 
     unsafe fn fetch(
-        ecs_ptr: &'w UnsafeECSCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
     ) -> Result<Option<Self::Item>, ErrorType> {
         let component_manager = unsafe { &mut ecs_ptr.get_mut().component_manager };
@@ -192,7 +171,7 @@ where
     type Item = (A::Item, B::Item);
 
     unsafe fn fetch(
-        ecs_ptr: &'w UnsafeECSCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
     ) -> Result<Option<Self::Item>, ErrorType> {
         let component_a = match unsafe { A::fetch(ecs_ptr, user_entity) } {
@@ -311,8 +290,8 @@ where
     Q: QueryFetch<'w>,
     F: QueryFilter,
 {
-    _marker: std::marker::PhantomData<(Q, F)>,
-    pub(crate) ecs_ptr: &'w UnsafeECSCell,
+    pub(crate) _marker: std::marker::PhantomData<(Q, F)>,
+    pub(crate) ecs_ptr: &'w crate::UnsafeECSCell,
     pub(crate) entities: &'s std::collections::HashSet<super::entity::Entity>,
 }
 
@@ -333,7 +312,7 @@ where
     // TODO: add fucntions to update state
     // remove entity, add component to entity, remove component from entity, remove component
 
-    fn init_state(ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+    fn init_state(_game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
         let with = F::with();
         let without = F::without();
         let mut entities = std::collections::HashSet::new();
@@ -387,11 +366,12 @@ where
 
     unsafe fn get_item<'w, 's>(
         state: &'s mut Self::State,
-        ecs: &'w UnsafeECSCell,
+        _game_ptr: &'w crate::UnsafeGameCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
     ) -> Result<Self::Item<'w, 's>, ErrorType> {
         Ok(Query {
             _marker: std::marker::PhantomData,
-            ecs_ptr: ecs,
+            ecs_ptr,
             entities: &state.entities,
         })
     }
@@ -425,45 +405,45 @@ mod tests {
 
         // Init ecs
         let mut ecs = crate::ECS::init().unwrap();
-        let mut ecs_ptr = UnsafeECSCell::new(&mut ecs);
+        let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
         ecs.register_component(&id_1, &register_1).unwrap();
         ecs.register_component(&id_2, &register_2).unwrap();
 
         let entities = std::collections::HashSet::new();
 
         let mut _query = Query::<&NewComponent1> {
-            _marker: std::marker::PhantomData::default(),
-            ecs_ptr: &mut ecs_ptr,
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
 
         let mut _query = Query::<&NewComponent1, With<NewComponent2>> {
-            _marker: std::marker::PhantomData::default(),
-            ecs_ptr: &mut ecs_ptr,
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
 
         let mut _query = Query::<&NewComponent1, Without<NewComponent2>> {
-            _marker: std::marker::PhantomData::default(),
-            ecs_ptr: &mut ecs_ptr,
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
 
         let mut _query = Query::<(&NewComponent1, &mut NewComponent2)> {
-            _marker: std::marker::PhantomData::default(),
-            ecs_ptr: &mut ecs_ptr,
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
 
         let mut _query = Query::<&NewComponent1, Without<NewComponent1>> {
-            _marker: std::marker::PhantomData::default(),
-            ecs_ptr: &mut ecs_ptr,
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
 
         let mut _query2 = Query::<&NewComponent1, Without<NewComponent2>> {
-            _marker: std::marker::PhantomData::default(),
-            ecs_ptr: &mut ecs_ptr,
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
     }

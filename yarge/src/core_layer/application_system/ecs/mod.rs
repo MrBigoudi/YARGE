@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 /// A module representing generatioonal indices structures
 /// See https://lucassardois.medium.com/generational-indices-guide-8e3c5f7fd594
 pub(crate) mod generational;
@@ -15,8 +18,28 @@ pub(crate) mod system_v2;
 
 pub(crate) mod engine;
 
-#[allow(unused)]
-use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+pub struct UnsafeECSCell {
+    ptr: *mut ECS,
+}
+
+impl UnsafeECSCell {
+    pub(crate) fn new(ecs: &mut ECS) -> Self {
+        let ptr: *mut ECS = ecs;
+        Self { ptr }
+    }
+
+    #[inline]
+    pub(crate) unsafe fn get(&self) -> &ECS {
+        unsafe { &(*self.ptr) }
+    }
+
+    #[inline]
+    #[allow(clippy::mut_from_ref)]
+    pub(crate) unsafe fn get_mut(&self) -> &mut ECS {
+        unsafe { &mut (*self.ptr) }
+    }
+}
 
 #[allow(clippy::upper_case_acronyms)]
 /// An entity component system

@@ -25,6 +25,8 @@
 // #![warn(clippy::missing_docs_in_private_items)]
 #![allow(dead_code)]
 #![feature(portable_simd)]
+#![feature(fn_traits)]
+#![feature(unboxed_closures)]
 #![cfg_attr(bare_metal, no_std)]
 
 //! The yarge library
@@ -37,10 +39,10 @@ pub mod config;
 pub mod error;
 pub mod maths;
 
-pub use core_layer::application_system::game::Game;
+pub use core_layer::application_system::game::{UnsafeGameCell, Game};
 pub use core_layer::entry::Entry;
 
-pub use core_layer::application_system::ecs::ECS;
+pub use core_layer::application_system::ecs::{UnsafeECSCell, ECS};
 pub use core_layer::application_system::ecs::resource::ResourceHandle;
 pub use core_layer::application_system::ecs::resource::UserResource as Resource;
 pub use core_layer::application_system::ecs::resource::UserResourceId as ResourceId;
@@ -52,7 +54,7 @@ pub use core_layer::application_system::ecs::system::SystemSchedule;
 pub use core_layer::application_system::events::builder as event_builder;
 pub use core_layer::application_system::events::user_events::UserEventWrapper as Event;
 
-pub use core_layer::application_system::ecs::query::{Query, UnsafeECSCell};
+pub use core_layer::application_system::ecs::query::{Query, With, Without};
 pub use core_layer::application_system::ecs::system_v2::{
     IntoSystem, SystemFuncWrapper, SystemParam, SystemTrait,
 };

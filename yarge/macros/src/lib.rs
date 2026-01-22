@@ -70,10 +70,10 @@ pub fn system(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #impl_fn_name()
         },
         1 => quote! {
-            #impl_fn_name(params)
+            #impl_fn_name(args)
         },
         _ => quote! {
-            let ( #(#param_pats),* ) = params;
+            let ( #(#param_pats),* ) = args;
             #impl_fn_name( #(#param_pats),* )
         },
     };
@@ -84,6 +84,29 @@ pub fn system(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Create a unique wrapper type name based on the function name
     let wrapper_name = syn::Ident::new(&format!("__SystemWrapper_{}", fn_name), fn_name.span());
+
+    // Create the intput type for function overloading
+    let new_fn_input = match param_count {
+        0 => quote! { () },
+        _ => quote! { ( #(#param_types),* , ) },
+    };
+    let new_call_user_fn = match param_count {
+        0 => quote! {
+            #impl_fn_name()
+        },
+        1 => quote! {
+            #impl_fn_name( args.0 )
+        },
+        _ => quote! {
+            let ( #(#param_pats),* ) = args;
+            #impl_fn_name( #(#param_pats),* )
+        },
+    };
+    // Create the output type for function overloading
+    let new_fn_output = match &sig.output {
+        syn::ReturnType::Default => quote! { () },
+        syn::ReturnType::Type(_, ty) => quote! { #ty },
+    };
 
     quote! {
         // Original function with renamed implementation name
@@ -97,13 +120,33 @@ pub fn system(_attr: TokenStream, item: TokenStream) -> TokenStream {
             fn into_system(self) -> Box<dyn crate::SystemTrait> {
                 Box::new(
                     crate::SystemFuncWrapper::<_, #param_tuple> {
-                        function: move |params| {
+                        function: move |args| {
                             #call_user_fn
                         },
                         state: None,
                         _marker: std::marker::PhantomData,
                     }
                 )
+            }
+        }
+
+        // Overload caller so that the original function call still works using the final constant
+        impl FnOnce<#new_fn_input> for #wrapper_name {
+            type Output = #new_fn_output;
+            extern "rust-call" fn call_once(self, args: #new_fn_input) -> Self::Output {
+                #new_call_user_fn
+            }
+        }
+
+        impl FnMut<#new_fn_input> for #wrapper_name {
+            extern "rust-call" fn call_mut(&mut self, args: #new_fn_input) -> Self::Output {
+                #new_call_user_fn
+            }
+        }
+
+        impl Fn<#new_fn_input> for #wrapper_name {
+            extern "rust-call" fn call(&self, args: #new_fn_input) -> Self::Output {
+                #new_call_user_fn
             }
         }
 

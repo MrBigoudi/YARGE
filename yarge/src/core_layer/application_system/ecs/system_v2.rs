@@ -8,10 +8,11 @@ pub trait SystemParam {
     // TODO: add fucntions to update state
     // remove entity, add component to entity, remove component from entity, remove component
 
-    fn init_state(ecs: &crate::ECS) -> Result<Self::State, ErrorType>;
+    fn init_state(game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType>;
     unsafe fn get_item<'w, 's>(
         state: &'s mut Self::State,
-        ecs: &'w super::query::UnsafeECSCell,
+        game_ptr: &'w crate::UnsafeGameCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
     ) -> Result<Self::Item<'w, 's>, ErrorType>;
 }
 
@@ -19,13 +20,14 @@ impl SystemParam for () {
     type State = ();
     type Item<'w, 's> = ();
 
-    fn init_state(_: &crate::ECS) -> Result<Self::State, ErrorType> {
+    fn init_state(_game: &dyn crate::Game, _ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
         Ok(())
     }
 
     unsafe fn get_item<'w, 's>(
-        _: &'s mut Self::State,
-        _: &'w super::query::UnsafeECSCell,
+        _state: &'s mut Self::State,
+        _game_ptr: &'w crate::UnsafeGameCell,
+        _ecs_ptr: &'w crate::UnsafeECSCell,
     ) -> Result<Self::Item<'w, 's>, ErrorType> {
         Ok(())
     }
@@ -39,8 +41,8 @@ where
     type State = (A::State, B::State);
     type Item<'w, 's> = (A::Item<'w, 's>, B::Item<'w, 's>);
 
-    fn init_state(ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
-        Ok((A::init_state(ecs)?, B::init_state(ecs)?))
+    fn init_state(game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+        Ok((A::init_state(game, ecs)?, B::init_state(game, ecs)?))
     }
 
     // TODO: add fucntions to update state
@@ -48,13 +50,79 @@ where
 
     unsafe fn get_item<'w, 's>(
         state: &'s mut Self::State,
-        ecs: &'w super::query::UnsafeECSCell,
+        game_ptr: &'w crate::UnsafeGameCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
     ) -> Result<Self::Item<'w, 's>, ErrorType> {
-        let item_a = unsafe { A::get_item(&mut state.0, ecs) }?;
-        let item_b = unsafe { B::get_item(&mut state.1, ecs) }?;
+        let item_a = unsafe { A::get_item(&mut state.0, game_ptr, ecs_ptr) }?;
+        let item_b = unsafe { B::get_item(&mut state.1, game_ptr, ecs_ptr) }?;
         Ok((item_a, item_b))
     }
 }
+
+// TODO: impl SystemParam for game
+impl<T> SystemParam for &mut T 
+where 
+    T: crate::Game + 'static,
+{
+    type State = ();
+    type Item<'w, 's> = &'w mut T;
+
+    fn init_state(_game: &dyn crate::Game, _ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+        Ok(())
+    }
+
+    unsafe fn get_item<'w, 's>(
+        _state: &'s mut Self::State,
+        game_ptr: &'w crate::UnsafeGameCell,
+        _ecs_ptr: &'w crate::UnsafeECSCell,
+    ) -> Result<Self::Item<'w, 's>, ErrorType> {
+        let any: &mut (dyn std::any::Any + 'static) = unsafe { game_ptr.get_mut() };
+        let game = match any.downcast_mut::<T>() {
+            Some(game) => game,
+            None => {
+                log_error!("Failed to downcast the mutable `{:?}' user game when using it as a system parameter", 
+                    std::any::type_name::<T>(),
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        Ok(game)
+    }
+}
+impl<T> SystemParam for &T 
+where 
+    T: crate::Game + 'static,
+{
+    type State = ();
+    type Item<'w, 's> = &'w T;
+
+    fn init_state(_game: &dyn crate::Game, _ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+        Ok(())
+    }
+
+    unsafe fn get_item<'w, 's>(
+        _state: &'s mut Self::State,
+        game_ptr: &'w crate::UnsafeGameCell,
+        _ecs_ptr: &'w crate::UnsafeECSCell,
+    ) -> Result<Self::Item<'w, 's>, ErrorType> {
+        let any: &(dyn std::any::Any + 'static) = unsafe { game_ptr.get() };
+        let game = match any.downcast_ref::<T>() {
+            Some(game) => game,
+            None => {
+                log_error!("Failed to downcast the `{:?}' user game when using it as a system parameter", 
+                    std::any::type_name::<T>(),
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        Ok(game)
+    }
+}
+
+
+
+
+
 
 pub struct SystemFuncWrapper<Func, Param>
 where
@@ -70,19 +138,25 @@ where
     Func: for<'w, 's> FnMut(Param::Item<'w, 's>) -> Result<(), ErrorType> + 'static,
     Param: SystemParam,
 {
-    fn init(&mut self, ecs: &crate::ECS) -> Result<(), ErrorType> {
-        self.state = Some(Param::init_state(ecs)?);
+    fn init(&mut self, game: &dyn crate::Game, ecs: &crate::ECS) -> Result<(), ErrorType> {
+        self.state = Some(Param::init_state(game, ecs)?);
         Ok(())
     }
-    fn run(&mut self, ecs_ptr: &super::query::UnsafeECSCell) -> Result<(), ErrorType> {
+    fn run(&mut self, game_ptr: &crate::UnsafeGameCell, ecs_ptr: &crate::UnsafeECSCell) -> Result<(), ErrorType> {
         let state = match &mut self.state {
             None => return Err(ErrorType::Unknown),
             Some(state) => state,
         };
-        let param = unsafe { Param::get_item(state, ecs_ptr) }?;
+        let param = unsafe { Param::get_item(state, game_ptr, ecs_ptr) }?;
         (self.function)(param)
     }
 }
+
+
+
+
+
+
 
 pub trait IntoSystem {
     fn into_system(self) -> Box<dyn SystemTrait>;
@@ -92,8 +166,8 @@ pub trait SystemTrait {
     // TODO: add fucntions to update state
     // remove entity, add component to entity, remove component from entity, remove component
 
-    fn init(&mut self, ecs: &crate::ECS) -> Result<(), ErrorType>;
-    fn run(&mut self, ecs_ptr: &super::query::UnsafeECSCell) -> Result<(), ErrorType>;
+    fn init(&mut self, game: &dyn crate::Game, ecs: &crate::ECS) -> Result<(), ErrorType>;
+    fn run(&mut self, game_ptr: &crate::UnsafeGameCell, ecs_ptr: &crate::UnsafeECSCell) -> Result<(), ErrorType>;
 }
 
 pub(crate) struct SystemInternalV2 {
@@ -201,16 +275,17 @@ impl SystemManagerV2 {
     pub(crate) fn run_all(
         &mut self,
         game: &mut dyn crate::Game,
-        ecs_ptr: &super::query::UnsafeECSCell,
+        ecs_ptr: &crate::UnsafeECSCell,
     ) -> Result<(), ErrorType> {
         for system in &mut self.systems {
             match (system.internal.condition)(game) {
                 Ok(should_run) => {
-                    if should_run && system.should_run_this_update() 
-                        && let Err(err) = system.system_trait.run(ecs_ptr) {
+                    if should_run && system.should_run_this_update() {
+                        let game_ptr = crate::UnsafeGameCell::new(game);
+                        if let Err(err) = system.system_trait.run(&game_ptr, ecs_ptr) {
                             log_error!("Failed to run a system: {:?}", err);
                             return Err(ErrorType::Unknown);
-                        
+                        }
                     }
                 }
                 Err(err) => {
@@ -241,28 +316,37 @@ mod tests {
         Component, RegisterComponentFunction,
     };
 
+    // Create new components
+    struct NewComponent1 {
+        value: u32,
+    }
+    struct NewComponent2;
+
+    impl crate::Component for NewComponent1 {}
+    impl crate::Component for NewComponent2 {}
+
+    struct TestGame{ test: u32 }
+    impl crate::Game for TestGame{}
+
+    macro_rules! default_system_internal {
+        () => {
+            SystemInternalV2::new(
+                SystemSchedule::default(),
+                UserSystemCallbackBuilder::default_condition(),
+            )
+        };
+    }
+
     #[test]
     fn initialization() {
-        // Create new components
-        struct NewComponent1 {
-            value: u32,
-        }
-        struct NewComponent2;
-
-        impl crate::Component for NewComponent1 {}
-        impl crate::Component for NewComponent2 {}
-        // Helpers to play with components
-        let id_1 = NewComponent1::get_type_id();
-        let register_1: RegisterComponentFunction = NewComponent1::register;
-        let id_2 = NewComponent2::get_type_id();
-        let register_2: RegisterComponentFunction = NewComponent2::register;
-
+        // Init Game
+        let game = TestGame{ test: 0u32 };
         // Init ecs
         let mut ecs = crate::ECS::init().unwrap();
-        ecs.register_component(&id_1, &register_1).unwrap();
-        ecs.register_component(&id_2, &register_2).unwrap();
-
-        // let entities= std::collections::HashSet::new();
+        let register_1: RegisterComponentFunction = NewComponent1::register;
+        let register_2: RegisterComponentFunction = NewComponent2::register;
+        ecs.register_component(&NewComponent1::get_type_id(), &register_1).unwrap();
+        ecs.register_component(&NewComponent2::get_type_id(), &register_2).unwrap();
 
         #[macros::system]
         fn test_system_0() -> Result<(), ErrorType> {
@@ -285,34 +369,133 @@ mod tests {
             Ok(())
         }
 
-        let internal_0 = SystemInternalV2::new(
-            SystemSchedule::default(),
-            UserSystemCallbackBuilder::default_condition(),
-        );
+        let internal_0= default_system_internal!();
         let mut system_0 = test_system_0.into_system();
-        system_0.init(&ecs).unwrap();
+        system_0.init(&game, &ecs).unwrap();
         ecs.system_manager_2
             .add_system(internal_0, system_0)
             .unwrap();
 
-        let internal_1 = SystemInternalV2::new(
-            SystemSchedule::default(),
-            UserSystemCallbackBuilder::default_condition(),
-        );
+        let internal_1 = default_system_internal!();
         let mut system_1 = test_system_1.into_system();
-        system_1.init(&ecs).unwrap();
+        system_1.init(&game, &ecs).unwrap();
         ecs.system_manager_2
             .add_system(internal_1, system_1)
             .unwrap();
 
-        let internal_2 = SystemInternalV2::new(
-            SystemSchedule::default(),
-            UserSystemCallbackBuilder::default_condition(),
-        );
+        let internal_2 = default_system_internal!();
         let mut system_2 = test_system_2.into_system();
-        system_2.init(&ecs).unwrap();
+        system_2.init(&game, &ecs).unwrap();
         ecs.system_manager_2
             .add_system(internal_2, system_2)
             .unwrap();
+    }
+
+    #[test]
+    fn systems_with_game() {
+        // Init Game
+        let game = TestGame{ test: 0u32, };
+        // Init ecs
+        let mut ecs = crate::ECS::init().unwrap();
+
+        #[macros::system]
+        fn test_system(_game: &mut TestGame) -> Result<(), ErrorType> {
+            Ok(())
+        }
+        #[macros::system]
+        fn test_system_query(_game: &TestGame, _query: Query<'_, '_, &NewComponent1>) -> Result<(), ErrorType> {
+            Ok(())
+        }
+
+        let internal = default_system_internal!();
+        let mut system = test_system.into_system();
+        system.init(&game, &ecs).unwrap();
+        ecs.system_manager_2
+            .add_system(internal, system)
+            .unwrap();
+
+        let internal = default_system_internal!();
+        let mut system = test_system_query.into_system();
+        system.init(&game, &ecs).unwrap();
+        ecs.system_manager_2
+            .add_system(internal, system)
+            .unwrap();
+    }
+
+    #[test]
+    fn systems_as_function() {
+        // Init ecs
+        let mut ecs = crate::ECS::init().unwrap();
+
+        #[macros::system]
+        fn test_system() -> Result<(), ErrorType> {
+            Ok(())
+        }
+        #[macros::system]
+        fn test_system_err(
+            _query: Query<'_, '_, &NewComponent1>,
+        ) -> Result<(), ErrorType> {
+            Err(ErrorType::Unknown)
+        }
+        #[macros::system]
+        fn test_system_ok(
+            _q1: Query<'_, '_, &NewComponent1>,
+            _q2: Query<'_, '_, &NewComponent2>,
+        ) -> Result<(), ErrorType> {
+            Ok(())
+        }
+        let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
+        let entities = std::collections::HashSet::new();
+        let query = Query::<&NewComponent1> {
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
+            entities: &entities,
+        };
+        let q1 = Query::<&NewComponent1> {
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
+            entities: &entities,
+        };
+        let q2 = Query::<&NewComponent2> {
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
+            entities: &entities,
+        };
+        assert!(test_system().is_ok());
+        assert!(test_system_err(query).is_err());
+        assert!(test_system_ok(q1, q2).is_ok());
+    }
+
+    #[test]
+    fn systems_with_game_running() {
+        // Init Game
+        let mut game = TestGame{ test: 0u32, };
+        // Init ecs
+        let mut ecs = crate::ECS::init().unwrap();
+
+        #[macros::system]
+        fn test_system(game: &mut TestGame) -> Result<(), ErrorType> {
+            game.test += 1u32;
+            Ok(())
+        }
+
+        let internal = default_system_internal!();
+        let mut system = test_system.into_system();
+        system.init(&game, &ecs).unwrap();
+        ecs.system_manager_2
+            .add_system(internal, system)
+            .unwrap();
+        assert_eq!(game.test, 0u32);
+
+        let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
+        ecs.system_manager_2.run_all(&mut game, &ecs_ptr).unwrap();
+        assert_eq!(game.test, 1u32);
+
+        let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
+        ecs.system_manager_2.run_all(&mut game, &ecs_ptr).unwrap();
+        assert_eq!(game.test, 2u32);
+
+        assert!(test_system(&mut game).is_ok());
+        assert_eq!(game.test, 3u32);
     }
 }
