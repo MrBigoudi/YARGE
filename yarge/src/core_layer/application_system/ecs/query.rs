@@ -3,7 +3,6 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::core_layer::application_system::ecs::component::{Component, RealComponent};
 
-
 pub trait QueryParam {
     /// Components this query reads
     fn component_ids() -> Vec<std::any::TypeId>;
@@ -47,40 +46,31 @@ impl<A: QueryParam, B: QueryParam> QueryParam for (A, B) {
 
 pub unsafe trait QueryFetch<'w>: QueryParam {
     type Item;
+
+    #[allow(private_interfaces)]
     unsafe fn fetch(
         ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
+        real_entity: &super::entity::Entity,
     ) -> Result<Option<Self::Item>, ErrorType>;
 }
 
 unsafe impl<'w, T: Component> QueryFetch<'w> for &T {
     type Item = &'w T;
 
+    #[allow(private_interfaces)]
     unsafe fn fetch(
         ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
+        real_entity: &super::entity::Entity,
     ) -> Result<Option<Self::Item>, ErrorType> {
         let component_manager = unsafe { &ecs_ptr.get().component_manager };
-
         let type_id = Self::component_ids()[0];
-        let real_entity = match crate::ECS::get_real_entity(user_entity) {
-            Ok(Some(id)) => id,
-            Ok(None) => return Ok(None),
-            Err(err) => {
-                log_error!(
-                    "Failed to get the real entity equivalent of the `{:?}' entity from a query parameter: {:?}",
-                    user_entity,
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-
-        let component: &dyn RealComponent = match component_manager.get(&type_id, &real_entity) {
+        let component: &dyn RealComponent = match component_manager.get(&type_id, real_entity) {
             Ok(component) => component,
             Err(ErrorType::DoesNotExist) => {
                 log_warn!(
-                    "The `{:?}' component for entity `{:?}' doesn't exist",
+                    "The `{:?}' component for user entity `{:?}' doesn't exist",
                     std::any::type_name::<T>(),
                     user_entity,
                 );
@@ -111,31 +101,20 @@ unsafe impl<'w, T: Component> QueryFetch<'w> for &T {
 unsafe impl<'w, T: Component> QueryFetch<'w> for &mut T {
     type Item = &'w mut T;
 
+    #[allow(private_interfaces)]
     unsafe fn fetch(
         ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
+        real_entity: &super::entity::Entity,
     ) -> Result<Option<Self::Item>, ErrorType> {
         let component_manager = unsafe { &mut ecs_ptr.get_mut().component_manager };
         let type_id = Self::mutable_ids()[0];
-        let real_entity = match crate::ECS::get_real_entity(user_entity) {
-            Ok(Some(id)) => id,
-            Ok(None) => return Ok(None),
-            Err(err) => {
-                log_error!(
-                    "Failed to get the real entity equivalent of the `{:?}' entity from a query parameter: {:?}",
-                    user_entity,
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-
         let component: &mut dyn RealComponent =
-            match component_manager.get_mut(&type_id, &real_entity) {
+            match component_manager.get_mut(&type_id, real_entity) {
                 Ok(component) => component,
                 Err(ErrorType::DoesNotExist) => {
                     log_warn!(
-                        "The `{:?}' component for entity `{:?}' doesn't exist",
+                        "The `{:?}' component for user entity `{:?}' doesn't exist",
                         std::any::type_name::<T>(),
                         user_entity,
                     );
@@ -170,11 +149,13 @@ where
 {
     type Item = (A::Item, B::Item);
 
+    #[allow(private_interfaces)]
     unsafe fn fetch(
         ecs_ptr: &'w crate::UnsafeECSCell,
         user_entity: &super::entity::UserEntity,
+        real_entity: &super::entity::Entity,
     ) -> Result<Option<Self::Item>, ErrorType> {
-        let component_a = match unsafe { A::fetch(ecs_ptr, user_entity) } {
+        let component_a = match unsafe { A::fetch(ecs_ptr, user_entity, real_entity) } {
             Ok(Some(component)) => component,
             Ok(None) => return Ok(None),
             Err(err) => {
@@ -186,7 +167,7 @@ where
             }
         };
 
-        let component_b = match unsafe { B::fetch(ecs_ptr, user_entity) } {
+        let component_b = match unsafe { B::fetch(ecs_ptr, user_entity, real_entity) } {
             Ok(Some(component)) => component,
             Ok(None) => return Ok(None),
             Err(err) => {
@@ -292,13 +273,14 @@ where
 {
     pub(crate) _marker: std::marker::PhantomData<(Q, F)>,
     pub(crate) ecs_ptr: &'w crate::UnsafeECSCell,
-    pub(crate) entities: &'s std::collections::HashSet<super::entity::Entity>,
+    pub(crate) entities:
+        &'s std::collections::HashSet<(super::entity::UserEntity, super::entity::Entity)>,
 }
 
 pub struct QueryState {
     with: Vec<std::any::TypeId>,
     without: Vec<std::any::TypeId>,
-    entities: std::collections::HashSet<super::entity::Entity>,
+    entities: std::collections::HashSet<(super::entity::UserEntity, super::entity::Entity)>,
 }
 
 impl<Q, F> super::system_v2::SystemParam for Query<'_, '_, Q, F>
@@ -313,25 +295,29 @@ where
     // remove entity, add component to entity, remove component from entity, remove component
 
     fn init_state(_game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+        let component_ids = Q::component_ids();
         let with = F::with();
         let without = F::without();
         let mut entities = std::collections::HashSet::new();
 
         let component_manager = &ecs.component_manager;
         for entity in &ecs.entities {
-            'inner_loop: for component_id in &Q::component_ids() {
+            let mut should_add_entity = true;
+            'inner_loop: for component_id in &component_ids {
                 match component_manager.has_component_type(entity, component_id) {
-                    Ok(false) => break 'inner_loop,
+                    Ok(false) => {
+                        should_add_entity = false;
+                        break 'inner_loop;
+                    }
                     Ok(true) => {
-                        match component_manager.has_correct_constraints(
-                            entity,
-                            &F::with(),
-                            &F::without(),
-                        ) {
-                            Ok(false) => break 'inner_loop,
+                        match component_manager.has_correct_constraints(entity, &with, &without) {
+                            Ok(false) => {
+                                should_add_entity = false;
+                                break 'inner_loop;
+                            }
                             Err(err) => {
                                 log_error!(
-                                    "Failed to check if an entry has the correct constraints when adding an entity to a query parameter: {:?}",
+                                    "Failed to check if an entry has the correct constraints when initializing a query state: {:?}",
                                     err
                                 );
                                 return Err(ErrorType::Unknown);
@@ -341,7 +327,7 @@ where
                     }
                     Err(err) => {
                         log_error!(
-                            "Failed to check if an entry has the given component type when adding an entity to a query parameter: {:?}",
+                            "Failed to check if an entry has the given component type when initializing a query: {:?}",
                             err
                         );
                         return Err(ErrorType::Unknown);
@@ -349,13 +335,30 @@ where
                 }
             }
 
-            if !entities.insert(*entity) {
-                log_error!(
-                    "Failed to insert a new entity in a query parameter, the entity was already present"
-                );
-                return Err(ErrorType::Duplicate);
+            // Only add entities if all constraints are valid
+            if should_add_entity {
+                let user_entity = match crate::ECS::get_user_entity(entity) {
+                    Ok(Some(entity)) => entity,
+                    _ => {
+                        log_error!(
+                            "Failed to find a user entity associated with the real entity when initializing the query state"
+                        );
+                        return Err(ErrorType::DoesNotExist);
+                    }
+                };
+                if !entities.insert((user_entity, *entity)) {
+                    log_error!(
+                        "Failed to insert a new entity in a query parameter, the entity was already present"
+                    );
+                    return Err(ErrorType::Duplicate);
+                }
             }
         }
+
+        // log_debug!("Query entities: {:?}\n\n", &entities);
+        // log_debug!("Query ids: {:?}", &component_ids);
+        // log_debug!("Query filters with: {:?}", &with);
+        // log_debug!("Query filters without: {:?}", &without);
 
         Ok(Self::State {
             with,
@@ -378,7 +381,132 @@ where
 }
 
 //////////////////////////////////////////////////////////
-///////////////     query tests      ////////////////////
+///////////////     query iterator     ///////////////////
+//////////////////////////////////////////////////////////
+pub struct QueryIter<'w, 's, Q>
+where
+    Q: QueryFetch<'w>,
+{
+    ecs_ptr: &'w crate::UnsafeECSCell,
+    entities:
+        std::collections::hash_set::Iter<'s, (super::entity::UserEntity, super::entity::Entity)>,
+    _marker: std::marker::PhantomData<Q>,
+}
+pub struct QueryIterWithEntities<'w, 's, Q>
+where
+    Q: QueryFetch<'w>,
+{
+    ecs_ptr: &'w crate::UnsafeECSCell,
+    entities:
+        std::collections::hash_set::Iter<'s, (super::entity::UserEntity, super::entity::Entity)>,
+    _marker: std::marker::PhantomData<Q>,
+}
+
+impl<'w, Q> Iterator for QueryIter<'w, '_, Q>
+where
+    Q: QueryFetch<'w>,
+{
+    type Item = Q::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for (user_entity, real_entity) in &mut self.entities {
+            match unsafe { Q::fetch(self.ecs_ptr, user_entity, real_entity) } {
+                Ok(Some(item)) => return Some(item),
+                Ok(None) => continue,
+                Err(err) => {
+                    log_warn!(
+                        "Failed to get the next entry in a QueryIter iterator: {:?}",
+                        err
+                    );
+                    return None;
+                }
+            }
+        }
+        None
+    }
+}
+impl<'w, Q> Iterator for QueryIterWithEntities<'w, '_, Q>
+where
+    Q: QueryFetch<'w>,
+{
+    type Item = (Q::Item, super::entity::UserEntity);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for (user_entity, real_entity) in &mut self.entities {
+            match unsafe { Q::fetch(self.ecs_ptr, user_entity, real_entity) } {
+                Ok(Some(item)) => return Some((item, *user_entity)),
+                Ok(None) => continue,
+                Err(err) => {
+                    log_warn!(
+                        "Failed to get the next entry in a QueryIterWithEntities iterator: {:?}",
+                        err
+                    );
+                    return None;
+                }
+            }
+        }
+        None
+    }
+}
+
+impl<'w, 's, Q, F> Query<'w, 's, Q, F>
+where
+    Q: QueryFetch<'w>,
+    F: QueryFilter,
+{
+    pub fn iter(&self) -> QueryIter<'w, 's, Q> {
+        QueryIter {
+            ecs_ptr: self.ecs_ptr,
+            entities: self.entities.iter(),
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> QueryIter<'w, 's, Q> {
+        QueryIter {
+            ecs_ptr: self.ecs_ptr,
+            entities: self.entities.iter(),
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    pub fn with_entities(&self) -> QueryIterWithEntities<'w, 's, Q> {
+        QueryIterWithEntities {
+            ecs_ptr: self.ecs_ptr,
+            entities: self.entities.iter(),
+            _marker: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<'w, 's, Q, F> IntoIterator for &'s Query<'w, 's, Q, F>
+where
+    Q: QueryFetch<'w>,
+    F: QueryFilter,
+{
+    type Item = Q::Item;
+    type IntoIter = QueryIter<'w, 's, Q>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'w, 's, Q, F> IntoIterator for &'s mut Query<'w, 's, Q, F>
+where
+    Q: QueryFetch<'w>,
+    F: QueryFilter,
+{
+    type Item = Q::Item;
+    type IntoIter = QueryIter<'w, 's, Q>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
+//////////////////////////////////////////////////////////
+///////////////     query tests      /////////////////////
 //////////////////////////////////////////////////////////
 #[cfg(test)]
 mod tests {

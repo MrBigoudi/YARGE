@@ -39,14 +39,14 @@ pub mod config;
 pub mod error;
 pub mod maths;
 
-pub use core_layer::application_system::game::{UnsafeGameCell, Game};
+pub use core_layer::application_system::game::{Game, UnsafeGameCell};
 pub use core_layer::entry::Entry;
 
-pub use core_layer::application_system::ecs::{UnsafeECSCell, ECS};
 pub use core_layer::application_system::ecs::resource::ResourceHandle;
 pub use core_layer::application_system::ecs::resource::UserResource as Resource;
 pub use core_layer::application_system::ecs::resource::UserResourceId as ResourceId;
 pub use core_layer::application_system::ecs::resource::UserResourceLoadingParameters as ResourceLoadingParameters;
+pub use core_layer::application_system::ecs::{ECS, UnsafeECSCell};
 
 pub use core_layer::application_system::ecs::component::UserComponent as Component;
 pub use core_layer::application_system::ecs::entity::UserEntity as Entity;

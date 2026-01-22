@@ -18,7 +18,6 @@ pub(crate) mod system_v2;
 
 pub(crate) mod engine;
 
-
 pub struct UnsafeECSCell {
     ptr: *mut ECS,
 }
@@ -137,12 +136,45 @@ impl ECS {
             Ok(generator) => match generator.get_real_entity(user_entity) {
                 Ok(entity) => Ok(Some(entity)),
                 Err(ErrorType::DoesNotExist) => {
-                    log_warn!("Couldn't find the entity `{:?}' in the ECS", user_entity);
+                    log_warn!(
+                        "Couldn't find the user entity `{:?}' in the ECS",
+                        user_entity
+                    );
                     Ok(None)
                 }
                 Err(err) => {
                     log_error!(
                         "Failed to get the real entity from the entity generator in the ECS: {:?}",
+                        err
+                    );
+                    Err(ErrorType::Unknown)
+                }
+            },
+            Err(err) => {
+                log_error!(
+                    "Failed to access the global entity generator in the ECS: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
+    /// Gets a user entity from a real entity
+    /// Returns None if the entity doesn't exist
+    pub(crate) fn get_user_entity(
+        entity: &entity::Entity,
+    ) -> Result<Option<entity::UserEntity>, ErrorType> {
+        match entity::GLOBAL_ENTITY_GENERATOR.read() {
+            Ok(generator) => match generator.get_user_entity(entity) {
+                Ok(entity) => Ok(Some(entity)),
+                Err(ErrorType::DoesNotExist) => {
+                    log_warn!("Couldn't find the real entity `{:?}' in the ECS", entity);
+                    Ok(None)
+                }
+                Err(err) => {
+                    log_error!(
+                        "Failed to get the user entity from the entity generator in the ECS: {:?}",
                         err
                     );
                     Err(ErrorType::Unknown)

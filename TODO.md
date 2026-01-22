@@ -12,6 +12,8 @@
 
 ## ECS
 
+- Add comments for Queries and the new system
+- Replace the old system manager with the new system manager
 - Add tests for the generational indices list
 
 ## Graphics

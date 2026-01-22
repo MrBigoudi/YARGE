@@ -15,6 +15,8 @@ pub struct UserEntity(pub(crate) super::generational::GenerationalKey);
 pub(crate) struct EntityGenerator {
     /// A hash map to map user's entity id to real entity ids
     pub(crate) table: HashMap<UserEntity, Entity>,
+    /// A hash map to map real entity ids to user entities ids
+    pub(crate) inv_table: HashMap<Entity, UserEntity>,
     /// A list of not yet created entities
     pub(crate) entity_to_generate: Vec<UserEntity>,
     /// The total number of created entities
@@ -28,6 +30,7 @@ impl EntityGenerator {
     pub(crate) fn init() -> Self {
         Self {
             table: HashMap::new(),
+            inv_table: HashMap::new(),
             entity_to_generate: vec![],
             nb_entities_total: 0,
             generation: 0,
@@ -66,14 +69,37 @@ impl EntityGenerator {
         }
     }
 
+    /// Gets the user entity given the real entity
+    pub(crate) fn get_user_entity(&self, entity: &Entity) -> Result<UserEntity, ErrorType> {
+        match self.inv_table.get(entity) {
+            Some(entity) => Ok(*entity),
+            None => {
+                log_error!("Failed to retrieve the user entity from real entity");
+                Err(ErrorType::DoesNotExist)
+            }
+        }
+    }
+
     /// Gets the real entities given a list of UserEntity
     pub(crate) fn get_real_entities(
         &self,
-        user_entity: &[UserEntity],
+        user_entities: &[UserEntity],
     ) -> Result<Vec<Entity>, ErrorType> {
-        let mut output = Vec::with_capacity(user_entity.len());
-        for entity in user_entity {
+        let mut output = Vec::with_capacity(user_entities.len());
+        for entity in user_entities {
             output.push(self.get_real_entity(entity)?);
+        }
+        Ok(output)
+    }
+
+    /// Gets the user entities given a list of real entities
+    pub(crate) fn get_user_entities(
+        &self,
+        entities: &[Entity],
+    ) -> Result<Vec<UserEntity>, ErrorType> {
+        let mut output = Vec::with_capacity(entities.len());
+        for entity in entities {
+            output.push(self.get_user_entity(entity)?);
         }
         Ok(output)
     }
@@ -93,7 +119,9 @@ impl EntityGenerator {
 
         for (i, real_entity) in real_entities.iter().enumerate() {
             let user_entity = self.entity_to_generate[i];
-            if self.table.insert(user_entity, *real_entity).is_some() {
+            if self.table.insert(user_entity, *real_entity).is_some()
+                || self.inv_table.insert(*real_entity, user_entity).is_some()
+            {
                 log_error!(
                     "Failed to update the user entities to real entities table in the entity generator"
                 );
@@ -111,6 +139,7 @@ impl EntityGenerator {
 
     pub(crate) fn shutdown(&mut self) {
         self.table = HashMap::new();
+        self.inv_table = HashMap::new();
         self.entity_to_generate = vec![];
     }
 }
