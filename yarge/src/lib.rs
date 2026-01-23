@@ -50,13 +50,13 @@ pub use core_layer::application_system::ecs::{ECS, UnsafeECSCell};
 
 pub use core_layer::application_system::ecs::component::UserComponent as Component;
 pub use core_layer::application_system::ecs::entity::UserEntity as Entity;
-pub use core_layer::application_system::ecs::system::SystemSchedule;
+// pub use core_layer::application_system::ecs::system::SystemSchedule;
 pub use core_layer::application_system::events::builder as event_builder;
 pub use core_layer::application_system::events::user_events::UserEventWrapper as Event;
 
 pub use core_layer::application_system::ecs::query::{Query, With, Without};
-pub use core_layer::application_system::ecs::system_v2::{
-    IntoSystem, SystemFuncWrapper, SystemParam, SystemTrait,
+pub use core_layer::application_system::ecs::system::{
+    IntoSystem, SystemFuncWrapper, SystemParam, SystemTrait, SystemSchedule
 };
 
 pub use core_layer::input_system::{gamepad, keyboard, mouse};

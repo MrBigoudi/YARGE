@@ -92,31 +92,10 @@ pub(crate) enum UserEvent {
             crate::core_layer::application_system::ecs::component::UpdateComponentForEntityFunction,
     },
 
-    // TODO: Add schedule + if condition
+    /// Registers a new system
     RegisterSystem {
         /// The name of the main component the system will run on
-        name: std::any::TypeId,
-        /// A list of component the entity must have for this system to run on it
-        with: Vec<std::any::TypeId>,
-        /// A list of component the entity must not have for this system to run on it
-        without: Vec<std::any::TypeId>,
-        /// The system function
-        callback: crate::core_layer::application_system::ecs::system::SystemCallback,
-        /// The rate at which this system will be called
-        schedule: crate::SystemSchedule,
-        /// The condition function to run or not this system
-        condition: crate::core_layer::application_system::ecs::system::SystemCallbackConditionFunction,
-    },
-
-    RegisterSystemMut {
-        /// The name of the main component the system will run on
-        name: std::any::TypeId,
-        /// A list of component the entity must have for this system to run on it
-        with: Vec<std::any::TypeId>,
-        /// A list of component the entity must not have for this system to run on it
-        without: Vec<std::any::TypeId>,
-        /// The system function
-        callback_mut: crate::core_layer::application_system::ecs::system::SystemMutCallback,
+        system: Box<dyn crate::SystemTrait>,
         /// The rate at which this system will be called
         schedule: crate::SystemSchedule,
         /// The condition function to run or not this system
@@ -258,16 +237,13 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                     log_debug!("Updated component for entity `{:?}'", user_entity);
                 }
                 UserEvent::RegisterSystem {
-                    name,
-                    with,
-                    without,
-                    callback,
+                    system,
                     schedule,
                     condition,
                 } => {
                     if let Err(err) = self
                         .ecs
-                        .register_system(name, with, without, callback, schedule, condition)
+                        .register_system(self.user_game, system, schedule, condition)
                     {
                         log_error!(
                             "Failed to register a new system when handling a `RegisterSystem' event in the application: {:?}",
@@ -276,30 +252,6 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                         return Err(ErrorType::Unknown);
                     }
                     log_debug!("Added new system");
-                }
-                UserEvent::RegisterSystemMut {
-                    name,
-                    with,
-                    without,
-                    callback_mut,
-                    schedule,
-                    condition,
-                } => {
-                    if let Err(err) = self.ecs.register_system_mut(
-                        name,
-                        with,
-                        without,
-                        callback_mut,
-                        schedule,
-                        condition,
-                    ) {
-                        log_error!(
-                            "Failed to register a new system when handling a `RegisterSystemMut' event in the application: {:?}",
-                            err
-                        );
-                        return Err(ErrorType::Unknown);
-                    }
-                    log_debug!("Added new system mut");
                 }
                 UserEvent::RegisterCustomResource {
                     user_id,

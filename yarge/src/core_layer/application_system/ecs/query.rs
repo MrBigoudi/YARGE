@@ -266,24 +266,45 @@ impl<Out: QueryFilterList, In: QueryFilterList> QueryFilter for (Without<Out>, W
     }
 }
 
+/// A system query
+/// The query is built everytime the system is called so the inner values of the structs are build everytime
 pub struct Query<'w, 's, Q, F = ()>
 where
     Q: QueryFetch<'w>,
     F: QueryFilter,
 {
+    /// A phantom marker for the types
     pub(crate) _marker: std::marker::PhantomData<(Q, F)>,
+    /// An unsafe pointer to the ECS created at runtim
     pub(crate) ecs_ptr: &'w crate::UnsafeECSCell,
+    /// A pointer to the entities associated with this query
     pub(crate) entities:
         &'s std::collections::HashSet<(super::entity::UserEntity, super::entity::Entity)>,
 }
 
+/// The saved state of the query
 pub struct QueryState {
-    with: Vec<std::any::TypeId>,
-    without: Vec<std::any::TypeId>,
-    entities: std::collections::HashSet<(super::entity::UserEntity, super::entity::Entity)>,
+    /// The components with filter
+    pub(crate) with: Vec<std::any::TypeId>,
+    /// The components without filter
+    pub(crate) without: Vec<std::any::TypeId>,
+    /// The entities used by the query
+    pub(crate) entities: std::collections::HashSet<(super::entity::UserEntity, super::entity::Entity)>,
 }
 
-impl<Q, F> super::system_v2::SystemParam for Query<'_, '_, Q, F>
+impl QueryState {
+    /// Checks if the given query state needs this component to work
+    pub(crate) fn need_component<Q>(&self, component_id: &std::any::TypeId) -> bool 
+        where 
+            Q: QueryParam,
+    {
+        let component_ids = Q::component_ids();
+        component_ids.contains(component_id) || self.with.contains(component_id) || self.without.contains(component_id)
+    }
+}
+
+
+impl<Q, F> super::system::SystemParam for Query<'_, '_, Q, F>
 where
     Q: for<'a> QueryFetch<'a>,
     F: QueryFilter,
@@ -291,8 +312,64 @@ where
     type State = QueryState;
     type Item<'w, 's> = Query<'w, 's, Q, F>;
 
-    // TODO: add fucntions to update state
-    // remove entity, add component to entity, remove component from entity, remove component
+    /// Called when an entity is removed from the ECS
+    #[allow(private_interfaces)]
+    fn on_entity_removed(state: &mut Self::State, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity) -> Result<bool, ErrorType>{
+        let _was_present = state.entities.remove(&(*user_entity, *real_entity));
+        Ok(false)
+    }
+
+    /// Called when a component is added to an entity
+    #[allow(private_interfaces)]
+    fn on_component_added_to_entity(state: &mut Self::State, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+        if state.need_component::<Q>(component_id){
+            match component_manager.has_correct_constraints(real_entity, &state.with, &state.without) {
+                Ok(true) => {
+                    let _ = state.entities.insert((*user_entity, *real_entity));
+                },
+                Err(err) => {
+                    log_error!(
+                        "Failed to check if an entry has the correct constraints when adding a component to an entity in a query state: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+                _ => {}
+            }
+        }
+        Ok(false)
+    }
+
+    /// Called when a component is removed from an entity
+    #[allow(private_interfaces)]
+    fn on_component_removed_from_entity(state: &mut Self::State, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+        if state.need_component::<Q>(component_id){
+            match component_manager.has_correct_constraints(real_entity, &state.with, &state.without) {
+                Ok(false) => {
+                    let _ = state.entities.remove(&(*user_entity, *real_entity));
+                },
+                Err(err) => {
+                    log_error!(
+                        "Failed to check if an entry has the correct constraints when removing a component from an entity in a query state: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+                _ => {}
+            }
+        }
+        Ok(false)
+    }
+
+    /// Called when a component is removed from the ECS
+    #[allow(private_interfaces)]
+    fn on_component_removed(state: &mut Self::State, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+        if state.need_component::<Q>(component_id){
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 
     fn init_state(_game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
         let component_ids = Q::component_ids();

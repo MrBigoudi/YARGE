@@ -14,12 +14,7 @@ use crate::{
             resource::{
                 ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager, UserResource,
                 UserResourceId, UserResourceLoadingParameters,
-            },
-            system::{
-                SystemCallback, SystemCallbackConditionFunction, SystemMutCallback,
-                UserSystemCallback, UserSystemCallbackBuilder, UserSystemCallbackConditionFunction,
-                UserSystemMutCallback,
-            },
+            }, system::{SystemCallbackConditionFunction, UserSystemCallbackConditionFunction, UserSystemConditionBuilder},
         },
         events::user_events::{UserEvent, UserEventWrapper},
     },
@@ -334,68 +329,27 @@ impl UpdateComponentValueForEntityEventBuilder {
     }
 }
 
+
 pub struct RegisterSystemEventBuilder {
-    /// The name of the main component the system will run on
-    component_id: Option<std::any::TypeId>,
-    /// A list of component the entity must have for this system to run on it
-    with: Vec<std::any::TypeId>,
-    /// A list of component the entity must not have for this system to run on it
-    without: Vec<std::any::TypeId>,
+    /// The new system to add
+    system: Option<Box<dyn crate::SystemTrait>>,
     /// The rate at which this system will be called
     schedule: SystemSchedule,
     /// The condition function to run or not this system
     condition: SystemCallbackConditionFunction,
-    /// The system function
-    callback: Option<SystemCallback>,
-    /// The system function as mutable
-    callback_mut: Option<SystemMutCallback>,
 }
 impl Default for RegisterSystemEventBuilder {
     fn default() -> Self {
         Self {
-            component_id: None,
-            with: vec![],
-            without: vec![],
+            system: None,
             schedule: SystemSchedule::default(),
-            condition: UserSystemCallbackBuilder::default_condition(),
-            callback: None,
-            callback_mut: None,
+            condition: UserSystemConditionBuilder::default_condition(),
         }
     }
 }
 impl RegisterSystemEventBuilder {
-    pub fn component_type<T: Component>(mut self) -> Self {
-        self.component_id = Some(T::get_type_id());
-        self
-    }
-    pub fn callback<G, T>(mut self, callback: UserSystemCallback<G, T>) -> Self
-    where
-        G: crate::Game + 'static,
-        T: Component + 'static,
-    {
-        self.callback = Some(UserSystemCallbackBuilder::system::<G, T>(callback));
-        if self.callback_mut.is_some() {
-            log_warn!("Mutable system callback removed from the builder");
-        }
-        self
-    }
-    pub fn callback_mut<G, T>(mut self, callback: UserSystemMutCallback<G, T>) -> Self
-    where
-        G: crate::Game + 'static,
-        T: Component + 'static,
-    {
-        self.callback_mut = Some(UserSystemCallbackBuilder::system_mut::<G, T>(callback));
-        if self.callback.is_some() {
-            log_warn!("Reference system callback removed from the builder");
-        }
-        self
-    }
-    pub fn with<T: Component>(mut self) -> Self {
-        self.with.push(T::get_type_id());
-        self
-    }
-    pub fn without<T: Component>(mut self) -> Self {
-        self.without.push(T::get_type_id());
+    pub fn system(mut self, system: &dyn crate::IntoSystem) -> Self {
+        self.system = Some(system.into_system());
         self
     }
     pub fn schedule(mut self, schedule: &SystemSchedule) -> Self {
@@ -406,40 +360,20 @@ impl RegisterSystemEventBuilder {
         mut self,
         condition: UserSystemCallbackConditionFunction<G>,
     ) -> Self {
-        self.condition = UserSystemCallbackBuilder::condition::<G>(condition);
+        self.condition = UserSystemConditionBuilder::condition::<G>(condition);
         self
     }
     pub fn build(self) -> Result<UserEventWrapper, ErrorType> {
-        if self.component_id.is_none() {
-            log_error!("Can't build a `RegisterSystem' event without a component type");
+        if self.system.is_none() {
+            log_error!("Can't build a `RegisterSystem' event without a system");
             return Err(ErrorType::DoesNotExist);
         }
-        if self.callback.is_none() && self.callback_mut.is_none() {
-            log_error!("Can't build a `RegisterSystem` event without a callback");
-            return Err(ErrorType::DoesNotExist);
-        }
-        if self.callback.is_some() {
-            Ok(UserEventWrapper {
-                event: UserEvent::RegisterSystem {
-                    name: self.component_id.unwrap(),
-                    with: self.with,
-                    without: self.without,
-                    callback: self.callback.unwrap(),
-                    schedule: self.schedule,
-                    condition: self.condition,
-                },
-            })
-        } else {
-            Ok(UserEventWrapper {
-                event: UserEvent::RegisterSystemMut {
-                    name: self.component_id.unwrap(),
-                    with: self.with,
-                    without: self.without,
-                    callback_mut: self.callback_mut.unwrap(),
-                    schedule: self.schedule,
-                    condition: self.condition,
-                },
-            })
-        }
+        Ok(UserEventWrapper {
+            event: UserEvent::RegisterSystem {
+                system: self.system.unwrap(),
+                schedule: self.schedule,
+                condition: self.condition,
+            },
+        })
     }
 }

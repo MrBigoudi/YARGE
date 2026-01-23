@@ -14,7 +14,6 @@ pub(crate) mod entity;
 pub(crate) mod query;
 pub(crate) mod resource;
 pub(crate) mod system;
-pub(crate) mod system_v2;
 
 pub(crate) mod engine;
 
@@ -50,10 +49,9 @@ pub struct ECS {
     /// Each collections should be of the same size
     pub(crate) component_manager: component::ComponentManager,
 
-    pub(crate) system_manager: system::SystemManager,
     pub(crate) resource_manager: resource::ResourceManager,
 
-    pub(crate) system_manager_2: system_v2::SystemManagerV2,
+    pub(crate) system_manager: system::SystemManager,
 }
 
 impl ECS {
@@ -70,18 +68,16 @@ impl ECS {
             }
         };
 
-        let system_manager = system::SystemManager::init();
         let resource_manager = resource::ResourceManager::init();
 
-        let system_manager_2 = system_v2::SystemManagerV2::init();
+        let system_manager = system::SystemManager::init();
 
         log_info!("ECS initialized");
         Ok(ECS {
             entities: vec![],
             component_manager,
-            system_manager,
             resource_manager,
-            system_manager_2,
+            system_manager,
         })
     }
 
@@ -292,7 +288,10 @@ impl ECS {
         }
 
         // Update systems
-        self.system_manager.on_removed_entity(&real_entity);
+        if let Err(err) = self.system_manager.on_entity_removed(&real_entity, user_entity) {
+            log_error!("Failed to remove an entity in the system manager when removing an entity in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
 
         let indices_to_remove: Vec<usize> = self
             .entities
@@ -336,6 +335,10 @@ impl ECS {
                 return Err(ErrorType::Unknown);
             }
         };
+        if real_entities.len() != user_entities.len() {
+            log_error!("Failed to find real entities for every user entities when removing entities in the ECS");
+            return Err(ErrorType::DoesNotExist);
+        }
 
         if let Err(err) = self.component_manager.remove_entities(&real_entities) {
             log_error!(
@@ -346,7 +349,14 @@ impl ECS {
         }
 
         // Update systems
-        self.system_manager.on_removed_entities(&real_entities);
+        for index in 0..user_entities.len() {
+            let user_entity = &user_entities[index];
+            let real_entity = &real_entities[index];
+            if let Err(err) = self.system_manager.on_entity_removed(real_entity, user_entity) {
+                log_error!("Failed to remove an entity in the system manager when removing entities in the ECS: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+        }
 
         let indices_to_remove: Vec<usize> = self
             .entities
@@ -386,14 +396,18 @@ impl ECS {
             log_error!("Failed to remove a component in the ECS: {:?}", err);
             return Err(ErrorType::Unknown);
         }
-        self.system_manager.on_component_removed(component_id);
+        
+        if let Err(err) = self.system_manager.on_component_removed(component_id) {
+            log_error!("Failed to update the system manager when removing a component in the ECS: {:?}", err);
+            return Err(ErrorType::Unknown);
+        }
 
         Ok(())
     }
 
     pub(crate) fn add_component_to_entity(
         &mut self,
-        _component_id: &std::any::TypeId,
+        component_id: &std::any::TypeId,
         user_entity: &entity::UserEntity,
         value: Box<dyn component::RealComponent>,
         add_to_entity_fct: &component::AddComponentToEntityFunction,
@@ -426,8 +440,7 @@ impl ECS {
         }
 
         if let Err(err) = self
-            .system_manager
-            .on_component_changed_for_entity(&self.component_manager, &real_entity)
+            .system_manager.on_component_added_to_entity(&self.component_manager, &real_entity, user_entity, component_id)
         {
             log_error!(
                 "Failed to handle component changed in the system manager when adding a component to an entity in the ECS: {:?}",
@@ -441,7 +454,7 @@ impl ECS {
 
     pub(crate) fn remove_component_from_entity(
         &mut self,
-        _component_id: &std::any::TypeId,
+        component_id: &std::any::TypeId,
         user_entity: &entity::UserEntity,
         remove_from_entity: &component::RemoveComponentFromEntityFunction,
     ) -> Result<(), ErrorType> {
@@ -473,8 +486,7 @@ impl ECS {
         }
 
         if let Err(err) = self
-            .system_manager
-            .on_component_changed_for_entity(&self.component_manager, &real_entity)
+            .system_manager.on_component_removed_from_entity(&self.component_manager, &real_entity, user_entity, component_id)
         {
             log_error!(
                 "Failed to handle component changed in the system manager when removing a component from an entity in the ECS: {:?}",
@@ -525,104 +537,26 @@ impl ECS {
 
     pub(crate) fn register_system(
         &mut self,
-        name: std::any::TypeId,
-        with: Vec<std::any::TypeId>,
-        without: Vec<std::any::TypeId>,
-        callback: system::SystemCallback,
-        schedule: crate::SystemSchedule,
+        game: &dyn crate::Game,
+        mut system: Box<dyn crate::SystemTrait>,
+        schedule: system::SystemSchedule,
         condition: system::SystemCallbackConditionFunction,
     ) -> Result<(), ErrorType> {
-        // Check if all types are valid component
-        if !self.component_manager.is_registered(&name) {
-            log_error!(
-                "Failed to register a new system in the ECS: the component `{:?}' is not registered",
-                name
-            );
-            return Err(ErrorType::DoesNotExist);
-        }
-        for type_id in &with {
-            if !self.component_manager.is_registered(type_id) {
-                log_error!(
-                    "Failed to register a new system in the ECS: the component `{:?}' used in the `With' is not registered",
-                    type_id
-                );
-                return Err(ErrorType::DoesNotExist);
-            }
-        }
-        for type_id in &without {
-            if !self.component_manager.is_registered(type_id) {
-                log_error!(
-                    "Failed to register a new system in the ECS: the component `{:?}' used in the `Without' is not registered",
-                    type_id
-                );
-                return Err(ErrorType::DoesNotExist);
-            }
-        }
-
-        // Create a new system
-        let internal = system::SystemInternal::new(name, &with, &without, schedule, condition);
-        if let Err(err) = self.system_manager.register_new_system_ref(
-            internal,
-            callback,
-            &self.component_manager,
-            &self.entities,
-        ) {
-            log_error!("Failed to register a new system in the ECS: {:?}", err);
+        if let Err(err) = system.init(game, &self){
+            log_error!("Failed to initialize a system when adding it to the ECS: {:?}", err);
             return Err(ErrorType::Unknown);
         }
-
-        Ok(())
-    }
-
-    pub(crate) fn register_system_mut(
-        &mut self,
-        name: std::any::TypeId,
-        with: Vec<std::any::TypeId>,
-        without: Vec<std::any::TypeId>,
-        callback: system::SystemMutCallback,
-        schedule: crate::SystemSchedule,
-        condition: system::SystemCallbackConditionFunction,
-    ) -> Result<(), ErrorType> {
-        // Check if all types are valid component
-        if !self.component_manager.is_registered(&name) {
-            log_error!(
-                "Failed to register a new system in the ECS: the component `{:?}' is not registered",
-                name
-            );
-            return Err(ErrorType::DoesNotExist);
-        }
-        for type_id in &with {
-            if !self.component_manager.is_registered(type_id) {
-                log_error!(
-                    "Failed to register a new mut system in the ECS: the component `{:?}' used in the `With' is not registered",
-                    type_id
-                );
-                return Err(ErrorType::DoesNotExist);
+        let internal = system::SystemInternal::new(
+            schedule,
+            condition,
+        );
+        match self.system_manager.add_system(internal, system){
+            Ok(()) => Ok(()),
+            Err(err) => {
+                log_error!("failed to add a system to the ECS: {:?}", err);
+                Err(ErrorType::Unknown)
             }
         }
-        for type_id in &without {
-            if !self.component_manager.is_registered(type_id) {
-                log_error!(
-                    "Failed to register a new mut system in the ECS: the component `{:?}' used in the `Without' is not registered",
-                    type_id
-                );
-                return Err(ErrorType::DoesNotExist);
-            }
-        }
-
-        // Create a new system
-        let internal = system::SystemInternal::new(name, &with, &without, schedule, condition);
-        if let Err(err) = self.system_manager.register_new_system_mut(
-            internal,
-            callback,
-            &self.component_manager,
-            &self.entities,
-        ) {
-            log_error!("Failed to register a new mut system in the ECS: {:?}", err);
-            return Err(ErrorType::Unknown);
-        }
-
-        Ok(())
     }
 
     pub(crate) fn register_custom_resource(
