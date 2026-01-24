@@ -1,6 +1,9 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
+use crate::core_layer::application_system::events::user_events::UserEventWrapper;
+use std::collections::VecDeque;
+
 pub(crate) type SystemCallbackConditionFunction =
     Box<dyn Fn(&mut dyn crate::Game) -> Result<bool, ErrorType> + Send + Sync>;
 pub(crate) type UserSystemCallbackConditionFunction<G> = fn(&mut G) -> bool;
@@ -54,34 +57,57 @@ pub trait SystemParam {
     /// Called when an entity is removed from the ECS
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_entity_removed(_state: &mut Self::State, _real_entity: &super::entity::Entity, _user_entity: &super::entity::UserEntity) -> Result<bool, ErrorType>{
+    fn on_entity_removed(
+        _state: &mut Self::State,
+        _real_entity: &super::entity::Entity,
+        _user_entity: &super::entity::UserEntity,
+    ) -> Result<bool, ErrorType> {
         Ok(false)
     }
     /// Called when a component is added to an entity
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_component_added_to_entity(_state: &mut Self::State, _component_manager: &super::component::ComponentManager, _real_entity: &super::entity::Entity, _user_entity: &super::entity::UserEntity, _component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+    fn on_component_added_to_entity(
+        _state: &mut Self::State,
+        _component_manager: &super::component::ComponentManager,
+        _real_entity: &super::entity::Entity,
+        _user_entity: &super::entity::UserEntity,
+        _component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
         Ok(false)
     }
     /// Called when a component is removed from an entity
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_component_removed_from_entity(_state: &mut Self::State, _component_manager: &super::component::ComponentManager, _real_entity: &super::entity::Entity, _user_entity: &super::entity::UserEntity, _component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+    fn on_component_removed_from_entity(
+        _state: &mut Self::State,
+        _component_manager: &super::component::ComponentManager,
+        _real_entity: &super::entity::Entity,
+        _user_entity: &super::entity::UserEntity,
+        _component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
         Ok(false)
     }
     /// Called when a component is removed from the ECS
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_component_removed(_state: &mut Self::State, _component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+    fn on_component_removed(
+        _state: &mut Self::State,
+        _component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
         Ok(false)
     }
 
     /// Initializes the state of the system
     /// Call when registering a new system in the ECS
     fn init_state(game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType>;
-    
+
     /// Gets the actual Item of the system, (for example, the component from a Query)
-    /// #Safety Should verify the ecs_ptr access
+    /// # Safety
+    ///
+    /// Should verify the ecs_ptr access rights
+    ///
+    /// ...
     unsafe fn get_item<'w, 's>(
         state: &'s mut Self::State,
         game_ptr: &'w crate::UnsafeGameCell,
@@ -115,37 +141,36 @@ where
     type Item<'w, 's> = (A::Item<'w, 's>, B::Item<'w, 's>);
 
     #[allow(private_interfaces)]
-    fn on_entity_removed(state: &mut Self::State, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_entity_removed(&mut state.0, real_entity, user_entity) {
+    fn on_entity_removed(
+        state: &mut Self::State,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+    ) -> Result<bool, ErrorType> {
+        let should_be_destroyed_a = match A::on_entity_removed(
+            &mut state.0,
+            real_entity,
+            user_entity,
+        ) {
             Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) =>{
-                log_error!("Failed to handle a remove entity event in the first element of a tuple system: {:?}", err);
+            Err(err) => {
+                log_error!(
+                    "Failed to handle a remove entity event in the first element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
-        let should_be_destroyed_b = match B::on_entity_removed(&mut state.1, real_entity, user_entity) {
+        let should_be_destroyed_b = match B::on_entity_removed(
+            &mut state.1,
+            real_entity,
+            user_entity,
+        ) {
             Ok(should_be_destroyed) => should_be_destroyed,
             Err(err) => {
-                log_error!("Failed to handle a remove entity event in the second element of a tuple system: {:?}", err);
-                return Err(ErrorType::Unknown);
-            }
-        };
-        Ok(should_be_destroyed_a || should_be_destroyed_b)
-    }
-    
-    #[allow(private_interfaces)]
-    fn on_component_added_to_entity(state: &mut Self::State, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_component_added_to_entity(&mut state.0, component_manager, real_entity, user_entity, component_id) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!("Failed to handle a component added to an entity event in the first element of a tuple system: {:?}", err);
-                return Err(ErrorType::Unknown);
-            }
-        };
-        let should_be_destroyed_b = match B::on_component_added_to_entity(&mut state.1, component_manager, real_entity, user_entity, component_id) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!("Failed to handle a component added to an entity event in the second element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to handle a remove entity event in the second element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
@@ -153,36 +178,112 @@ where
     }
 
     #[allow(private_interfaces)]
-    fn on_component_removed_from_entity(state: &mut Self::State, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_component_removed_from_entity(&mut state.0, component_manager, real_entity, user_entity, component_id) {
+    fn on_component_added_to_entity(
+        state: &mut Self::State,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
+        let should_be_destroyed_a = match A::on_component_added_to_entity(
+            &mut state.0,
+            component_manager,
+            real_entity,
+            user_entity,
+            component_id,
+        ) {
             Ok(should_be_destroyed) => should_be_destroyed,
             Err(err) => {
-                log_error!("Failed to handle a component removed from an entity event in the first element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to handle a component added to an entity event in the first element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
-        let should_be_destroyed_b = match B::on_component_removed_from_entity(&mut state.1, component_manager, real_entity, user_entity, component_id) {
+        let should_be_destroyed_b = match B::on_component_added_to_entity(
+            &mut state.1,
+            component_manager,
+            real_entity,
+            user_entity,
+            component_id,
+        ) {
             Ok(should_be_destroyed) => should_be_destroyed,
             Err(err) => {
-                log_error!("Failed to handle a component removed from an entity event in the second element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to handle a component added to an entity event in the second element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         Ok(should_be_destroyed_a || should_be_destroyed_b)
     }
-    
-    fn on_component_removed(state: &mut Self::State, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+
+    #[allow(private_interfaces)]
+    fn on_component_removed_from_entity(
+        state: &mut Self::State,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
+        let should_be_destroyed_a = match A::on_component_removed_from_entity(
+            &mut state.0,
+            component_manager,
+            real_entity,
+            user_entity,
+            component_id,
+        ) {
+            Ok(should_be_destroyed) => should_be_destroyed,
+            Err(err) => {
+                log_error!(
+                    "Failed to handle a component removed from an entity event in the first element of a tuple system: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        let should_be_destroyed_b = match B::on_component_removed_from_entity(
+            &mut state.1,
+            component_manager,
+            real_entity,
+            user_entity,
+            component_id,
+        ) {
+            Ok(should_be_destroyed) => should_be_destroyed,
+            Err(err) => {
+                log_error!(
+                    "Failed to handle a component removed from an entity event in the second element of a tuple system: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        Ok(should_be_destroyed_a || should_be_destroyed_b)
+    }
+
+    fn on_component_removed(
+        state: &mut Self::State,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
         let should_be_destroyed_a = match A::on_component_removed(&mut state.0, component_id) {
             Ok(should_be_destroyed) => should_be_destroyed,
             Err(err) => {
-                log_error!("Failed to handle a component removed event in the first element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to handle a component removed event in the first element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         let should_be_destroyed_b = match B::on_component_removed(&mut state.1, component_id) {
             Ok(should_be_destroyed) => should_be_destroyed,
             Err(err) => {
-                log_error!("Failed to handle a component removed event in the second element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to handle a component removed event in the second element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
@@ -193,14 +294,20 @@ where
         let state_a = match A::init_state(game, ecs) {
             Ok(state) => state,
             Err(err) => {
-                log_error!("Failed to init the state of the first element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to init the state of the first element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         let state_b = match B::init_state(game, ecs) {
             Ok(state) => state,
             Err(err) => {
-                log_error!("Failed to init the state of the second element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to init the state of the second element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
@@ -215,14 +322,20 @@ where
         let item_a = match unsafe { A::get_item(&mut state.0, game_ptr, ecs_ptr) } {
             Ok(item) => item,
             Err(err) => {
-                log_error!("Failed to get the item of the first element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to get the item of the first element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         let item_b = match unsafe { B::get_item(&mut state.1, game_ptr, ecs_ptr) } {
             Ok(item) => item,
             Err(err) => {
-                log_error!("Failed to get the item of the second element of a tuple system: {:?}", err);
+                log_error!(
+                    "Failed to get the item of the second element of a tuple system: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
@@ -294,7 +407,8 @@ where
 /// A wrapper around the real system closure
 pub struct SystemFuncWrapper<Func, Param>
 where
-    Func: for<'w, 's> FnMut(Param::Item<'w, 's>) -> Result<(), ErrorType> + 'static,
+    Func: for<'w, 's> FnMut(Param::Item<'w, 's>) -> Result<VecDeque<UserEventWrapper>, ErrorType>
+        + 'static,
     Param: SystemParam,
 {
     /// The system function
@@ -307,108 +421,165 @@ where
 
 impl<Func, Param> SystemTrait for SystemFuncWrapper<Func, Param>
 where
-    Func: for<'w, 's> FnMut(Param::Item<'w, 's>) -> Result<(), ErrorType> + 'static,
+    Func: for<'w, 's> FnMut(Param::Item<'w, 's>) -> Result<VecDeque<UserEventWrapper>, ErrorType>
+        + 'static,
     Param: SystemParam,
 {
     fn init(&mut self, game: &dyn crate::Game, ecs: &crate::ECS) -> Result<(), ErrorType> {
         self.state = match Param::init_state(game, ecs) {
             Ok(state) => Some(state),
             Err(err) => {
-                log_error!("Failed to initialize the stait of a system function wrapper: {:?}", err);
+                log_error!(
+                    "Failed to initialize the stait of a system function wrapper: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         Ok(())
     }
-    
+
     fn run(
         &mut self,
         game_ptr: &crate::UnsafeGameCell,
         ecs_ptr: &crate::UnsafeECSCell,
-    ) -> Result<(), ErrorType> {
+    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
         let state = match &mut self.state {
             None => {
-                log_error!("The state of a system function wrapper is not initialized when running: maybe you forgot to call .init()");
+                log_error!(
+                    "The state of a system function wrapper is not initialized when running: maybe you forgot to call .init()"
+                );
                 return Err(ErrorType::DoesNotExist);
-            },
+            }
             Some(state) => state,
         };
         let param = match unsafe { Param::get_item(state, game_ptr, ecs_ptr) } {
             Ok(param) => param,
             Err(err) => {
-                log_error!("Failed to get the item of a system function wrapper: {:?}", err);
+                log_error!(
+                    "Failed to get the item of a system function wrapper: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         };
         (self.function)(param)
     }
-    
+
     #[allow(private_interfaces)]
-    fn on_entity_removed(&mut self, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity) -> Result<bool, ErrorType> {
+    fn on_entity_removed(
+        &mut self,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+    ) -> Result<bool, ErrorType> {
         let state = match &mut self.state {
             None => {
-                log_error!("The state of a system function wrapper is not initialized on entity removed: maybe you forgot to call .init()");
+                log_error!(
+                    "The state of a system function wrapper is not initialized on entity removed: maybe you forgot to call .init()"
+                );
                 return Err(ErrorType::DoesNotExist);
-            },
-            Some(state) => state,
-        };
-        match Param::on_entity_removed(state, real_entity, user_entity){
-            Ok(should_be_destroyed) => Ok(should_be_destroyed),
-            Err(err) => {
-                log_error!("Failed to handle an on entity removed event in a system function wrapper: {:?}", err);
-                Err(ErrorType::Unknown)
             }
-        }
-    }
-    
-    #[allow(private_interfaces)]
-    fn on_component_added_to_entity(&mut self, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
-        let state = match &mut self.state {
-            None => {
-                log_error!("The state of a system function wrapper is not initialized on component added to entity: maybe you forgot to call .init()");
-                return Err(ErrorType::DoesNotExist);
-            },
             Some(state) => state,
         };
-        match Param::on_component_added_to_entity(state, component_manager, real_entity, user_entity, component_id){
+        match Param::on_entity_removed(state, real_entity, user_entity) {
             Ok(should_be_destroyed) => Ok(should_be_destroyed),
             Err(err) => {
-                log_error!("Failed to handle an on component added to entity event in a system function wrapper: {:?}", err);
+                log_error!(
+                    "Failed to handle an on entity removed event in a system function wrapper: {:?}",
+                    err
+                );
                 Err(ErrorType::Unknown)
             }
         }
     }
 
     #[allow(private_interfaces)]
-    fn on_component_removed_from_entity(&mut self, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+    fn on_component_added_to_entity(
+        &mut self,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
         let state = match &mut self.state {
             None => {
-                log_error!("The state of a system function wrapper is not initialized on component removed from entity: maybe you forgot to call .init()");
+                log_error!(
+                    "The state of a system function wrapper is not initialized on component added to entity: maybe you forgot to call .init()"
+                );
                 return Err(ErrorType::DoesNotExist);
-            },
+            }
             Some(state) => state,
         };
-        match Param::on_component_removed_from_entity(state, component_manager, real_entity, user_entity, component_id){
+        match Param::on_component_added_to_entity(
+            state,
+            component_manager,
+            real_entity,
+            user_entity,
+            component_id,
+        ) {
             Ok(should_be_destroyed) => Ok(should_be_destroyed),
             Err(err) => {
-                log_error!("Failed to handle an on component removed from entity event in a system function wrapper: {:?}", err);
+                log_error!(
+                    "Failed to handle an on component added to entity event in a system function wrapper: {:?}",
+                    err
+                );
                 Err(ErrorType::Unknown)
             }
         }
     }
-    
+
+    #[allow(private_interfaces)]
+    fn on_component_removed_from_entity(
+        &mut self,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType> {
+        let state = match &mut self.state {
+            None => {
+                log_error!(
+                    "The state of a system function wrapper is not initialized on component removed from entity: maybe you forgot to call .init()"
+                );
+                return Err(ErrorType::DoesNotExist);
+            }
+            Some(state) => state,
+        };
+        match Param::on_component_removed_from_entity(
+            state,
+            component_manager,
+            real_entity,
+            user_entity,
+            component_id,
+        ) {
+            Ok(should_be_destroyed) => Ok(should_be_destroyed),
+            Err(err) => {
+                log_error!(
+                    "Failed to handle an on component removed from entity event in a system function wrapper: {:?}",
+                    err
+                );
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
     fn on_component_removed(&mut self, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
         let state = match &mut self.state {
             None => {
-                log_error!("The state of a system function wrapper is not initialized on component removed: maybe you forgot to call .init()");
+                log_error!(
+                    "The state of a system function wrapper is not initialized on component removed: maybe you forgot to call .init()"
+                );
                 return Err(ErrorType::DoesNotExist);
-            },
+            }
             Some(state) => state,
         };
-        match Param::on_component_removed(state, component_id){
+        match Param::on_component_removed(state, component_id) {
             Ok(should_be_destroyed) => Ok(should_be_destroyed),
             Err(err) => {
-                log_error!("Failed to handle an on component removed event in a system function wrapper: {:?}", err);
+                log_error!(
+                    "Failed to handle an on component removed event in a system function wrapper: {:?}",
+                    err
+                );
                 Err(ErrorType::Unknown)
             }
         }
@@ -423,36 +594,47 @@ pub trait SystemTrait {
         &mut self,
         game_ptr: &crate::UnsafeGameCell,
         ecs_ptr: &crate::UnsafeECSCell,
-    ) -> Result<(), ErrorType>;
+    ) -> Result<VecDeque<UserEventWrapper>, ErrorType>;
+
     /// Called when an entity is removed from the ECS
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_entity_removed(&mut self, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity) -> Result<bool, ErrorType>;
+    fn on_entity_removed(
+        &mut self,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+    ) -> Result<bool, ErrorType>;
 
     /// Called when a component is added to an entity
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_component_added_to_entity(&mut self, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType>;
+    fn on_component_added_to_entity(
+        &mut self,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType>;
 
     /// Called when a component is removed from an entity
     /// Returns true if the system needs to be destroyed
     #[allow(private_interfaces)]
-    fn on_component_removed_from_entity(&mut self, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<bool, ErrorType>;
-    
+    fn on_component_removed_from_entity(
+        &mut self,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<bool, ErrorType>;
+
     /// Called when a component is removed from the ECS
     /// Returns true if the system needs to be destroyed
     fn on_component_removed(&mut self, component_id: &std::any::TypeId) -> Result<bool, ErrorType>;
 }
 
-
-
-
 pub trait IntoSystem {
-    fn into_system(&self) -> Box<dyn SystemTrait>;
+    fn as_system(&self) -> Box<dyn SystemTrait>;
 }
-
-
-
 
 pub(crate) struct SystemInternal {
     pub(crate) schedule: SystemSchedule,
@@ -485,8 +667,7 @@ impl SystemInternal {
                 if nb_frames_remaining == 1 {
                     self.schedule = SystemSchedule::Never;
                 } else {
-                    self.schedule =
-                        SystemSchedule::ForXUpdates(nb_frames_remaining - 1);
+                    self.schedule = SystemSchedule::ForXUpdates(nb_frames_remaining - 1);
                 }
                 true
             }
@@ -569,15 +750,19 @@ impl SystemManager {
         &mut self,
         game: &mut dyn crate::Game,
         ecs_ptr: &crate::UnsafeECSCell,
-    ) -> Result<(), ErrorType> {
+    ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+        let mut user_events = VecDeque::new();
         for system in &mut self.systems {
             match (system.internal.condition)(game) {
                 Ok(should_run) => {
                     if should_run && system.should_run_this_update() {
                         let game_ptr = crate::UnsafeGameCell::new(game);
-                        if let Err(err) = system.system_trait.run(&game_ptr, ecs_ptr) {
-                            log_error!("Failed to run a system: {:?}", err);
-                            return Err(ErrorType::Unknown);
+                        match system.system_trait.run(&game_ptr, ecs_ptr) {
+                            Ok(mut events) => user_events.append(&mut events),
+                            Err(err) => {
+                                log_error!("Failed to run a system: {:?}", err);
+                                return Err(ErrorType::Unknown);
+                            }
                         }
                     }
                 }
@@ -593,21 +778,31 @@ impl SystemManager {
 
         self.clean_dead_systems();
 
-        Ok(())
+        Ok(user_events)
     }
 
     /// Called when an entity is removed from the ECS
-    pub(crate) fn on_entity_removed(&mut self, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity) -> Result<(), ErrorType> {
+    pub(crate) fn on_entity_removed(
+        &mut self,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+    ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
-       
+
         for (index, system) in self.systems.iter_mut().enumerate() {
-            match system.system_trait.on_entity_removed(real_entity, user_entity){
+            match system
+                .system_trait
+                .on_entity_removed(real_entity, user_entity)
+            {
                 Ok(true) => indices_to_remove.push(index),
                 Err(err) => {
-                    log_error!("Failed to handle an on entity removed event in the system manager: {:?}", err);
+                    log_error!(
+                        "Failed to handle an on entity removed event in the system manager: {:?}",
+                        err
+                    );
                     return Err(ErrorType::Unknown);
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
 
@@ -618,17 +813,31 @@ impl SystemManager {
     }
 
     /// Called when a component is added to an entity
-    pub(crate) fn on_component_added_to_entity(&mut self, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<(), ErrorType> {
+    pub(crate) fn on_component_added_to_entity(
+        &mut self,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
 
         for (index, system) in self.systems.iter_mut().enumerate() {
-            match system.system_trait.on_component_added_to_entity(component_manager, real_entity, user_entity, component_id){
+            match system.system_trait.on_component_added_to_entity(
+                component_manager,
+                real_entity,
+                user_entity,
+                component_id,
+            ) {
                 Ok(true) => indices_to_remove.push(index),
                 Err(err) => {
-                    log_error!("Failed to handle an on component added to entity event in the system manager: {:?}", err);
+                    log_error!(
+                        "Failed to handle an on component added to entity event in the system manager: {:?}",
+                        err
+                    );
                     return Err(ErrorType::Unknown);
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
 
@@ -639,17 +848,31 @@ impl SystemManager {
     }
 
     /// Called when a component is removed from an entity
-    pub(crate) fn on_component_removed_from_entity(&mut self, component_manager: &super::component::ComponentManager, real_entity: &super::entity::Entity, user_entity: &super::entity::UserEntity, component_id: &std::any::TypeId) -> Result<(), ErrorType> {
+    pub(crate) fn on_component_removed_from_entity(
+        &mut self,
+        component_manager: &super::component::ComponentManager,
+        real_entity: &super::entity::Entity,
+        user_entity: &super::entity::UserEntity,
+        component_id: &std::any::TypeId,
+    ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
 
         for (index, system) in self.systems.iter_mut().enumerate() {
-            match system.system_trait.on_component_removed_from_entity(component_manager, real_entity, user_entity, component_id){
+            match system.system_trait.on_component_removed_from_entity(
+                component_manager,
+                real_entity,
+                user_entity,
+                component_id,
+            ) {
                 Ok(true) => indices_to_remove.push(index),
                 Err(err) => {
-                    log_error!("Failed to handle an on component removed from entity event in the system manager: {:?}", err);
+                    log_error!(
+                        "Failed to handle an on component removed from entity event in the system manager: {:?}",
+                        err
+                    );
                     return Err(ErrorType::Unknown);
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
 
@@ -660,17 +883,23 @@ impl SystemManager {
     }
 
     /// Called when a component is removed from the ECS
-    pub(crate) fn on_component_removed(&mut self, component_id: &std::any::TypeId) -> Result<(), ErrorType> {
+    pub(crate) fn on_component_removed(
+        &mut self,
+        component_id: &std::any::TypeId,
+    ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
 
         for (index, system) in self.systems.iter_mut().enumerate() {
-            match system.system_trait.on_component_removed(component_id){
+            match system.system_trait.on_component_removed(component_id) {
                 Ok(true) => indices_to_remove.push(index),
                 Err(err) => {
-                    log_error!("Failed to handle an on component removed event in the system manager: {:?}", err);
+                    log_error!(
+                        "Failed to handle an on component removed event in the system manager: {:?}",
+                        err
+                    );
                     return Err(ErrorType::Unknown);
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
 
@@ -681,25 +910,16 @@ impl SystemManager {
     }
 }
 
-
 impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
     pub(crate) fn run_systems(&mut self) -> Result<(), ErrorType> {
         let ecs_ptr = crate::UnsafeECSCell::new(&mut self.ecs);
-        if let Err(err) = self
-            .ecs
-            .system_manager
-            .run_all(self.user_game, &ecs_ptr)
-        {
+        if let Err(err) = self.ecs.system_manager.run_all(self.user_game, &ecs_ptr) {
             log_error!("Failed to run the systems in the application: {:?}", err);
             return Err(ErrorType::Unknown);
         }
         Ok(())
     }
 }
-
-
-
-
 
 //////////////////////////////////////////////////////////
 ///////////////     systems tests      ////////////////////
@@ -749,46 +969,40 @@ mod tests {
             .unwrap();
 
         #[macros::system]
-        fn test_system_0() -> Result<(), ErrorType> {
+        fn test_system_0() -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             log_info!("Inside test system with 0 params");
-            Ok(())
+            Ok(VecDeque::new())
         }
         #[macros::system]
         fn test_system_1(
             _query: Query<'_, '_, &NewComponent1, With<NewComponent2>>,
-        ) -> Result<(), ErrorType> {
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             log_info!("Inside test system with 1 params");
-            Ok(())
+            Ok(VecDeque::new())
         }
         #[macros::system]
         fn test_system_2(
             _q1: Query<'_, '_, &NewComponent1, Without<NewComponent2>>,
             _q2: Query<'_, '_, &NewComponent1, Without<NewComponent2>>,
-        ) -> Result<(), ErrorType> {
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             log_info!("Inside test system with 2 params");
-            Ok(())
+            Ok(VecDeque::new())
         }
 
         let internal_0 = default_system_internal!();
-        let mut system_0 = test_system_0.into_system();
+        let mut system_0 = test_system_0.as_system();
         system_0.init(&game, &ecs).unwrap();
-        ecs.system_manager
-            .add_system(internal_0, system_0)
-            .unwrap();
+        ecs.system_manager.add_system(internal_0, system_0).unwrap();
 
         let internal_1 = default_system_internal!();
-        let mut system_1 = test_system_1.into_system();
+        let mut system_1 = test_system_1.as_system();
         system_1.init(&game, &ecs).unwrap();
-        ecs.system_manager
-            .add_system(internal_1, system_1)
-            .unwrap();
+        ecs.system_manager.add_system(internal_1, system_1).unwrap();
 
         let internal_2 = default_system_internal!();
-        let mut system_2 = test_system_2.into_system();
+        let mut system_2 = test_system_2.as_system();
         system_2.init(&game, &ecs).unwrap();
-        ecs.system_manager
-            .add_system(internal_2, system_2)
-            .unwrap();
+        ecs.system_manager.add_system(internal_2, system_2).unwrap();
     }
 
     #[test]
@@ -799,24 +1013,24 @@ mod tests {
         let mut ecs = crate::ECS::init().unwrap();
 
         #[macros::system]
-        fn test_system(_game: &mut TestGame) -> Result<(), ErrorType> {
-            Ok(())
+        fn test_system(_game: &mut TestGame) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+            Ok(VecDeque::new())
         }
         #[macros::system]
         fn test_system_query(
             _game: &TestGame,
             _query: Query<'_, '_, &NewComponent1>,
-        ) -> Result<(), ErrorType> {
-            Ok(())
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+            Ok(VecDeque::new())
         }
 
         let internal = default_system_internal!();
-        let mut system = test_system.into_system();
+        let mut system = test_system.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
 
         let internal = default_system_internal!();
-        let mut system = test_system_query.into_system();
+        let mut system = test_system_query.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
     }
@@ -827,19 +1041,21 @@ mod tests {
         let mut ecs = crate::ECS::init().unwrap();
 
         #[macros::system]
-        fn test_system() -> Result<(), ErrorType> {
-            Ok(())
+        fn test_system() -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+            Ok(VecDeque::new())
         }
         #[macros::system]
-        fn test_system_err(_query: Query<'_, '_, &NewComponent1>) -> Result<(), ErrorType> {
+        fn test_system_err(
+            _query: Query<'_, '_, &NewComponent1>,
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             Err(ErrorType::Unknown)
         }
         #[macros::system]
         fn test_system_ok(
             _q1: Query<'_, '_, &NewComponent1>,
             _q2: Query<'_, '_, &NewComponent2>,
-        ) -> Result<(), ErrorType> {
-            Ok(())
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+            Ok(VecDeque::new())
         }
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
         let entities = std::collections::HashSet::new();
@@ -871,23 +1087,23 @@ mod tests {
         let mut ecs = crate::ECS::init().unwrap();
 
         #[macros::system]
-        fn test_system(game: &mut TestGame) -> Result<(), ErrorType> {
+        fn test_system(game: &mut TestGame) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             game.test += 1u32;
-            Ok(())
+            Ok(VecDeque::new())
         }
 
         let internal = default_system_internal!();
-        let mut system = test_system.into_system();
+        let mut system = test_system.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
         assert_eq!(game.test, 0u32);
 
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
-        ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
+        let _ = ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
         assert_eq!(game.test, 1u32);
 
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
-        ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
+        let _ = ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
         assert_eq!(game.test, 2u32);
 
         assert!(test_system(&mut game).is_ok());
@@ -952,47 +1168,49 @@ mod tests {
         .unwrap();
 
         #[macros::system]
-        fn test_system_simple(query: Query<'_, '_, &mut NewComponent1>) -> Result<(), ErrorType> {
+        fn test_system_simple(
+            query: Query<'_, '_, &mut NewComponent1>,
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             for component_1 in &query {
                 component_1.value += 1u32;
             }
-            Ok(())
+            Ok(VecDeque::new())
         }
 
         #[macros::system]
         fn test_system_fitler_with(
             query: Query<'_, '_, &mut NewComponent1, With<NewComponent2>>,
-        ) -> Result<(), ErrorType> {
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             for component_1 in &query {
                 component_1.value += 1u32;
             }
-            Ok(())
+            Ok(VecDeque::new())
         }
 
         #[macros::system]
         fn test_system_fitler_without(
             query: Query<'_, '_, &mut NewComponent1, Without<NewComponent2>>,
-        ) -> Result<(), ErrorType> {
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             for component_1 in &query {
                 component_1.value += 1u32;
             }
-            Ok(())
+            Ok(VecDeque::new())
         }
 
         #[macros::system]
         fn test_system(
             game: &mut TestGame,
             query: Query<'_, '_, (&NewComponent1, &NewComponent2)>,
-        ) -> Result<(), ErrorType> {
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             for ((_component_1, _component_2), entity) in query.with_entities() {
                 game.test += entity.0.index as u32;
             }
-            Ok(())
+            Ok(VecDeque::new())
         }
 
         // Add system 0 to ECS
         let internal = default_system_internal!();
-        let mut system = test_system_simple.into_system();
+        let mut system = test_system_simple.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
 
@@ -1016,7 +1234,7 @@ mod tests {
 
         // Run the system 0
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
-        ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
+        let _ = ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
 
         // Check new values after running system 0
         let value_entity_0 = ecs
@@ -1038,13 +1256,13 @@ mod tests {
 
         // Add system 1 to ECS
         let internal = default_system_internal!();
-        let mut system = test_system_fitler_with.into_system();
+        let mut system = test_system_fitler_with.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
 
         // Run the systems 0 and 1
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
-        ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
+        let _ = ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
 
         // Check new values after running systems 0 and 1
         let value_entity_0 = ecs
@@ -1066,13 +1284,13 @@ mod tests {
 
         // Add system 2 to ECS
         let internal = default_system_internal!();
-        let mut system = test_system_fitler_without.into_system();
+        let mut system = test_system_fitler_without.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
 
         // Run the systems 0, 1 and 2
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
-        ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
+        let _ = ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
 
         // Check new values after running systems 0, 1 and 2
         let value_entity_0 = ecs
@@ -1094,14 +1312,14 @@ mod tests {
 
         // Add system 3 to ECS
         let internal = default_system_internal!();
-        let mut system = test_system.into_system();
+        let mut system = test_system.as_system();
         system.init(&game, &ecs).unwrap();
         ecs.system_manager.add_system(internal, system).unwrap();
 
         assert_eq!(game.test, 0u32);
         // Run the systems 0, 1, 2 and 3
         let ecs_ptr = crate::UnsafeECSCell::new(&mut ecs);
-        ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
+        let _ = ecs.system_manager.run_all(&mut game, &ecs_ptr).unwrap();
         assert_eq!(game.test, 1u32);
     }
 }

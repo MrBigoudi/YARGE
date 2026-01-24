@@ -113,21 +113,11 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
     /// Returns true if the application should quit
     pub(crate) fn handle_user_events(
         &mut self,
-        events: std::collections::VecDeque<UserEventWrapper>,
         _platform_layer: &mut crate::PlatformLayerImpl,
         _rendering_layer: &mut crate::RenderingLayerImpl<'_>,
     ) -> Result<bool, ErrorType> {
-        // TODO: check if need to create new entities
-        if let Err(err) = self.ecs.spawn_real_entities() {
-            log_error!(
-                "Failed to spawn entities in the ECS from the application layer: {:?}",
-                err
-            );
-            return Err(ErrorType::Unknown);
-        }
-
         let mut should_quit = false;
-        for event_builder in events {
+        while let Some(event_builder) = self.user_events.pop_front() {
             match event_builder.event {
                 UserEvent::QuitApp => {
                     should_quit = true;
@@ -241,9 +231,9 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                     schedule,
                     condition,
                 } => {
-                    if let Err(err) = self
-                        .ecs
-                        .register_system(self.user_game, system, schedule, condition)
+                    if let Err(err) =
+                        self.ecs
+                            .register_system(self.user_game, system, schedule, condition)
                     {
                         log_error!(
                             "Failed to register a new system when handling a `RegisterSystem' event in the application: {:?}",
@@ -286,11 +276,6 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
                     }
                 }
             }
-        }
-
-        if let Err(err) = self.run_systems() {
-            log_error!("Failed to run the user systems: {:?}", err);
-            return Err(ErrorType::Unknown);
         }
 
         Ok(should_quit)

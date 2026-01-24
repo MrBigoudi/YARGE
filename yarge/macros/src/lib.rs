@@ -117,7 +117,7 @@ pub fn system(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #vis struct #wrapper_name;
 
         impl crate::IntoSystem for #wrapper_name {
-            fn into_system(&self) -> Box<dyn crate::SystemTrait> {
+            fn as_system(&self) -> Box<dyn crate::SystemTrait> {
                 Box::new(
                     crate::SystemFuncWrapper::<_, #param_tuple> {
                         function: move |args| {

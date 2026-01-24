@@ -24,6 +24,9 @@ pub(crate) struct ApplicationSystem<'a> {
 
     /// The ECS
     pub(crate) ecs: ECS,
+
+    /// A queue of user events
+    pub(crate) user_events: VecDeque<UserEventWrapper>,
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -48,64 +51,92 @@ impl<'a> ApplicationSystem<'a> {
                 return Err(ErrorType::Unknown);
             }
         };
+        let user_events = VecDeque::new();
 
         let mut application = Self {
             name,
             version,
             user_game,
             ecs,
+            user_events,
         };
+        log_info!(
+            "Application: {:?}, version: {:?} initialized",
+            application.name,
+            application.version
+        );
 
         // Inits the user's game
-        let user_events = match application.user_game.on_start() {
-            Ok(events) => events,
+        match application.user_game.on_start() {
+            Ok(mut events) => application.user_events.append(&mut events),
             Err(err) => {
                 log_error!("The user game failed to start: {:?}", err);
                 return Err(ErrorType::Unknown);
             }
         };
-
+        // Must be called in case user generated entities in the 'on_start' event
+        if let Err(err) = application.generate_ecs_entities() {
+            log_error!(
+                "Failed to generate entities in the ECS when initializing the application: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
         // TODO: register engine level FileResourceId
 
-        match application.handle_user_events(user_events, platform_layer, rendering_layer) {
-            Ok(false) => {
-                log_info!(
-                    "Application: {:?}, version: {:?} initialized",
-                    application.name,
-                    application.version
-                );
-                Ok(application)
-            }
+        match application.handle_user_events(platform_layer, rendering_layer) {
             Ok(true) => {
                 log_error!("User asked to quit the app on start");
-                Err(ErrorType::WrongArgument(String::from(
-                    "`UserEvent::QuitApp' can't be return by `on_start()'",
-                )))
+                return Err(ErrorType::WrongArgument(String::from(
+                    "`UserEvent::QuitApp' shouldn't be created inside `on_start()'",
+                )));
             }
             Err(err) => {
                 log_error!(
-                    "Failed to handle user events when starting the application: {:?}",
+                    "Failed to handle user events when initializing the application: {:?}",
                     err
                 );
-                Err(ErrorType::Unknown)
+                return Err(ErrorType::Unknown);
             }
+            _ => {}
         }
+
+        // Run ECS systems
+        if let Err(err) = application.run_systems() {
+            log_error!(
+                "Failed to run the ECS systems when initializing the application: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+
+        Ok(application)
     }
 
-    /// One iteration of the infinite running loop
+    /// Generates ECS entities
+    pub(crate) fn generate_ecs_entities(&mut self) -> Result<(), ErrorType> {
+        if let Err(err) = self.ecs.spawn_real_entities() {
+            log_error!(
+                "Failed to spawn entities in the ECS from the application layer: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+        Ok(())
+    }
+
+    /// Updates the application
     /// Returns true if the application should quit
-    pub(crate) fn loop_iteration(
+    pub(crate) fn update(
         &mut self,
         event: Event,
         platform_layer: &mut PlatformLayerImpl,
         rendering_layer: &mut RenderingLayerImpl<'_>,
     ) -> Result<bool, ErrorType> {
-        let mut user_events = VecDeque::new();
-
         // Handle application events
         match self.handle_event(event) {
             Ok(mut events) => {
-                user_events.append(&mut events);
+                self.user_events.append(&mut events);
             }
             Err(err) => {
                 log_error!(
@@ -119,7 +150,7 @@ impl<'a> ApplicationSystem<'a> {
         // Handle resource loading
         match self.handle_loading_resources(platform_layer, rendering_layer) {
             Ok(mut events) => {
-                user_events.append(&mut events);
+                self.user_events.append(&mut events);
             }
             Err(err) => {
                 log_error!(
@@ -130,11 +161,10 @@ impl<'a> ApplicationSystem<'a> {
             }
         };
 
-        // TODO: create rendering packet
         let delta_time = 0.;
         match self.user_game.on_update(delta_time) {
             Ok(mut events) => {
-                user_events.append(&mut events);
+                self.user_events.append(&mut events);
             }
             Err(err) => {
                 log_error!(
@@ -145,11 +175,61 @@ impl<'a> ApplicationSystem<'a> {
             }
         };
 
-        // Draw a frame
+        // Handle user events
+        // Begin by generate new entities if needed
+        if let Err(err) = self.generate_ecs_entities() {
+            log_error!(
+                "Failed to generate entities in the ECS when updating the application: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+        let should_quit = match self.handle_user_events(platform_layer, rendering_layer) {
+            Ok(should_quit) => should_quit,
+            Err(err) => {
+                log_error!(
+                    "Failed to handle user events in the application layer: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
+        // Run ECS systems
+        if let Err(err) = self.run_systems() {
+            log_error!(
+                "Failed to run the ECS systems in the application layer: {:?}",
+                err
+            );
+            return Err(ErrorType::Unknown);
+        }
+
+        Ok(should_quit)
+    }
+
+    /// Renders the application
+    /// Returns true if the application should quit
+    pub(crate) fn render(
+        &mut self,
+        event: Event,
+        platform_layer: &mut PlatformLayerImpl,
+        rendering_layer: &mut RenderingLayerImpl<'_>,
+    ) -> Result<bool, ErrorType> {
         if event == Event::Expose {
+            // Begin by generate new entities if needed
+            if let Err(err) = self.generate_ecs_entities() {
+                log_error!(
+                    "Failed to generate entities in the ECS when updating the application: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+
+            // TODO: create rendering packet
+            let delta_time = 0.;
             match self.user_game.on_render(delta_time) {
                 Ok(mut events) => {
-                    user_events.append(&mut events);
+                    self.user_events.append(&mut events);
                 }
                 Err(err) => {
                     log_error!(
@@ -175,12 +255,10 @@ impl<'a> ApplicationSystem<'a> {
                 }
                 _ => {}
             }
-        }
 
-        // Handle user events
-        let should_quit =
-            match self.handle_user_events(user_events, platform_layer, rendering_layer) {
-                Ok(should_quit) => should_quit,
+            // Handle user events
+            match self.handle_user_events(platform_layer, rendering_layer) {
+                Ok(should_quit) => return Ok(should_quit),
                 Err(err) => {
                     log_error!(
                         "Failed to handle user events in the application layer: {:?}",
@@ -188,9 +266,38 @@ impl<'a> ApplicationSystem<'a> {
                     );
                     return Err(ErrorType::Unknown);
                 }
-            };
+            }
+        }
+        Ok(false)
+    }
 
-        Ok(should_quit)
+    /// One iteration of the infinite running loop
+    /// Returns true if the application should quit
+    pub(crate) fn loop_iteration(
+        &mut self,
+        event: Event,
+        platform_layer: &mut PlatformLayerImpl,
+        rendering_layer: &mut RenderingLayerImpl<'_>,
+    ) -> Result<bool, ErrorType> {
+        match self.update(event, platform_layer, rendering_layer) {
+            Ok(true) => return Ok(true),
+            Err(err) => {
+                log_error!("Failed to update the application layer: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+            _ => {}
+        };
+
+        match self.render(event, platform_layer, rendering_layer) {
+            Ok(true) => return Ok(true),
+            Err(err) => {
+                log_error!("Failed to render the application layer: {:?}", err);
+                return Err(ErrorType::Unknown);
+            }
+            _ => {}
+        }
+
+        Ok(false)
     }
 
     /// Shuts down the application

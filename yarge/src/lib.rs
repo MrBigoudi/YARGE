@@ -56,7 +56,7 @@ pub use core_layer::application_system::events::user_events::UserEventWrapper as
 
 pub use core_layer::application_system::ecs::query::{Query, With, Without};
 pub use core_layer::application_system::ecs::system::{
-    IntoSystem, SystemFuncWrapper, SystemParam, SystemTrait, SystemSchedule
+    IntoSystem, SystemFuncWrapper, SystemParam, SystemSchedule, SystemTrait,
 };
 
 pub use core_layer::input_system::{gamepad, keyboard, mouse};

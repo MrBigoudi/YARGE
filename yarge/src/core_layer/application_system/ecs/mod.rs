@@ -288,8 +288,14 @@ impl ECS {
         }
 
         // Update systems
-        if let Err(err) = self.system_manager.on_entity_removed(&real_entity, user_entity) {
-            log_error!("Failed to remove an entity in the system manager when removing an entity in the ECS: {:?}", err);
+        if let Err(err) = self
+            .system_manager
+            .on_entity_removed(&real_entity, user_entity)
+        {
+            log_error!(
+                "Failed to remove an entity in the system manager when removing an entity in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -336,7 +342,9 @@ impl ECS {
             }
         };
         if real_entities.len() != user_entities.len() {
-            log_error!("Failed to find real entities for every user entities when removing entities in the ECS");
+            log_error!(
+                "Failed to find real entities for every user entities when removing entities in the ECS"
+            );
             return Err(ErrorType::DoesNotExist);
         }
 
@@ -352,8 +360,14 @@ impl ECS {
         for index in 0..user_entities.len() {
             let user_entity = &user_entities[index];
             let real_entity = &real_entities[index];
-            if let Err(err) = self.system_manager.on_entity_removed(real_entity, user_entity) {
-                log_error!("Failed to remove an entity in the system manager when removing entities in the ECS: {:?}", err);
+            if let Err(err) = self
+                .system_manager
+                .on_entity_removed(real_entity, user_entity)
+            {
+                log_error!(
+                    "Failed to remove an entity in the system manager when removing entities in the ECS: {:?}",
+                    err
+                );
                 return Err(ErrorType::Unknown);
             }
         }
@@ -396,9 +410,12 @@ impl ECS {
             log_error!("Failed to remove a component in the ECS: {:?}", err);
             return Err(ErrorType::Unknown);
         }
-        
+
         if let Err(err) = self.system_manager.on_component_removed(component_id) {
-            log_error!("Failed to update the system manager when removing a component in the ECS: {:?}", err);
+            log_error!(
+                "Failed to update the system manager when removing a component in the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
 
@@ -439,9 +456,12 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
-        if let Err(err) = self
-            .system_manager.on_component_added_to_entity(&self.component_manager, &real_entity, user_entity, component_id)
-        {
+        if let Err(err) = self.system_manager.on_component_added_to_entity(
+            &self.component_manager,
+            &real_entity,
+            user_entity,
+            component_id,
+        ) {
             log_error!(
                 "Failed to handle component changed in the system manager when adding a component to an entity in the ECS: {:?}",
                 err
@@ -485,9 +505,12 @@ impl ECS {
             return Err(ErrorType::Unknown);
         }
 
-        if let Err(err) = self
-            .system_manager.on_component_removed_from_entity(&self.component_manager, &real_entity, user_entity, component_id)
-        {
+        if let Err(err) = self.system_manager.on_component_removed_from_entity(
+            &self.component_manager,
+            &real_entity,
+            user_entity,
+            component_id,
+        ) {
             log_error!(
                 "Failed to handle component changed in the system manager when removing a component from an entity in the ECS: {:?}",
                 err
@@ -542,15 +565,15 @@ impl ECS {
         schedule: system::SystemSchedule,
         condition: system::SystemCallbackConditionFunction,
     ) -> Result<(), ErrorType> {
-        if let Err(err) = system.init(game, &self){
-            log_error!("Failed to initialize a system when adding it to the ECS: {:?}", err);
+        if let Err(err) = system.init(game, self) {
+            log_error!(
+                "Failed to initialize a system when adding it to the ECS: {:?}",
+                err
+            );
             return Err(ErrorType::Unknown);
         }
-        let internal = system::SystemInternal::new(
-            schedule,
-            condition,
-        );
-        match self.system_manager.add_system(internal, system){
+        let internal = system::SystemInternal::new(schedule, condition);
+        match self.system_manager.add_system(internal, system) {
             Ok(()) => Ok(()),
             Err(err) => {
                 log_error!("failed to add a system to the ECS: {:?}", err);

@@ -12,7 +12,6 @@
 
 ## ECS
 
-- Change the return types of systems
 - Replace std::any::TypeId by a ComponentId struct
 - Add a scheduler to manager ecs_ptr
 - Add comments for Queries and the new system

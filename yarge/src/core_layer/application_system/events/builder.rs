@@ -14,7 +14,11 @@ use crate::{
             resource::{
                 ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager, UserResource,
                 UserResourceId, UserResourceLoadingParameters,
-            }, system::{SystemCallbackConditionFunction, UserSystemCallbackConditionFunction, UserSystemConditionBuilder},
+            },
+            system::{
+                SystemCallbackConditionFunction, UserSystemCallbackConditionFunction,
+                UserSystemConditionBuilder,
+            },
         },
         events::user_events::{UserEvent, UserEventWrapper},
     },
@@ -329,7 +333,6 @@ impl UpdateComponentValueForEntityEventBuilder {
     }
 }
 
-
 pub struct RegisterSystemEventBuilder {
     /// The new system to add
     system: Option<Box<dyn crate::SystemTrait>>,
@@ -349,7 +352,7 @@ impl Default for RegisterSystemEventBuilder {
 }
 impl RegisterSystemEventBuilder {
     pub fn system(mut self, system: &dyn crate::IntoSystem) -> Self {
-        self.system = Some(system.into_system());
+        self.system = Some(system.as_system());
         self
     }
     pub fn schedule(mut self, schedule: &SystemSchedule) -> Self {
