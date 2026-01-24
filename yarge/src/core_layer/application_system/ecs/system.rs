@@ -72,7 +72,7 @@ pub trait SystemParam {
         _component_manager: &super::component::ComponentManager,
         _real_entity: &super::entity::Entity,
         _user_entity: &super::entity::UserEntity,
-        _component_id: &std::any::TypeId,
+        _component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         Ok(false)
     }
@@ -84,7 +84,7 @@ pub trait SystemParam {
         _component_manager: &super::component::ComponentManager,
         _real_entity: &super::entity::Entity,
         _user_entity: &super::entity::UserEntity,
-        _component_id: &std::any::TypeId,
+        _component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         Ok(false)
     }
@@ -93,7 +93,7 @@ pub trait SystemParam {
     #[allow(private_interfaces)]
     fn on_component_removed(
         _state: &mut Self::State,
-        _component_id: &std::any::TypeId,
+        _component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         Ok(false)
     }
@@ -183,7 +183,7 @@ where
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         let should_be_destroyed_a = match A::on_component_added_to_entity(
             &mut state.0,
@@ -226,7 +226,7 @@ where
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         let should_be_destroyed_a = match A::on_component_removed_from_entity(
             &mut state.0,
@@ -263,9 +263,10 @@ where
         Ok(should_be_destroyed_a || should_be_destroyed_b)
     }
 
+    #[allow(private_interfaces)]
     fn on_component_removed(
         state: &mut Self::State,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         let should_be_destroyed_a = match A::on_component_removed(&mut state.0, component_id) {
             Ok(should_be_destroyed) => should_be_destroyed,
@@ -499,7 +500,7 @@ where
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         let state = match &mut self.state {
             None => {
@@ -534,7 +535,7 @@ where
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType> {
         let state = match &mut self.state {
             None => {
@@ -563,7 +564,11 @@ where
         }
     }
 
-    fn on_component_removed(&mut self, component_id: &std::any::TypeId) -> Result<bool, ErrorType> {
+    #[allow(private_interfaces)]
+    fn on_component_removed(
+        &mut self,
+        component_id: &super::component::ComponentId,
+    ) -> Result<bool, ErrorType> {
         let state = match &mut self.state {
             None => {
                 log_error!(
@@ -613,7 +618,7 @@ pub trait SystemTrait {
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType>;
 
     /// Called when a component is removed from an entity
@@ -624,12 +629,16 @@ pub trait SystemTrait {
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<bool, ErrorType>;
 
     /// Called when a component is removed from the ECS
     /// Returns true if the system needs to be destroyed
-    fn on_component_removed(&mut self, component_id: &std::any::TypeId) -> Result<bool, ErrorType>;
+    #[allow(private_interfaces)]
+    fn on_component_removed(
+        &mut self,
+        component_id: &super::component::ComponentId,
+    ) -> Result<bool, ErrorType>;
 }
 
 pub trait IntoSystem {
@@ -818,7 +827,7 @@ impl SystemManager {
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
 
@@ -853,7 +862,7 @@ impl SystemManager {
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
 
@@ -885,7 +894,7 @@ impl SystemManager {
     /// Called when a component is removed from the ECS
     pub(crate) fn on_component_removed(
         &mut self,
-        component_id: &std::any::TypeId,
+        component_id: &super::component::ComponentId,
     ) -> Result<(), ErrorType> {
         let mut indices_to_remove: Vec<usize> = Vec::with_capacity(self.systems.len());
 

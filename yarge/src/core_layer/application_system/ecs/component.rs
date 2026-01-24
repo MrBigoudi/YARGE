@@ -3,7 +3,13 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use super::entity::Entity;
 
+/// A generational indices storage for components
+/// [GenerationalVec]
 pub(crate) struct ComponentMap<T>(super::generational::GenerationalVec<T>);
+
+/// A component Id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ComponentId(pub(crate) std::any::TypeId);
 
 pub(crate) trait ComponentStorage {
     fn type_name(&self) -> &'static str;
@@ -315,8 +321,8 @@ pub(crate) trait Component: std::any::Any + Send + Sized + 'static {
     }
 
     /// Gets the type id of the component
-    fn get_type_id() -> std::any::TypeId {
-        std::any::TypeId::of::<Self>()
+    fn get_type_id() -> ComponentId {
+        ComponentId(std::any::TypeId::of::<Self>())
     }
 
     /// Adds a component to an entity
@@ -427,7 +433,7 @@ impl<T: UserComponent> Component for T {}
 pub(crate) struct ComponentManager {
     /// The real components storages
     pub(crate) component_storages:
-        std::collections::HashMap<std::any::TypeId, Box<dyn ComponentStorage>>,
+        std::collections::HashMap<ComponentId, Box<dyn ComponentStorage>>,
     /// The common length for all components storages
     pub(crate) length: usize,
 }
@@ -536,14 +542,14 @@ impl ComponentManager {
     }
 
     /// Check if a given component type is well registered
-    pub(crate) fn is_registered(&self, type_id: &std::any::TypeId) -> bool {
+    pub(crate) fn is_registered(&self, type_id: &ComponentId) -> bool {
         self.component_storages.contains_key(type_id)
     }
 
     pub(crate) fn has_component_type(
         &self,
         entity: &Entity,
-        type_id: &std::any::TypeId,
+        type_id: &ComponentId,
     ) -> Result<bool, ErrorType> {
         match self.component_storages.get(type_id) {
             None => {
@@ -564,8 +570,8 @@ impl ComponentManager {
     pub(crate) fn has_correct_constraints(
         &self,
         entity: &Entity,
-        with: &[std::any::TypeId],
-        without: &[std::any::TypeId],
+        with: &[ComponentId],
+        without: &[ComponentId],
     ) -> Result<bool, ErrorType> {
         for type_id in with {
             if !self.has_component_type(entity, type_id)? {
@@ -584,7 +590,7 @@ impl ComponentManager {
 
     pub(crate) fn get(
         &self,
-        type_id: &std::any::TypeId,
+        type_id: &ComponentId,
         entity: &Entity,
     ) -> Result<&dyn RealComponent, ErrorType> {
         match self.component_storages.get(type_id) {
@@ -608,7 +614,7 @@ impl ComponentManager {
 
     pub(crate) fn get_mut(
         &mut self,
-        type_id: &std::any::TypeId,
+        type_id: &ComponentId,
         entity: &Entity,
     ) -> Result<&mut dyn RealComponent, ErrorType> {
         match self.component_storages.get_mut(type_id) {

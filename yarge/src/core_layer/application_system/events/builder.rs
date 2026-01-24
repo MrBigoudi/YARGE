@@ -6,14 +6,14 @@ use crate::{
     core_layer::application_system::{
         ecs::{
             component::{
-                AddComponentToEntityFunction, Component, RealComponent, RegisterComponentFunction,
-                RemoveComponentFromEntityFunction, RemoveComponentFunction,
-                UpdateComponentForEntityFunction,
+                AddComponentToEntityFunction, Component, ComponentId, RealComponent,
+                RegisterComponentFunction, RemoveComponentFromEntityFunction,
+                RemoveComponentFunction, UpdateComponentForEntityFunction,
             },
             entity::UserEntity,
             resource::{
-                ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager, UserResource,
-                UserResourceId, UserResourceLoadingParameters,
+                ResourceLoadingBuilder, ResourceLoadingFunction, ResourceManager, ResourceTypeId,
+                UserResource, UserResourceId, UserResourceLoadingParameters,
             },
             system::{
                 SystemCallbackConditionFunction, UserSystemCallbackConditionFunction,
@@ -36,7 +36,7 @@ impl QuitAppEventBuilder {
 #[derive(Default)]
 pub struct RegisterCustomResourceEventBuilder {
     /// The type of the resource
-    resource_type_id: Option<std::any::TypeId>,
+    resource_type_id: Option<ResourceTypeId>,
     /// The function to load the resource
     loader_fct: Option<ResourceLoadingFunction>,
 }
@@ -46,7 +46,7 @@ impl RegisterCustomResourceEventBuilder {
         P: UserResourceLoadingParameters<R>,
         R: UserResource,
     {
-        self.resource_type_id = Some(std::any::TypeId::of::<R>());
+        self.resource_type_id = Some(ResourceTypeId(std::any::TypeId::of::<R>()));
         self.loader_fct = Some(ResourceLoadingBuilder::loader::<P, R>(params));
         self
     }
@@ -83,12 +83,12 @@ pub struct StartLoadCustomResourceEventBuilder {
     /// The id of the new resource type
     user_id: Option<UserResourceId>,
     /// The type of the resource
-    resource_type_id: Option<std::any::TypeId>,
+    resource_type_id: Option<ResourceTypeId>,
 }
 impl StartLoadCustomResourceEventBuilder {
     pub fn resource_id<R: UserResource>(mut self, id: &UserResourceId) -> Self {
         self.user_id = Some(*id);
-        self.resource_type_id = Some(std::any::TypeId::of::<R>());
+        self.resource_type_id = Some(ResourceTypeId(std::any::TypeId::of::<R>()));
         self
     }
     pub fn build(self) -> Result<UserEventWrapper, ErrorType> {
@@ -143,7 +143,7 @@ impl RemoveEntitiesEventBuilder {
 #[derive(Default)]
 pub struct RegisterCustomComponentEventBuilder {
     /// The id of the component
-    component_id: Option<std::any::TypeId>,
+    component_id: Option<ComponentId>,
     /// The function to register the component
     register_fct: Option<RegisterComponentFunction>,
 }
@@ -171,7 +171,7 @@ impl RegisterCustomComponentEventBuilder {
 #[derive(Default)]
 pub struct RemoveCustomComponentEventBuilder {
     /// The id of the component
-    component_id: Option<std::any::TypeId>,
+    component_id: Option<ComponentId>,
     /// The function to remove the component
     remove_fct: Option<RemoveComponentFunction>,
 }
@@ -198,7 +198,7 @@ impl RemoveCustomComponentEventBuilder {
 #[derive(Default)]
 pub struct AddComponentToEntityEventBuilder {
     /// The id of the component
-    component_id: Option<std::any::TypeId>,
+    component_id: Option<ComponentId>,
     /// The function to add a component to an entity
     add_to_entity_fct: Option<AddComponentToEntityFunction>,
     /// The user entity to which add the component
@@ -247,7 +247,7 @@ impl AddComponentToEntityEventBuilder {
 #[derive(Default)]
 pub struct RemoveComponentFromEntityEventBuilder {
     /// The id of the component
-    component_id: Option<std::any::TypeId>,
+    component_id: Option<ComponentId>,
     /// The function to add a component to an entity
     remove_from_entity_fct: Option<RemoveComponentFromEntityFunction>,
     /// The user entity to which add the component
@@ -285,7 +285,7 @@ impl RemoveComponentFromEntityEventBuilder {
 #[derive(Default)]
 pub struct UpdateComponentValueForEntityEventBuilder {
     /// The id of the component
-    component_id: Option<std::any::TypeId>,
+    component_id: Option<ComponentId>,
     /// The function to update a component for an entity
     update_for_entity_fct: Option<UpdateComponentForEntityFunction>,
     /// The user entity which needs a component update

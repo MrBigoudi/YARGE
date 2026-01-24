@@ -1,6 +1,12 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
+use crate::platform_layer::platform_impl::PlatformLayerRwLock;
+
+/// A resource type Id
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct ResourceTypeId(pub(crate) std::any::TypeId);
+
 use std::{
     collections::{HashMap, HashSet},
     sync::mpsc::Receiver,
@@ -232,8 +238,6 @@ impl ResourceIdGenerator {
     }
 }
 
-use crate::platform_layer::platform_impl::PlatformLayerRwLock;
-
 /// The global entity generator to interface between user request and real resources
 pub(crate) static GLOBAL_RESOURCE_ID_GENERATOR: once_cell::sync::Lazy<
     PlatformLayerRwLock<ResourceIdGenerator>,
@@ -242,8 +246,8 @@ pub(crate) static GLOBAL_RESOURCE_ID_GENERATOR: once_cell::sync::Lazy<
 pub(crate) struct ResourceManager {
     pub(crate) loading_functions: HashMap<ResourceId, ResourceLoadingFunction>,
     pub(crate) resources: ResourcesStorage,
-    pub(crate) real_resources: HashMap<std::any::TypeId, HashSet<ResourceId>>,
-    pub(crate) loading_resources: HashSet<(std::any::TypeId, ResourceId)>,
+    pub(crate) real_resources: HashMap<ResourceTypeId, HashSet<ResourceId>>,
+    pub(crate) loading_resources: HashSet<(ResourceTypeId, ResourceId)>,
 }
 
 impl ResourceManager {
@@ -321,7 +325,7 @@ impl ResourceManager {
     pub(crate) fn add(
         &mut self,
         user_id: &UserResourceId,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &ResourceTypeId,
         loading_function: ResourceLoadingFunction,
     ) -> Result<(), ErrorType> {
         // Generate real id
@@ -388,7 +392,7 @@ impl ResourceManager {
 
     pub(crate) fn get_all_ids(
         &self,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &ResourceTypeId,
     ) -> Result<&HashSet<ResourceId>, ErrorType> {
         if !self.real_resources.contains_key(resource_type_id) {
             log_error!(
@@ -404,7 +408,7 @@ impl ResourceManager {
     pub(crate) fn try_get(
         &mut self,
         id: &ResourceId,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &ResourceTypeId,
     ) -> Result<Option<ResourceHandle>, ErrorType> {
         let set = self.get_all_ids(resource_type_id)?;
         if !set.contains(id) {
@@ -500,7 +504,7 @@ impl ResourceManager {
     pub(crate) fn get(
         &mut self,
         id: &ResourceId,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &ResourceTypeId,
     ) -> Result<ResourceHandle, ErrorType> {
         loop {
             match self.try_get(id, resource_type_id) {

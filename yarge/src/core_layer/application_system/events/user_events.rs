@@ -1,8 +1,9 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
+use crate::core_layer::application_system::ecs::component::ComponentId;
 use crate::core_layer::application_system::ecs::entity::UserEntity;
-use crate::core_layer::application_system::ecs::resource::UserResourceId;
+use crate::core_layer::application_system::ecs::resource::{ResourceTypeId, UserResourceId};
 
 /// An enum representing user fireable events
 pub(crate) enum UserEvent {
@@ -12,7 +13,7 @@ pub(crate) enum UserEvent {
     /// To register a new resource
     RegisterCustomResource {
         user_id: UserResourceId,
-        resource_type_id: std::any::TypeId,
+        resource_type_id: ResourceTypeId,
         loading_function:
             crate::core_layer::application_system::ecs::resource::ResourceLoadingFunction,
     },
@@ -20,7 +21,7 @@ pub(crate) enum UserEvent {
     /// To begin loading a new resource
     StartLoadCustomResource {
         user_id: UserResourceId,
-        resource_type_id: std::any::TypeId,
+        resource_type_id: ResourceTypeId,
     },
 
 
@@ -39,7 +40,7 @@ pub(crate) enum UserEvent {
     /// To register a new component
     RegisterCustomComponent {
         /// The id of the component
-        component_id: std::any::TypeId,
+        component_id: ComponentId,
         /// The function to register the component
         register_fct:
             crate::core_layer::application_system::ecs::component::RegisterComponentFunction,
@@ -49,7 +50,7 @@ pub(crate) enum UserEvent {
     /// When removed, all systems linked to this component are destroyed and need to be recreated even if this component is registered again later
     RemoveCustomComponent {
         /// The id of the component
-        component_id: std::any::TypeId,
+        component_id: ComponentId,
         /// The function to remove the component
         remove_fct:
             crate::core_layer::application_system::ecs::component::RemoveComponentFunction,
@@ -58,7 +59,7 @@ pub(crate) enum UserEvent {
     /// Adds a component to an entity
     AddComponentToEntity {
         /// The id of the component
-        component_id: std::any::TypeId,
+        component_id: ComponentId,
         /// The user entity to which add the component
         user_entity: UserEntity,
         /// The value of the component to add to the entity
@@ -71,7 +72,7 @@ pub(crate) enum UserEvent {
     /// Removes a component from an entity
     RemoveComponentFromEntity {
         /// The id of the component
-        component_id: std::any::TypeId,
+        component_id: ComponentId,
         /// The user entity to which add the component
         user_entity: UserEntity,
         /// The function to add a component to an entity
@@ -82,7 +83,7 @@ pub(crate) enum UserEvent {
     /// Updates the value of a component for an entity
     UpdateComponentValueForEntity {
         /// The id of the component
-        component_id: std::any::TypeId,
+        component_id: ComponentId,
         /// The user entity which needs a component update
         user_entity: UserEntity,
         /// The new value of the component for the entity

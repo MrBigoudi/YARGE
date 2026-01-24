@@ -1,45 +1,51 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::core_layer::application_system::ecs::component::{Component, RealComponent};
+use crate::core_layer::application_system::ecs::component::{
+    Component, ComponentId, RealComponent,
+};
 
 /// A trait representing a Query Parameter
+#[allow(private_interfaces)]
 pub trait QueryParam {
     /// Components this query reads
-    fn component_ids() -> Vec<std::any::TypeId>;
+    fn component_ids() -> Vec<ComponentId>;
     /// Components this query writes
     /// The ids are also inside component_ids
-    fn mutable_ids() -> Vec<std::any::TypeId>;
+    fn mutable_ids() -> Vec<ComponentId>;
 }
 
+#[allow(private_interfaces)]
 impl<T: Component> QueryParam for &T {
-    fn component_ids() -> Vec<std::any::TypeId> {
+    fn component_ids() -> Vec<ComponentId> {
         vec![T::get_type_id()]
     }
 
-    fn mutable_ids() -> Vec<std::any::TypeId> {
+    fn mutable_ids() -> Vec<ComponentId> {
         vec![]
     }
 }
 
+#[allow(private_interfaces)]
 impl<T: Component> QueryParam for &mut T {
-    fn component_ids() -> Vec<std::any::TypeId> {
+    fn component_ids() -> Vec<ComponentId> {
         vec![T::get_type_id()]
     }
 
-    fn mutable_ids() -> Vec<std::any::TypeId> {
+    fn mutable_ids() -> Vec<ComponentId> {
         vec![T::get_type_id()]
     }
 }
 
+#[allow(private_interfaces)]
 impl<A: QueryParam, B: QueryParam> QueryParam for (A, B) {
-    fn component_ids() -> Vec<std::any::TypeId> {
+    fn component_ids() -> Vec<ComponentId> {
         let mut ids = A::component_ids();
         ids.extend(B::component_ids());
         ids
     }
 
-    fn mutable_ids() -> Vec<std::any::TypeId> {
+    fn mutable_ids() -> Vec<ComponentId> {
         let mut ids = A::mutable_ids();
         ids.extend(B::mutable_ids());
         ids
@@ -212,11 +218,13 @@ where
 //         Ok(())
 //     }
 
+#[allow(private_interfaces)]
 pub trait QueryFilterList {
-    fn component_ids() -> Vec<std::any::TypeId>;
+    fn component_ids() -> Vec<ComponentId>;
 }
+#[allow(private_interfaces)]
 impl<T: Component> QueryFilterList for T {
-    fn component_ids() -> Vec<std::any::TypeId> {
+    fn component_ids() -> Vec<ComponentId> {
         vec![T::get_type_id()]
     }
 }
@@ -225,7 +233,8 @@ where
     A: QueryFilterList,
     B: QueryFilterList,
 {
-    fn component_ids() -> Vec<std::any::TypeId> {
+    #[allow(private_interfaces)]
+    fn component_ids() -> Vec<ComponentId> {
         let mut ids = A::component_ids();
         ids.extend(B::component_ids());
         ids
@@ -234,48 +243,59 @@ where
 
 pub struct With<T: QueryFilterList>(std::marker::PhantomData<T>);
 pub struct Without<T: QueryFilterList>(std::marker::PhantomData<T>);
+
+#[allow(private_interfaces)]
 pub trait QueryFilter {
-    fn with() -> Vec<std::any::TypeId>;
-    fn without() -> Vec<std::any::TypeId>;
+    fn with() -> Vec<ComponentId>;
+    fn without() -> Vec<ComponentId>;
 }
+
+#[allow(private_interfaces)]
 impl QueryFilter for () {
-    fn with() -> Vec<std::any::TypeId> {
+    fn with() -> Vec<ComponentId> {
         vec![]
     }
-    fn without() -> Vec<std::any::TypeId> {
+    fn without() -> Vec<ComponentId> {
         vec![]
     }
 }
 
+#[allow(private_interfaces)]
 impl<T: QueryFilterList> QueryFilter for With<T> {
-    fn with() -> Vec<std::any::TypeId> {
+    fn with() -> Vec<ComponentId> {
         T::component_ids()
     }
-    fn without() -> Vec<std::any::TypeId> {
+    fn without() -> Vec<ComponentId> {
         vec![]
     }
 }
+
+#[allow(private_interfaces)]
 impl<T: QueryFilterList> QueryFilter for Without<T> {
-    fn with() -> Vec<std::any::TypeId> {
+    fn with() -> Vec<ComponentId> {
         vec![]
     }
-    fn without() -> Vec<std::any::TypeId> {
+    fn without() -> Vec<ComponentId> {
         T::component_ids()
     }
 }
+
+#[allow(private_interfaces)]
 impl<In: QueryFilterList, Out: QueryFilterList> QueryFilter for (With<In>, Without<Out>) {
-    fn with() -> Vec<std::any::TypeId> {
+    fn with() -> Vec<ComponentId> {
         In::component_ids()
     }
-    fn without() -> Vec<std::any::TypeId> {
+    fn without() -> Vec<ComponentId> {
         Out::component_ids()
     }
 }
+
+#[allow(private_interfaces)]
 impl<Out: QueryFilterList, In: QueryFilterList> QueryFilter for (Without<Out>, With<In>) {
-    fn with() -> Vec<std::any::TypeId> {
+    fn with() -> Vec<ComponentId> {
         In::component_ids()
     }
-    fn without() -> Vec<std::any::TypeId> {
+    fn without() -> Vec<ComponentId> {
         Out::component_ids()
     }
 }
@@ -299,9 +319,9 @@ where
 /// The saved state of the query
 pub struct QueryState {
     /// The components with filter
-    pub(crate) with: Vec<std::any::TypeId>,
+    pub(crate) with: Vec<ComponentId>,
     /// The components without filter
-    pub(crate) without: Vec<std::any::TypeId>,
+    pub(crate) without: Vec<ComponentId>,
     /// The entities used by the query
     pub(crate) entities:
         std::collections::HashSet<(super::entity::UserEntity, super::entity::Entity)>,
@@ -309,7 +329,7 @@ pub struct QueryState {
 
 impl QueryState {
     /// Checks if the given query state needs this component to work
-    pub(crate) fn need_component<Q>(&self, component_id: &std::any::TypeId) -> bool
+    pub(crate) fn need_component<Q>(&self, component_id: &ComponentId) -> bool
     where
         Q: QueryParam,
     {
@@ -346,7 +366,7 @@ where
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &ComponentId,
     ) -> Result<bool, ErrorType> {
         if state.need_component::<Q>(component_id) {
             match component_manager.has_correct_constraints(
@@ -377,7 +397,7 @@ where
         component_manager: &super::component::ComponentManager,
         real_entity: &super::entity::Entity,
         user_entity: &super::entity::UserEntity,
-        component_id: &std::any::TypeId,
+        component_id: &ComponentId,
     ) -> Result<bool, ErrorType> {
         if state.need_component::<Q>(component_id) {
             match component_manager.has_correct_constraints(
@@ -405,7 +425,7 @@ where
     #[allow(private_interfaces)]
     fn on_component_removed(
         state: &mut Self::State,
-        component_id: &std::any::TypeId,
+        component_id: &ComponentId,
     ) -> Result<bool, ErrorType> {
         if state.need_component::<Q>(component_id) {
             Ok(true)

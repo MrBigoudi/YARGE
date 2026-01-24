@@ -4,15 +4,14 @@
 
 - Create log to file
 - Add debug specific code
+- Create an example folder with many testbeds and way to run them from cargo directly
 - Move the "init" and "shutdowns" logs inside the structures methods
 - Add better documentation everywhere
 - Check / Fix update function not running when window not focused ?
-- Add tests for the ECS methods
-- Create an example folder with many testbeds and way to run them from cargo directly
 
 ## ECS
 
-- Replace std::any::TypeId by a ComponentId struct
+- Add tests for the ECS methods
 - Add a scheduler to manager ecs_ptr
 - Add comments for Queries and the new system
 - Add tests for the generational indices list

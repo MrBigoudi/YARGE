@@ -389,7 +389,7 @@ impl ECS {
     /// Registers a new component
     pub(crate) fn register_component(
         &mut self,
-        _component_id: &std::any::TypeId,
+        _component_id: &component::ComponentId,
         register_fct: &component::RegisterComponentFunction,
     ) -> Result<(), ErrorType> {
         if let Err(err) = register_fct(&mut self.component_manager) {
@@ -403,7 +403,7 @@ impl ECS {
     /// Removes a component
     pub(crate) fn remove_component(
         &mut self,
-        component_id: &std::any::TypeId,
+        component_id: &component::ComponentId,
         remove_fct: &component::RemoveComponentFunction,
     ) -> Result<(), ErrorType> {
         if let Err(err) = remove_fct(&mut self.component_manager) {
@@ -424,7 +424,7 @@ impl ECS {
 
     pub(crate) fn add_component_to_entity(
         &mut self,
-        component_id: &std::any::TypeId,
+        component_id: &component::ComponentId,
         user_entity: &entity::UserEntity,
         value: Box<dyn component::RealComponent>,
         add_to_entity_fct: &component::AddComponentToEntityFunction,
@@ -474,7 +474,7 @@ impl ECS {
 
     pub(crate) fn remove_component_from_entity(
         &mut self,
-        component_id: &std::any::TypeId,
+        component_id: &component::ComponentId,
         user_entity: &entity::UserEntity,
         remove_from_entity: &component::RemoveComponentFromEntityFunction,
     ) -> Result<(), ErrorType> {
@@ -523,7 +523,7 @@ impl ECS {
 
     pub(crate) fn update_component_value_for_entity(
         &mut self,
-        _component_id: &std::any::TypeId,
+        _component_id: &component::ComponentId,
         user_entity: &entity::UserEntity,
         value: Box<dyn component::RealComponent>,
         update_for_entity_fct: &component::UpdateComponentForEntityFunction,
@@ -585,7 +585,7 @@ impl ECS {
     pub(crate) fn register_custom_resource(
         &mut self,
         user_id: &resource::UserResourceId,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &resource::ResourceTypeId,
         loading_function: resource::ResourceLoadingFunction,
     ) -> Result<(), ErrorType> {
         if let Err(err) = self
@@ -604,7 +604,7 @@ impl ECS {
     pub(crate) fn load_custom_resource(
         &mut self,
         user_id: &resource::UserResourceId,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &resource::ResourceTypeId,
     ) -> Result<resource::ResourceHandle, ErrorType> {
         let real_id = match resource::ResourceManager::get_real_id(user_id) {
             Ok(id) => id,
@@ -628,7 +628,7 @@ impl ECS {
     pub(crate) fn try_load_custom_resource(
         &mut self,
         user_id: &resource::UserResourceId,
-        resource_type_id: &std::any::TypeId,
+        resource_type_id: &resource::ResourceTypeId,
     ) -> Result<Option<resource::ResourceHandle>, ErrorType> {
         let real_id = match resource::ResourceManager::get_real_id(user_id) {
             Ok(id) => id,
