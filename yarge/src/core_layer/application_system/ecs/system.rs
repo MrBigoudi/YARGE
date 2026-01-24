@@ -132,217 +132,162 @@ impl SystemParam for () {
     }
 }
 
-impl<A, B> SystemParam for (A, B)
-where
-    A: SystemParam,
-    B: SystemParam,
-{
-    type State = (A::State, B::State);
-    type Item<'w, 's> = (A::Item<'w, 's>, B::Item<'w, 's>);
+/// A macro to generate impls for tuples with 2 to 16 elements
+macro_rules! derive_system_param_for_tuples {
+    ($(($n:tt, $T:ident)),*) => {
+        impl<$($T: SystemParam),*> SystemParam for ($($T,)*){
 
-    #[allow(private_interfaces)]
-    fn on_entity_removed(
-        state: &mut Self::State,
-        real_entity: &super::entity::Entity,
-        user_entity: &super::entity::UserEntity,
-    ) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_entity_removed(
-            &mut state.0,
-            real_entity,
-            user_entity,
-        ) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a remove entity event in the first element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-        let should_be_destroyed_b = match B::on_entity_removed(
-            &mut state.1,
-            real_entity,
-            user_entity,
-        ) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a remove entity event in the second element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-        Ok(should_be_destroyed_a || should_be_destroyed_b)
-    }
+            type State = ($($T::State,)*);
+            type Item<'w, 's> = ($($T::Item<'w, 's>,)*);
 
-    #[allow(private_interfaces)]
-    fn on_component_added_to_entity(
-        state: &mut Self::State,
-        component_manager: &super::component::ComponentManager,
-        real_entity: &super::entity::Entity,
-        user_entity: &super::entity::UserEntity,
-        component_id: &super::component::ComponentId,
-    ) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_component_added_to_entity(
-            &mut state.0,
-            component_manager,
-            real_entity,
-            user_entity,
-            component_id,
-        ) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a component added to an entity event in the first element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+            #[allow(private_interfaces)]
+            fn on_entity_removed(
+                state: &mut Self::State,
+                real_entity: &super::entity::Entity,
+                user_entity: &super::entity::UserEntity,
+            ) -> Result<bool, ErrorType> {
+                Ok(
+                    $(
+                        match $T::on_entity_removed(
+                            &mut state.$n,
+                            real_entity,
+                            user_entity,
+                        ) {
+                            Ok(should_be_destroyed) => should_be_destroyed,
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to handle a remove entity event in a tuple system: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ) ||*
+                )
             }
-        };
-        let should_be_destroyed_b = match B::on_component_added_to_entity(
-            &mut state.1,
-            component_manager,
-            real_entity,
-            user_entity,
-            component_id,
-        ) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a component added to an entity event in the second element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-        Ok(should_be_destroyed_a || should_be_destroyed_b)
-    }
 
-    #[allow(private_interfaces)]
-    fn on_component_removed_from_entity(
-        state: &mut Self::State,
-        component_manager: &super::component::ComponentManager,
-        real_entity: &super::entity::Entity,
-        user_entity: &super::entity::UserEntity,
-        component_id: &super::component::ComponentId,
-    ) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_component_removed_from_entity(
-            &mut state.0,
-            component_manager,
-            real_entity,
-            user_entity,
-            component_id,
-        ) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a component removed from an entity event in the first element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+            #[allow(private_interfaces)]
+            fn on_component_added_to_entity(
+                state: &mut Self::State,
+                component_manager: &super::component::ComponentManager,
+                real_entity: &super::entity::Entity,
+                user_entity: &super::entity::UserEntity,
+                component_id: &super::component::ComponentId,
+            ) -> Result<bool, ErrorType> {
+                Ok(
+                    $(
+                        match $T::on_component_added_to_entity(
+                            &mut state.$n,
+                            component_manager,
+                            real_entity,
+                            user_entity,
+                            component_id,
+                        ) {
+                            Ok(should_be_destroyed) => should_be_destroyed,
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to handle a component added to an entity event in a tuple system: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ) ||*
+                )
             }
-        };
-        let should_be_destroyed_b = match B::on_component_removed_from_entity(
-            &mut state.1,
-            component_manager,
-            real_entity,
-            user_entity,
-            component_id,
-        ) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a component removed from an entity event in the second element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-        Ok(should_be_destroyed_a || should_be_destroyed_b)
-    }
 
-    #[allow(private_interfaces)]
-    fn on_component_removed(
-        state: &mut Self::State,
-        component_id: &super::component::ComponentId,
-    ) -> Result<bool, ErrorType> {
-        let should_be_destroyed_a = match A::on_component_removed(&mut state.0, component_id) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a component removed event in the first element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+            #[allow(private_interfaces)]
+            fn on_component_removed_from_entity(
+                state: &mut Self::State,
+                component_manager: &super::component::ComponentManager,
+                real_entity: &super::entity::Entity,
+                user_entity: &super::entity::UserEntity,
+                component_id: &super::component::ComponentId,
+            ) -> Result<bool, ErrorType> {
+                Ok(
+                    $(
+                        match $T::on_component_removed_from_entity(
+                            &mut state.$n,
+                            component_manager,
+                            real_entity,
+                            user_entity,
+                            component_id,
+                        ) {
+                            Ok(should_be_destroyed) => should_be_destroyed,
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to handle a component removed from an entity event in a tuple system: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ) ||*
+                )
             }
-        };
-        let should_be_destroyed_b = match B::on_component_removed(&mut state.1, component_id) {
-            Ok(should_be_destroyed) => should_be_destroyed,
-            Err(err) => {
-                log_error!(
-                    "Failed to handle a component removed event in the second element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-        Ok(should_be_destroyed_a || should_be_destroyed_b)
-    }
 
-    fn init_state(game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
-        let state_a = match A::init_state(game, ecs) {
-            Ok(state) => state,
-            Err(err) => {
-                log_error!(
-                    "Failed to init the state of the first element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+            #[allow(private_interfaces)]
+            fn on_component_removed(
+                state: &mut Self::State,
+                component_id: &super::component::ComponentId,
+            ) -> Result<bool, ErrorType> {
+                Ok(
+                    $(
+                        match $T::on_component_removed(&mut state.$n, component_id) {
+                            Ok(should_be_destroyed) => should_be_destroyed,
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to handle a component removed event in the first element of a tuple system: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ) ||*
+                )
             }
-        };
-        let state_b = match B::init_state(game, ecs) {
-            Ok(state) => state,
-            Err(err) => {
-                log_error!(
-                    "Failed to init the state of the second element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-        Ok((state_a, state_b))
-    }
 
-    unsafe fn get_item<'w, 's>(
-        state: &'s mut Self::State,
-        game_ptr: &'w crate::UnsafeGameCell,
-        ecs_ptr: &'w crate::UnsafeECSCell,
-    ) -> Result<Self::Item<'w, 's>, ErrorType> {
-        let item_a = match unsafe { A::get_item(&mut state.0, game_ptr, ecs_ptr) } {
-            Ok(item) => item,
-            Err(err) => {
-                log_error!(
-                    "Failed to get the item of the first element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+            fn init_state(game: &dyn crate::Game, ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+                Ok((
+                    $(
+                        match $T::init_state(game, ecs) {
+                            Ok(state) => state,
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to init the state of a tuple system: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ),*
+                ))
             }
-        };
-        let item_b = match unsafe { B::get_item(&mut state.1, game_ptr, ecs_ptr) } {
-            Ok(item) => item,
-            Err(err) => {
-                log_error!(
-                    "Failed to get the item of the second element of a tuple system: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+
+            unsafe fn get_item<'w, 's>(
+                state: &'s mut Self::State,
+                game_ptr: &'w crate::UnsafeGameCell,
+                ecs_ptr: &'w crate::UnsafeECSCell,
+            ) -> Result<Self::Item<'w, 's>, ErrorType> {
+                Ok((
+                    $(
+                        match unsafe { $T::get_item(&mut state.$n, game_ptr, ecs_ptr) } {
+                            Ok(item) => item,
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to get the item of the first element of a tuple system: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ),*
+                ))
             }
-        };
-        Ok((item_a, item_b))
-    }
+        }
+    };
 }
+variadics_please::all_tuples_enumerated!(derive_system_param_for_tuples, 2, 16, T);
 
 impl<T> SystemParam for &mut T
 where
@@ -1063,6 +1008,15 @@ mod tests {
         fn test_system_ok(
             _q1: Query<'_, '_, &NewComponent1>,
             _q2: Query<'_, '_, &NewComponent2>,
+            _q3: Query<
+                '_,
+                '_,
+                &NewComponent2,
+                (
+                    With<(NewComponent1, NewComponent2)>,
+                    Without<(NewComponent1, NewComponent2)>,
+                ),
+            >,
         ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             Ok(VecDeque::new())
         }
@@ -1083,9 +1037,20 @@ mod tests {
             ecs_ptr: &ecs_ptr,
             entities: &entities,
         };
+        let q3 = Query::<
+            &NewComponent2,
+            (
+                With<(NewComponent1, NewComponent2)>,
+                Without<(NewComponent1, NewComponent2)>,
+            ),
+        > {
+            _marker: std::marker::PhantomData,
+            ecs_ptr: &ecs_ptr,
+            entities: &entities,
+        };
         assert!(test_system().is_ok());
         assert!(test_system_err(query).is_err());
-        assert!(test_system_ok(q1, q2).is_ok());
+        assert!(test_system_ok(q1, q2, q3).is_ok());
     }
 
     #[test]

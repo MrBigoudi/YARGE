@@ -141,6 +141,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "seq-macro"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1bc711410fbe7399f390ca1c3b60ad0f53f80e95c5eb935e52268a0e2cd49acc"
+
+[[package]]
 name = "syn"
 version = "2.0.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -276,6 +282,7 @@ dependencies = [
  "macros",
  "once_cell",
  "pkg-config",
+ "seq-macro",
  "x11",
  "xcb",
 ]

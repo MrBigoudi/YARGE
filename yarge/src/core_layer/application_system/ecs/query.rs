@@ -37,20 +37,31 @@ impl<T: Component> QueryParam for &mut T {
     }
 }
 
-#[allow(private_interfaces)]
-impl<A: QueryParam, B: QueryParam> QueryParam for (A, B) {
-    fn component_ids() -> Vec<ComponentId> {
-        let mut ids = A::component_ids();
-        ids.extend(B::component_ids());
-        ids
-    }
+/// A macro to generate impls for tuples with 2 to 16 elements
+macro_rules! derive_query_params_for_tuples {
+    ($($T:ident),*) => {
+        #[allow(private_interfaces)]
+        impl<$($T: QueryParam),*> QueryParam for ($($T,)*) {
+            fn component_ids() -> Vec<ComponentId> {
+                let mut ids = Vec::new();
+                $(
+                    ids.extend($T::component_ids());
+                )*
+                ids
+            }
 
-    fn mutable_ids() -> Vec<ComponentId> {
-        let mut ids = A::mutable_ids();
-        ids.extend(B::mutable_ids());
-        ids
-    }
+            fn mutable_ids() -> Vec<ComponentId> {
+                let mut ids = Vec::new();
+                $(
+                    ids.extend($T::mutable_ids());
+                )*
+                ids
+            }
+        }
+    };
 }
+
+variadics_please::all_tuples!(derive_query_params_for_tuples, 2, 16, T);
 
 /// A trait representing an actual query
 /// # Safety
@@ -162,61 +173,39 @@ unsafe impl<'w, T: Component> QueryFetch<'w> for &mut T {
     }
 }
 
-unsafe impl<'w, A, B> QueryFetch<'w> for (A, B)
-where
-    A: QueryFetch<'w>,
-    B: QueryFetch<'w>,
-{
-    type Item = (A::Item, B::Item);
+/// A macro to generate impls for tuples with 2 to 16 elements
+macro_rules! derive_query_fetch_for_tuples {
+    ($($T:ident),*) => {
+        unsafe impl<'w, $($T: QueryFetch<'w>),*> QueryFetch<'w> for ($($T,)*) {
+            type Item = ($($T::Item,)*);
 
-    #[allow(private_interfaces)]
-    unsafe fn fetch(
-        ecs_ptr: &'w crate::UnsafeECSCell,
-        user_entity: &super::entity::UserEntity,
-        real_entity: &super::entity::Entity,
-    ) -> Result<Option<Self::Item>, ErrorType> {
-        let component_a = match unsafe { A::fetch(ecs_ptr, user_entity, real_entity) } {
-            Ok(Some(component)) => component,
-            Ok(None) => return Ok(None),
-            Err(err) => {
-                log_error!(
-                    "Failed to fetch a component in a tuple query fetch: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
+            #[allow(private_interfaces)]
+            unsafe fn fetch(
+                ecs_ptr: &'w crate::UnsafeECSCell,
+                user_entity: &super::entity::UserEntity,
+                real_entity: &super::entity::Entity,
+            ) -> Result<Option<Self::Item>, ErrorType> {
+
+                Ok(Some((
+                    $(
+                        match unsafe { $T::fetch(ecs_ptr, user_entity, real_entity) } {
+                            Ok(Some(component)) => component,
+                            Ok(None) => return Ok(None),
+                            Err(err) => {
+                                log_error!(
+                                    "Failed to fetch a component in a tuple query fetch: {:?}",
+                                    err
+                                );
+                                return Err(ErrorType::Unknown);
+                            }
+                        }
+                    ),*
+                )))
             }
-        };
-
-        let component_b = match unsafe { B::fetch(ecs_ptr, user_entity, real_entity) } {
-            Ok(Some(component)) => component,
-            Ok(None) => return Ok(None),
-            Err(err) => {
-                log_error!(
-                    "Failed to fetch a component in a tuple query fetch: {:?}",
-                    err
-                );
-                return Err(ErrorType::Unknown);
-            }
-        };
-
-        Ok(Some((component_a, component_b)))
-    }
+        }
+    };
 }
-
-// fn CullingSystem(
-//     q1: Query<(&CameraComponent, &TransformComponent), With<IsActivated>>,
-//     q2: Query<(&MeshComponent, &TransformComponent, &mut CameraVisibilityComponent)>,
-//     ) -> Result<(), ErrorType> {
-//         for ((camera, transform), entity) in &q1.with_entities() {
-//             let frustum = camera.get_frustum(transform);
-//             for (mesh, transform, mut visibility) in &mut q2 {
-//                 if frustum.intersects(mesh.get_aabb(transform)) {
-//                     visibility[entity] = true;
-//                 }
-//             }
-//         }
-//         Ok(())
-//     }
+variadics_please::all_tuples!(derive_query_fetch_for_tuples, 2, 16, T);
 
 #[allow(private_interfaces)]
 pub trait QueryFilterList {
@@ -228,18 +217,23 @@ impl<T: Component> QueryFilterList for T {
         vec![T::get_type_id()]
     }
 }
-impl<A, B> QueryFilterList for (A, B)
-where
-    A: QueryFilterList,
-    B: QueryFilterList,
-{
-    #[allow(private_interfaces)]
-    fn component_ids() -> Vec<ComponentId> {
-        let mut ids = A::component_ids();
-        ids.extend(B::component_ids());
-        ids
-    }
+
+/// A macro to generate impls for tuples with 2 to 16 elements
+macro_rules! derive_query_filter_for_tuples {
+    ($($T:ident),*) => {
+        impl<$($T: QueryFilterList),*> QueryFilterList for ($($T,)*) {
+            #[allow(private_interfaces)]
+            fn component_ids() -> Vec<ComponentId> {
+                let mut ids = Vec::new();
+                $(
+                    ids.extend($T::component_ids());
+                )*
+                ids
+            }
+        }
+    };
 }
+variadics_please::all_tuples!(derive_query_filter_for_tuples, 2, 16, T);
 
 pub struct With<T: QueryFilterList>(std::marker::PhantomData<T>);
 pub struct Without<T: QueryFilterList>(std::marker::PhantomData<T>);
@@ -733,7 +727,7 @@ mod tests {
         let ids = Without::<DefaultComponent>::without();
         assert_eq!(ids, vec![DefaultComponent::get_type_id()]);
 
-        let ids = Without::<(DefaultComponent, (DefaultComponent, DefaultComponent))>::without();
+        let ids = Without::<(DefaultComponent, DefaultComponent, DefaultComponent)>::without();
         assert_eq!(
             ids,
             vec![

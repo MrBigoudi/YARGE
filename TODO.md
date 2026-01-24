@@ -27,6 +27,7 @@
 
 ## Maths
 
+- Replace duplicate code with macros
 - Add other matrix types (i32, etc...)
 - Add other matrix structures (2x3, 2x4, ...)
 - Add other matrix vector operations
