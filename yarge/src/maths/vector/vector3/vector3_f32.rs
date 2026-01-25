@@ -1,3 +1,6 @@
+#[allow(unused)]
+use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
 use std::simd::prelude::*;
 
 /// A structure to represent a 3 dimensional f32 vector
@@ -162,6 +165,16 @@ impl Vector3f32 {
     /// Returns the length of the vector
     pub fn length(&self) -> f32 {
         Self::dot(self, self).sqrt()
+    }
+
+    /// Return the normalized vector
+    pub fn normalize(&self) -> Result<Self, ErrorType> {
+        let length = self.length();
+        if length == 0f32 {
+            log_error!("Can't normalize a 0 length vector");
+            return Err(ErrorType::DivisionByZero);
+        }
+        Ok(self / length)
     }
 
     /// Const accessor, only used for matrix initialization

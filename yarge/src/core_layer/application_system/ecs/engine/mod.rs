@@ -2,3 +2,4 @@
 
 pub(crate) mod mesh;
 pub(crate) mod transform;
+pub(crate) mod camera;
