@@ -1,6 +1,6 @@
 use std::simd::prelude::*;
 
-use crate::maths::{Vector4f32, vec4f32};
+use crate::maths::{Vector4f32, vec4f32, Vector3f32};
 
 /// A structure to represent a 4x4 f32 matrix stored in column-major order
 #[derive(Clone, Copy)]
@@ -192,6 +192,32 @@ impl Matrix4x4f32 {
             &vec4f32(0., 0., d2, 0.),
             &vec4f32(0., 0., 0., d3),
         )
+    }
+
+    /// Creates a look-at matrix
+    pub fn look_at(origin_position: &Vector3f32, target_position: &Vector3f32, world_up: &Vector3f32) -> Self {
+        let forward = (origin_position-target_position).normalize()
+            .expect("Failed to normalize a vector when building a look at matrix")
+        ;
+        let right = Vector3f32::cross(world_up, &forward).normalize()
+            .expect("Failed to normalize a vector when building a look at matrix")
+        ;
+        let up = Vector3f32::cross(&forward, &right);
+
+        let rotation = Self::new(
+            &vec4f32(right.x, right.y, right.z, 1f32),
+            &vec4f32(up.x, up.y, up.z, 1f32),
+            &vec4f32(forward.x, forward.y, forward.z, 1f32),
+            &Vector4f32::ONES,
+        );
+
+        let translation = Self::translation(
+            -origin_position.x,
+            -origin_position.y,
+            -origin_position.z,
+        );
+
+        rotation * translation
     }
 
     //////////////////////////////////////////////////////////

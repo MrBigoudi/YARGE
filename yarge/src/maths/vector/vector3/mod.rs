@@ -1,3 +1,6 @@
+mod vector_tmp;
+
+
 /// 3D f32 vectors
 /// [Vector3]
 pub(crate) mod vector3_f32;
