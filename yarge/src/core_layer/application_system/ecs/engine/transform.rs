@@ -20,9 +20,9 @@ impl Component for TransformComponent {}
 
 impl Default for TransformComponent {
     fn default() -> Self {
-        Self { 
-            position: Vector3::ZEROS, 
-            scale: Vector3::ONES, 
+        Self {
+            position: Vector3::ZEROS,
+            scale: Vector3::ONES,
             rotation: Vector3::ZEROS,
         }
     }
@@ -36,7 +36,7 @@ impl TransformComponent {
         let rotation_y = Matrix4x4::rotation_x(self.rotation.y);
         let rotation_z = Matrix4x4::rotation_x(self.rotation.z);
         let translation = Matrix4x4::translation(self.position.x, self.position.y, self.position.z);
-        
+
         translation * rotation_z * rotation_y * rotation_x * scaling
     }
 }

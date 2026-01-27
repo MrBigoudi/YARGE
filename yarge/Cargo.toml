@@ -10,8 +10,11 @@ ash = { version = "0.38.0", optional = true }
 gl = { version = "0.14.0", optional = true }
 colored = { version = "3.0.0", optional = true }
 once_cell = { version = "1.21.3" }
+
+# For macros
 macros = { path = "macros" }
 variadics_please = { version = "1.1.0" }
+paste = { version = "1.0.15" }
 
 
 [build-dependencies]

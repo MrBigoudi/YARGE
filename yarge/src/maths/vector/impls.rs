@@ -6,7 +6,6 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 #[allow(unused)]
 use std::simd::prelude::*;
 
-
 /// Macro to generate vector structures with SIMD operations
 macro_rules! impl_vec {
     ($vec_name:ident, $simd_type:ty, $vec_type:ty, $size:tt, $has_neg:tt, $is_float:tt) => {
@@ -96,8 +95,6 @@ macro_rules! impl_vec {
                 #[doc = concat!("Creates a new ", $size, "D `", stringify!($vec_type), "` vector with all coordinates set to `value`\n\n")]
                 #[doc = "# Arguments\n\n"]
                 #[doc = "* `value` - The value to set for all components\n\n"]
-                #[doc = "# Examples\n\n```\n"]
-                #[doc = concat!("let v = ", stringify!($vec_name), "::splat(5", impl_vec!(@type_suffix $is_float), ");\n```")]
                 const fn splat(value: $vec_type) -> Self {
                     impl_vec!(@splat_init value, $size)
                 }
@@ -106,6 +103,7 @@ macro_rules! impl_vec {
                 #[doc = "# Arguments\n\n"]
                 #[doc = "* `value` - The value to fill all components with\n\n"]
                 #[doc = "# Examples\n\n```\n"]
+                #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
                 #[doc = concat!("let v = ", stringify!($vec_name), "::filled(3", impl_vec!(@type_suffix $is_float), ");\n```")]
                 pub const fn filled(value: $vec_type) -> Self {
                     Self::splat(value)
@@ -135,6 +133,7 @@ macro_rules! impl_vec {
                 #[doc = concat!("Sums up all elements of the ", $size, "D vector\n\n")]
                 #[doc = concat!("Returns ", impl_vec!(@sum_doc $size), "\n\n")]
                 #[doc = "# Examples\n\n```\n"]
+                #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
                 #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, $size), ";\n")]
                 #[doc = "let sum = v.prefix_sum();\n```"]
                 pub fn prefix_sum(self) -> $vec_type {
@@ -147,6 +146,7 @@ macro_rules! impl_vec {
                 #[doc = "* `v1` - First vector\n"]
                 #[doc = "* `v2` - Second vector\n\n"]
                 #[doc = "# Examples\n\n```\n"]
+                #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
                 #[doc = concat!("let v1 = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, $size), ";\n")]
                 #[doc = concat!("let v2 = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, $size), ";\n")]
                 #[doc = concat!("let dot = ", stringify!($vec_name), "::dot(&v1, &v2);\n```")]
@@ -155,33 +155,20 @@ macro_rules! impl_vec {
                 }
             }
 
-            impl_vec!(@conditional_cross $size, $vec_name, $vec_type);
+            impl_vec!(@conditional_cross $size, $vec_name, $vec_type, $has_neg);
 
             paste::paste! {
                 #[doc = concat!("Returns the length (magnitude) of the ", $size, "D vector\n\n")]
                 #[doc = concat!("The length is computed as `sqrt(", impl_vec!(@length_doc $size), ")`\n\n")]
                 #[doc = "# Examples\n\n```\n"]
+                #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
                 #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, $size), ";\n")]
                 #[doc = "let len = v.length();\n```"]
                 pub fn length(&self) -> f32 {
                     (Self::dot(self, self) as f32).sqrt()
                 }
 
-                #[doc = "Returns the normalized vector (unit vector in the same direction)\n\n"]
-                #[doc = "Returns an error if the vector has zero length.\n\n"]
-                #[doc = "# Errors\n\n"]
-                #[doc = "Returns `ErrorType::DivisionByZero` if the vector length is zero\n\n"]
-                #[doc = "# Examples\n\n```\n"]
-                #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, $size), ";\n")]
-                #[doc = "let normalized = v.normalize()?;\n```"]
-                pub fn normalize(&self) -> Result<Self, ErrorType> {
-                    let length = self.length();
-                    if length == 0f32 {
-                        crate::log_error!("Can't normalize a 0 length vector");
-                        return Err(ErrorType::DivisionByZero);
-                    }
-                    Ok(self / (length as $vec_type))
-                }
+                impl_vec!(@fn_normalize $vec_name, $vec_type, $size, $is_float);
             }
 
             impl_vec!(@const_accessors $size, $vec_type);
@@ -192,10 +179,33 @@ macro_rules! impl_vec {
         impl_vec!(@impl_index $vec_name, $vec_type, $size);
     };
 
+    (@fn_normalize $vec_name:ident, $vec_type:ty, $size:tt, true) => {
+        paste::paste! {
+            #[doc = "Returns the normalized vector (unit vector in the same direction)\n\n"]
+            #[doc = "Returns an error if the vector has zero length.\n\n"]
+            #[doc = "# Errors\n\n"]
+            #[doc = "Returns `ErrorType::DivisionByZero` if the vector length is zero\n\n"]
+            #[doc = "# Examples\n\n```\n"]
+            #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
+            #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example true, $size), ";\n")]
+            #[doc = "let normalized = v.normalize()?;\n"]
+            #[doc = "# Ok::<(), yarge::error::ErrorType>(())\n```"]
+            pub fn normalize(&self) -> Result<Self, ErrorType> {
+                let length = self.length();
+                if length == 0f32 {
+                    crate::log_error!("Can't normalize a 0 length vector");
+                    return Err(ErrorType::DivisionByZero);
+                }
+                Ok(self / (length as $vec_type))
+            }
+        }
+    };
+    (@fn_normalize $vec_name:ident, $vec_type:ty, $size:tt, false) => {};
+
     (@fn_constructor $vec_name:ident, $vec_type:ty, 2) => {
         paste::paste! {
             #[doc = concat!("Creates a new 2D `", stringify!($vec_type), "` vector given its coordinates\n\n")]
-            pub const fn [<$vec_name:lower>](x: $vec_type, y: $vec_type) -> $vec_name {
+            pub const fn [<vec2 $vec_type:lower>](x: $vec_type, y: $vec_type) -> $vec_name {
                 $vec_name::new(x, y)
             }
         }
@@ -203,7 +213,7 @@ macro_rules! impl_vec {
     (@fn_constructor $vec_name:ident, $vec_type:ty, 3) => {
         paste::paste! {
             #[doc = concat!("Creates a new 3D `", stringify!($vec_type), "` vector given its coordinates\n\n")]
-            pub const fn [<$vec_name:lower>](x: $vec_type, y: $vec_type, z: $vec_type) -> $vec_name {
+            pub const fn [<vec3 $vec_type:lower>](x: $vec_type, y: $vec_type, z: $vec_type) -> $vec_name {
                 $vec_name::new(x, y, z)
             }
         }
@@ -211,7 +221,7 @@ macro_rules! impl_vec {
     (@fn_constructor $vec_name:ident, $vec_type:ty, 4) => {
         paste::paste! {
             #[doc = concat!("Creates a new 4D `", stringify!($vec_type), "` vector given its coordinates\n\n")]
-            pub const fn [<$vec_name:lower>](x: $vec_type, y: $vec_type, z: $vec_type, w: $vec_type) -> $vec_name {
+            pub const fn [<vec4 $vec_type:lower>](x: $vec_type, y: $vec_type, z: $vec_type, w: $vec_type) -> $vec_name {
                 $vec_name::new(x, y, z, w)
             }
         }
@@ -223,7 +233,8 @@ macro_rules! impl_vec {
             #[doc = "# Arguments\n\n"]
             #[doc = impl_vec!(@new_doc_args 2)]
             #[doc = "\n# Examples\n\n```\n"]
-            #[doc = concat!("let v = ", stringify!($vec_name), "::(", impl_vec!(@new_example $is_float, 2), ");\n```")]
+            #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
+            #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, 2), ";\n```")]
             pub const fn new(x: $vec_type, y: $vec_type) -> $vec_name {
                 unsafe {
                     [<UnionCast $vec_name>] {
@@ -240,7 +251,8 @@ macro_rules! impl_vec {
             #[doc = "# Arguments\n\n"]
             #[doc = impl_vec!(@new_doc_args 3)]
             #[doc = "\n# Examples\n\n```\n"]
-            #[doc = concat!("let v = ", stringify!($vec_name), "::(", impl_vec!(@new_example $is_float, 3), ");\n```")]
+            #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
+            #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, 3), ";\n```")]
             pub const fn new(x: $vec_type, y: $vec_type, z: $vec_type) -> $vec_name {
                 unsafe {
                     [<UnionCast $vec_name>] {
@@ -257,7 +269,8 @@ macro_rules! impl_vec {
             #[doc = "# Arguments\n\n"]
             #[doc = impl_vec!(@new_doc_args 4)]
             #[doc = "\n# Examples\n\n```\n"]
-            #[doc = concat!("let v = ", stringify!($vec_name), "::(", impl_vec!(@new_example $is_float, 4), ");\n```")]
+            #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
+            #[doc = concat!("let v = ", stringify!($vec_name), "::", impl_vec!(@new_example $is_float, 4), ";\n```")]
             pub const fn new(x: $vec_type, y: $vec_type, z: $vec_type, w: $vec_type) -> $vec_name {
                 unsafe {
                     [<UnionCast $vec_name>] {
@@ -321,48 +334,48 @@ macro_rules! impl_vec {
     (@coord_doc 4) => { "`.x`, `.y`, `.z`, and `.w`" };
 
     (@example_doc_string $is_float:tt, $value:expr) => {
-        concat!(stringify!(value), impl_vec!(@type_suffix $is_float))
+        concat!(stringify!($value), impl_vec!(@type_suffix $is_float))
     };
     (@example_doc_string_tuple $is_float:tt, $value:expr, 2) => {
-        concat!(impl_vec!(@example_doc_string $is_float, $value), ", " 
+        concat!(impl_vec!(@example_doc_string $is_float, $value), ", "
         , impl_vec!(@example_doc_string $is_float, $value))
     };
     (@example_doc_string_tuple $is_float:tt, $value:expr, 3) => {
-        concat!(impl_vec!(@example_doc_string $is_float, $value), ", " 
-        , impl_vec!(@example_doc_string $is_float, $value), ", " 
+        concat!(impl_vec!(@example_doc_string $is_float, $value), ", "
+        , impl_vec!(@example_doc_string $is_float, $value), ", "
         , impl_vec!(@example_doc_string $is_float, $value))
     };
     (@example_doc_string_tuple $is_float:tt, $value:expr, 4) => {
-        concat!(impl_vec!(@example_doc_string $is_float, $value), ", " 
-        , impl_vec!(@example_doc_string $is_float, $value), ", " 
-        , impl_vec!(@example_doc_string $is_float, $value), ", " 
+        concat!(impl_vec!(@example_doc_string $is_float, $value), ", "
+        , impl_vec!(@example_doc_string $is_float, $value), ", "
+        , impl_vec!(@example_doc_string $is_float, $value), ", "
         , impl_vec!(@example_doc_string $is_float, $value))
     };
 
-    
+
     (@new_doc_args 2) => { "* `x` - X coordinate\n* `y` - Y coordinate" };
     (@new_doc_args 3) => { "* `x` - X coordinate\n* `y` - Y coordinate\n* `z` - Z coordinate" };
     (@new_doc_args 4) => { "* `x` - X coordinate\n* `y` - Y coordinate\n* `z` - Z coordinate\n* `w` - W coordinate" };
-    (@new_example $is_float:tt, 2) => { 
-        concat!("new(" 
+    (@new_example $is_float:tt, 2) => {
+        concat!("new("
         , impl_vec!(@example_doc_string $is_float, 1), ", "
-        , impl_vec!(@example_doc_string $is_float, 2) 
+        , impl_vec!(@example_doc_string $is_float, 2)
         , ")")
     };
-    (@new_example $is_float:tt, 3) => { 
-        concat!("new(" 
-        , impl_vec!(@example_doc_string $is_float, 1), ", " 
+    (@new_example $is_float:tt, 3) => {
+        concat!("new("
+        , impl_vec!(@example_doc_string $is_float, 1), ", "
         , impl_vec!(@example_doc_string $is_float, 2), ", "
         , impl_vec!(@example_doc_string $is_float, 3)
         , ")")
     };
-    (@new_example $is_float:tt, 4) => { 
-        concat!("new(" 
-        , impl_vec!(@example_doc_string $is_float, 1), ", " 
-        , impl_vec!(@example_doc_string $is_float, 2), ", " 
-        , impl_vec!(@example_doc_string $is_float, 3), ", " 
-        , impl_vec!(@example_doc_string $is_float, 4) 
-        , ")") 
+    (@new_example $is_float:tt, 4) => {
+        concat!("new("
+        , impl_vec!(@example_doc_string $is_float, 1), ", "
+        , impl_vec!(@example_doc_string $is_float, 2), ", "
+        , impl_vec!(@example_doc_string $is_float, 3), ", "
+        , impl_vec!(@example_doc_string $is_float, 4)
+        , ")")
     };
 
     (@type_suffix true) => { ".0" };
@@ -410,13 +423,13 @@ macro_rules! impl_vec {
 
     // Display field generation
     (@display_fields $f:expr, $self:expr, 2) => {
-        write!($f, "{}, {}", $self.x, $self.y)
+        write!($f, "{}, {}", $self.x, $self.y)?
     };
     (@display_fields $f:expr, $self:expr, 3) => {
-        write!($f, "{}, {}, {}", $self.x, $self.y, $self.z)
+        write!($f, "{}, {}, {}", $self.x, $self.y, $self.z)?
     };
     (@display_fields $f:expr, $self:expr, 4) => {
-        write!($f, "{}, {}, {}, {}", $self.x, $self.y, $self.z, $self.w)
+        write!($f, "{}, {}, {}, {}", $self.x, $self.y, $self.z, $self.w)?
     };
 
     // Equality check
@@ -541,7 +554,7 @@ macro_rules! impl_vec {
     };
 
     // Cross product (only for 3D)
-    (@conditional_cross 3, $vec_name:ident, $vec_type:ty) => {
+    (@conditional_cross 3, $vec_name:ident, $vec_type:ty, true) => {
         paste::paste! {
             #[doc = concat!("Computes the cross product between two 3D `", stringify!($vec_type), "` vectors\n\n")]
             #[doc = "The cross product of two vectors produces a third vector perpendicular to both.\n"]
@@ -556,9 +569,11 @@ macro_rules! impl_vec {
             #[doc = "* `v1` - First vector\n"]
             #[doc = "* `v2` - Second vector\n\n"]
             #[doc = "# Examples\n\n```\n"]
+            #[doc = concat!("# use yarge::maths::", stringify!($vec_name), ";\n")]
             #[doc = concat!("let v1 = ", stringify!($vec_name), "::X;\n")]
             #[doc = concat!("let v2 = ", stringify!($vec_name), "::Y;\n")]
-            #[doc = concat!("let cross = ", stringify!($vec_name), "::cross(&v1, &v2); // Should be Z\n```")]
+            #[doc = concat!("let cross = ", stringify!($vec_name), "::cross(&v1, &v2);\n")]
+            #[doc = concat!("assert_eq!(cross, ", stringify!($vec_name), "::Z);\n```")]
             pub fn cross(v1: &$vec_name, v2: &$vec_name) -> $vec_name {
                 Self::new(
                     v1.y * v2.z - v1.z * v2.y,
@@ -568,7 +583,7 @@ macro_rules! impl_vec {
             }
         }
     };
-    (@conditional_cross $size:tt, $vec_name:ident, $vec_type:ty) => {};
+    (@conditional_cross $size:tt, $vec_name:ident, $vec_type:ty, $has_neg:tt) => {};
 
     // Const accessors
     (@const_accessors 2, $vec_type:ty) => {
@@ -1160,8 +1175,6 @@ macro_rules! impl_vec {
     };
 }
 
-
-
 impl_vec!(Vector4f32, f32x4, f32, 4, true, true);
 impl_vec!(Vector4f64, f64x4, f64, 4, true, true);
 impl_vec!(Vector4i8, i8x4, i8, 4, true, false);
@@ -1188,15 +1201,15 @@ impl_vec!(Vector3u32, u32x4, u32, 3, false, false);
 impl_vec!(Vector3u64, u64x4, u64, 3, false, false);
 impl_vec!(Vector3usize, usizex4, usize, 3, false, false);
 
-impl_vec!(Vector2f22, f32x2, f32, 2, true, true);
+impl_vec!(Vector2f32, f32x2, f32, 2, true, true);
 impl_vec!(Vector2f64, f64x2, f64, 2, true, true);
 impl_vec!(Vector2i8, i8x2, i8, 2, true, false);
 impl_vec!(Vector2i16, i16x2, i16, 2, true, false);
-impl_vec!(Vector2i22, i32x2, i32, 2, true, false);
+impl_vec!(Vector2i32, i32x2, i32, 2, true, false);
 impl_vec!(Vector2i64, i64x2, i64, 2, true, false);
 impl_vec!(Vector2isize, isizex2, isize, 2, true, false);
 impl_vec!(Vector2u8, u8x2, u8, 2, false, false);
 impl_vec!(Vector2u16, u16x2, u16, 2, false, false);
-impl_vec!(Vector2u22, u32x2, u32, 2, false, false);
+impl_vec!(Vector2u32, u32x2, u32, 2, false, false);
 impl_vec!(Vector2u64, u64x2, u64, 2, false, false);
 impl_vec!(Vector2usize, usizex2, usize, 2, false, false);

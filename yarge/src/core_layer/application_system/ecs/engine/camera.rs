@@ -1,7 +1,10 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::{core_layer::application_system::ecs::component::Component, maths::{Matrix4x4, Vector3, Vector4, vec4}};
+use crate::{
+    core_layer::application_system::ecs::component::Component,
+    maths::{Matrix4x4, Vector3, Vector4, vec4},
+};
 
 /// The possible camera projections
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -52,33 +55,32 @@ pub(crate) struct CameraComponent {
     pub(crate) clip_planes: CameraClipPlane,
 }
 
-impl Component for CameraComponent{}
-
+impl Component for CameraComponent {}
 
 impl CameraComponent {
-    /// Creates a look-at matrix
-    pub(crate) fn look_at(camera_position: &Vector3, target_position: &Vector3, world_up: &Vector3) -> Matrix4x4 {
-        let forward = (camera_position-target_position).normalize()
-            .expect("Failed to normalize a vector when building a look at matrix")
-        ;
-        let right = Vector3::cross(world_up, &forward).normalize()
-            .expect("Failed to normalize a vector when building a look at matrix")
-        ;
-        let up = Vector3::cross(&forward, &right);
+    // /// Creates a view projection matrix
+    // pub(crate) fn view(camera_position: &Vector3, target_position: &Vector3, world_up: &Vector3) -> Matrix4x4 {
+    //     let forward = (camera_position-target_position).normalize()
+    //         .expect("Failed to normalize a vector when building a look at matrix")
+    //     ;
+    //     let right = Vector3::cross(world_up, &forward).normalize()
+    //         .expect("Failed to normalize a vector when building a look at matrix")
+    //     ;
+    //     let up = Vector3::cross(&forward, &right);
 
-        let rotation = Matrix4x4::new(
-            &vec4(right.x, right.y, right.z, 1f32),
-            &vec4(up.x, up.y, up.z, 1f32),
-            &vec4(forward.x, forward.y, forward.z, 1f32),
-            &Vector4::ONES,
-        );
+    //     let rotation = Matrix4x4::new(
+    //         &vec4(right.x, right.y, right.z, 1f32),
+    //         &vec4(up.x, up.y, up.z, 1f32),
+    //         &vec4(forward.x, forward.y, forward.z, 1f32),
+    //         &Vector4::ONES,
+    //     );
 
-        let translation = Matrix4x4::translation(
-            -camera_position.x,
-            -camera_position.y,
-            -camera_position.z,
-        );
+    //     let translation = Matrix4x4::translation(
+    //         -camera_position.x,
+    //         -camera_position.y,
+    //         -camera_position.z,
+    //     );
 
-        rotation * translation
-    }
+    //     rotation * translation
+    // }
 }

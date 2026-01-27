@@ -1,8 +1,6 @@
-/// 2D vectors
-pub(crate) mod vector2;
+/// A module implementing all vectors using macros
+pub(crate) mod impls;
 
-/// 3D vectors
-pub(crate) mod vector3;
-
-/// 4D vectors
-pub(crate) mod vector4;
+/// A module testing all vectors
+#[cfg(test)]
+pub(crate) mod tests;
