@@ -616,7 +616,7 @@ impl ECS {
                 return Err(ErrorType::Unknown);
             }
         };
-        match self.resource_manager.get(&real_id, resource_type_id) {
+        match self.resource_manager.sys_get(&real_id, resource_type_id) {
             Err(err) => {
                 log_error!("Failed to load a custom resource in the ECS: {:?}", err);
                 Err(ErrorType::Unknown)
@@ -640,7 +640,10 @@ impl ECS {
                 return Err(ErrorType::Unknown);
             }
         };
-        match self.resource_manager.try_get(&real_id, resource_type_id) {
+        match self
+            .resource_manager
+            .sys_try_get(&real_id, resource_type_id)
+        {
             Err(err) => {
                 log_error!(
                     "Failed to try to load a custom resource in the ECS: {:?}",

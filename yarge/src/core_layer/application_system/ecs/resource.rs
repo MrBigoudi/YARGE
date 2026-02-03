@@ -243,7 +243,7 @@ pub(crate) static GLOBAL_RESOURCE_ID_GENERATOR: once_cell::sync::Lazy<
     PlatformLayerRwLock<ResourceIdGenerator>,
 > = once_cell::sync::Lazy::new(|| PlatformLayerRwLock::new(ResourceIdGenerator::init()));
 
-pub(crate) struct ResourceManager {
+pub struct ResourceManager {
     pub(crate) loading_functions: HashMap<ResourceId, ResourceLoadingFunction>,
     pub(crate) resources: ResourcesStorage,
     pub(crate) real_resources: HashMap<ResourceTypeId, HashSet<ResourceId>>,
@@ -405,7 +405,69 @@ impl ResourceManager {
         Ok(set)
     }
 
-    pub(crate) fn try_get(
+    pub fn try_get<T: Resource + Clone>(
+        &mut self,
+        id: &UserResourceId,
+    ) -> Result<Option<T>, ErrorType> {
+        let id = match Self::get_real_id(id) {
+            Ok(id) => id,
+            Err(err) => {
+                log_error!(
+                    "Failed to get a real id when trying to get a user resource: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        match self.sys_try_get(&id, &ResourceTypeId(std::any::TypeId::of::<T>())) {
+            Ok(None) => Ok(None),
+            Ok(Some(handler)) => match handler.get_clone::<T>() {
+                Ok(value) => Ok(Some(value)),
+                Err(err) => {
+                    log_error!(
+                        "Failed to downcast a handler when trying to fetch a resource: {:?}",
+                        err
+                    );
+                    Err(ErrorType::Unknown)
+                }
+            },
+            Err(err) => {
+                log_error!("Failed to get a resource: {:?}", err);
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
+    pub fn get<T: Resource + Clone>(&mut self, id: &UserResourceId) -> Result<T, ErrorType> {
+        let id = match Self::get_real_id(id) {
+            Ok(id) => id,
+            Err(err) => {
+                log_error!(
+                    "Failed to get a real id when trying to get a user resource: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+        match self.sys_get(&id, &ResourceTypeId(std::any::TypeId::of::<T>())) {
+            Ok(handler) => match handler.get_clone::<T>() {
+                Ok(value) => Ok(value),
+                Err(err) => {
+                    log_error!(
+                        "Failed to downcast a handler when trying to fetch a resource: {:?}",
+                        err
+                    );
+                    Err(ErrorType::Unknown)
+                }
+            },
+            Err(err) => {
+                log_error!("Failed to get a resource: {:?}", err);
+                Err(ErrorType::Unknown)
+            }
+        }
+    }
+
+    pub(crate) fn sys_try_get(
         &mut self,
         id: &ResourceId,
         resource_type_id: &ResourceTypeId,
@@ -501,13 +563,13 @@ impl ResourceManager {
         }
     }
 
-    pub(crate) fn get(
+    pub(crate) fn sys_get(
         &mut self,
         id: &ResourceId,
         resource_type_id: &ResourceTypeId,
     ) -> Result<ResourceHandle, ErrorType> {
         loop {
-            match self.try_get(id, resource_type_id) {
+            match self.sys_try_get(id, resource_type_id) {
                 Err(err) => {
                     log_error!(
                         "Failed to get the `{:?}' resource from the resource manager: {:?}",

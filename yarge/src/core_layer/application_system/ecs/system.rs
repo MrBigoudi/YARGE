@@ -350,6 +350,24 @@ where
     }
 }
 
+impl SystemParam for super::resource::ResourceManager {
+    type State = ();
+
+    type Item<'w, 's> = &'w mut super::resource::ResourceManager;
+
+    fn init_state(_game: &dyn crate::Game, _ecs: &crate::ECS) -> Result<Self::State, ErrorType> {
+        Ok(())
+    }
+
+    unsafe fn get_item<'w, 's>(
+        _state: &'s mut Self::State,
+        _game_ptr: &'w crate::UnsafeGameCell,
+        ecs_ptr: &'w crate::UnsafeECSCell,
+    ) -> Result<Self::Item<'w, 's>, ErrorType> {
+        Ok(&mut unsafe { ecs_ptr.get_mut() }.resource_manager)
+    }
+}
+
 /// A wrapper around the real system closure
 pub struct SystemFuncWrapper<Func, Param>
 where

@@ -6,6 +6,9 @@
 /// A module that defines all vector types of the crate
 mod vector;
 
+mod helpers;
+pub use helpers::*;
+
 pub use vector::impls::{Vector2f32 as Vector2, vec2f32 as vec2};
 pub use vector::impls::{Vector2f32, vec2f32};
 pub use vector::impls::{Vector2f64, vec2f64};

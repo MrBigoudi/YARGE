@@ -19,4 +19,5 @@ pub(crate) mod graphics_pipeline;
 
 pub(crate) mod buffer;
 pub(crate) mod mesh;
+pub(crate) mod obj_loader;
 pub(crate) mod vertex;

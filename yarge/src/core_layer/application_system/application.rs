@@ -339,7 +339,7 @@ impl<'a> ApplicationSystem<'a> {
             .collect();
 
         for (type_id, real_id) in &loading_resources {
-            match self.ecs.resource_manager.try_get(real_id, type_id) {
+            match self.ecs.resource_manager.sys_try_get(real_id, type_id) {
                 Err(err) => {
                     log_error!(
                         "Failed to try getting a loading resource in the application: {:?}",
