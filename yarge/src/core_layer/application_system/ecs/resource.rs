@@ -45,7 +45,7 @@ pub(crate) trait ResourceLoadingParameters<R: Resource>:
 pub trait Resource: std::any::Any + Send + Sync + 'static {}
 
 /// A user defined resource
-pub trait UserResource: std::any::Any + Send + Sync + Clone + 'static {}
+pub trait UserResource: std::any::Any + Send + Sync + 'static {}
 impl<T: UserResource> Resource for T {}
 pub trait UserResourceLoadingParameters<R: UserResource>:
     std::hash::Hash + std::any::Any + Send + Sync + std::fmt::Debug + Clone + 'static
@@ -71,9 +71,9 @@ pub struct UserResourceId(super::generational::GenerationalKey);
 pub struct ResourceHandle(std::sync::Arc<dyn Resource>);
 
 impl ResourceHandle {
-    pub fn get_clone<R: Resource + Clone + 'static>(&self) -> Result<R, ErrorType> {
+    pub fn get<R: Resource + 'static>(&self) -> Result<std::sync::Arc<R>, ErrorType> {
         match std::sync::Arc::downcast::<R>(self.0.clone()) {
-            Ok(new) => Ok((*new).clone()),
+            Ok(new) => Ok(new),
             Err(err) => {
                 log_error!(
                     "Failed to downcast a resource handler to the real resource: {:?}",
@@ -408,7 +408,7 @@ impl ResourceManager {
     pub fn try_get<T: Resource + Clone>(
         &mut self,
         id: &UserResourceId,
-    ) -> Result<Option<T>, ErrorType> {
+    ) -> Result<Option<std::sync::Arc<T>>, ErrorType> {
         let id = match Self::get_real_id(id) {
             Ok(id) => id,
             Err(err) => {
@@ -421,7 +421,7 @@ impl ResourceManager {
         };
         match self.sys_try_get(&id, &ResourceTypeId(std::any::TypeId::of::<T>())) {
             Ok(None) => Ok(None),
-            Ok(Some(handler)) => match handler.get_clone::<T>() {
+            Ok(Some(handler)) => match handler.get::<T>() {
                 Ok(value) => Ok(Some(value)),
                 Err(err) => {
                     log_error!(
@@ -438,7 +438,10 @@ impl ResourceManager {
         }
     }
 
-    pub fn get<T: Resource + Clone>(&mut self, id: &UserResourceId) -> Result<T, ErrorType> {
+    pub fn get<T: Resource + Clone>(
+        &mut self,
+        id: &UserResourceId,
+    ) -> Result<std::sync::Arc<T>, ErrorType> {
         let id = match Self::get_real_id(id) {
             Ok(id) => id,
             Err(err) => {
@@ -450,7 +453,7 @@ impl ResourceManager {
             }
         };
         match self.sys_get(&id, &ResourceTypeId(std::any::TypeId::of::<T>())) {
-            Ok(handler) => match handler.get_clone::<T>() {
+            Ok(handler) => match handler.get::<T>() {
                 Ok(value) => Ok(value),
                 Err(err) => {
                     log_error!(
