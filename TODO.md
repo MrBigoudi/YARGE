@@ -1,5 +1,11 @@
 # Todo list
 
+## Daily
+
+- Load obj files
+- Create a routine to Register engine Resource
+- Create a routine to Register engine Component
+
 ## Global
 
 - Create log to file

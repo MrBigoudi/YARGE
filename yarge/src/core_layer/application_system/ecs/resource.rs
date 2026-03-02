@@ -8,7 +8,7 @@ use crate::platform_layer::platform_impl::PlatformLayerRwLock;
 pub(crate) struct ResourceTypeId(pub(crate) std::any::TypeId);
 
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     sync::mpsc::Receiver,
 };
 
@@ -37,6 +37,39 @@ impl ResourceLoadingBuilder {
     }
 }
 
+/// Engine defined resource ids
+pub(crate) struct EngineResources {
+    /// The id of the cube model resource
+    pub(crate) cube_obj: UserResourceId,
+}
+
+impl EngineResources {
+    pub(crate) fn init() -> Result<(Self, VecDeque<crate::Event>), ErrorType> {
+        let mut events = VecDeque::new();
+
+        // Registers the cube obj resource
+        let (event, cube_obj) = crate::event_builder::RegisterCustomResourceEventBuilder::default()
+            .loading_parameters::<std::path::PathBuf, crate::ObjFile>(&std::path::PathBuf::from(format!(
+            "{}/assets/cube.obj",
+            env!("CARGO_MANIFEST_DIR")
+        )))
+            .build()?;
+        events.push_back(event);
+
+        events.push_back(
+            crate::event_builder::StartLoadCustomResourceEventBuilder::default()
+                .resource_id::<crate::ObjFile>(&cube_obj)
+                .build()?,
+        );
+
+        let engine_resources = EngineResources {
+            cube_obj,
+        };
+
+        Ok((engine_resources, events))
+    }
+}
+
 pub(crate) trait ResourceLoadingParameters<R: Resource>:
     std::hash::Hash + std::any::Any + Send + Sync + std::fmt::Debug + Clone + 'static
 {
@@ -59,7 +92,7 @@ where
     R: UserResource,
 {
     fn load_resource(&self) -> Result<R, ErrorType> {
-        UserResourceLoadingParameters::load_resource(self)
+        T::load_resource(self)
     }
 }
 

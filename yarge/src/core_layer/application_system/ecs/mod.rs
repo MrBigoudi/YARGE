@@ -55,7 +55,7 @@ pub struct ECS {
 }
 
 impl ECS {
-    /// Initialized the ECS
+    /// Initializes the ECS
     pub(crate) fn init() -> Result<Self, ErrorType> {
         let component_manager = match component::ComponentManager::init() {
             Ok(manager) => manager,
@@ -73,6 +73,7 @@ impl ECS {
         let system_manager = system::SystemManager::init();
 
         log_info!("ECS initialized");
+
         Ok(ECS {
             entities: vec![],
             component_manager,

@@ -1,4 +1,4 @@
-use crate::core_layer::application_system::ecs::resource::ResourceManager;
+use crate::core_layer::application_system::ecs::resource::{EngineResources, ResourceManager};
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
@@ -27,6 +27,9 @@ pub(crate) struct ApplicationSystem<'a> {
 
     /// A queue of user events
     pub(crate) user_events: VecDeque<UserEventWrapper>,
+
+    /// The engine level resources
+    pub(crate) engine_resources: EngineResources,
 }
 
 impl<'a> ApplicationSystem<'a> {
@@ -51,7 +54,20 @@ impl<'a> ApplicationSystem<'a> {
                 return Err(ErrorType::Unknown);
             }
         };
-        let user_events = VecDeque::new();
+        let mut user_events = VecDeque::new();
+        // TODO: Register engine level components
+        // TODO: Register engine level resources
+        let engine_resources = match EngineResources::init() {
+            Err(err) => {
+                log_error!("Failed to initialize the engine level ECS Resources when initializing the application: {:?}", err);
+                return Err(ErrorType::Unknown);
+            },
+            Ok((engine_resources, mut events)) => {
+                user_events.append(&mut events);
+                engine_resources
+            }
+        };
+        // TODO: Register engine level systems
 
         let mut application = Self {
             name,
@@ -59,6 +75,7 @@ impl<'a> ApplicationSystem<'a> {
             user_game,
             ecs,
             user_events,
+            engine_resources,
         };
         log_info!(
             "Application: {:?}, version: {:?} initialized",
@@ -82,7 +99,6 @@ impl<'a> ApplicationSystem<'a> {
             );
             return Err(ErrorType::Unknown);
         }
-        // TODO: register engine level FileResourceId
 
         match application.handle_user_events(platform_layer, rendering_layer) {
             Ok(true) => {

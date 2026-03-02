@@ -68,6 +68,8 @@ pub use platform_layer::platform::PlatformLayer;
 pub use platform_layer::platform_impl::{PlatformLayerImpl, PlatformLayerRwLock};
 pub use platform_layer::window::DisplayMode;
 
+pub use rendering_layer::obj_loader::ObjFile;
+
 pub(crate) use rendering_layer::RenderingLayer;
 pub(crate) use rendering_layer::rendering_impl::RenderingLayerImpl;
 pub use rendering_layer::{shaders, types as renderer_types};

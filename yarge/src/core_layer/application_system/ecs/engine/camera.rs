@@ -6,21 +6,24 @@ use crate::{
     maths::{Matrix4x4, Vector3, mat4x4, to_radians, vec3, vec4},
 };
 
-/// A simple perspective camera component
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct PerspectiveCameraComponent {
-    /// The vertical field of view in degrees
-    pub(crate) field_of_view: f32,
-    /// The aspect ratio
-    pub(crate) aspect_ratio: f32,
-    /// The far plane
-    pub(crate) far_plane: f32,
-    /// The near plane
-    pub(crate) near_plane: f32,
+/// A union for the camera type
+#[derive(Clone, Copy)]
+pub(crate) union RealCamera {
+    pub(crate) perspective: PerspectiveCamera,
+    pub(crate) orthographic: OrthographicCamera,
 }
-impl Component for PerspectiveCameraComponent {}
+
+/// A camera component
+#[derive(Clone, Copy)]
+pub(crate) struct CameraComponent {
+    pub(crate) camera: RealCamera,
+}
+impl Component for CameraComponent{}
+
+
 
 /// A camera frustum view
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct CameraViewFrustum {
     /// The near plane bottom left corner
     pub(crate) near_bottom_left: Vector3,
@@ -54,7 +57,20 @@ pub(crate) trait Camera {
     fn view_frustum(&self) -> CameraViewFrustum;
 }
 
-impl Camera for PerspectiveCameraComponent {
+/// A simple perspective camera
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct PerspectiveCamera {
+    /// The vertical field of view in degrees
+    pub(crate) field_of_view: f32,
+    /// The aspect ratio
+    pub(crate) aspect_ratio: f32,
+    /// The far plane
+    pub(crate) far_plane: f32,
+    /// The near plane
+    pub(crate) near_plane: f32,
+}
+
+impl Camera for PerspectiveCamera {
     fn projection(&self) -> Matrix4x4 {
         let fov = to_radians(self.field_of_view * 0.5);
         let cot = fov.sin() / fov.cos();
@@ -102,9 +118,9 @@ impl Camera for PerspectiveCameraComponent {
     }
 }
 
-/// A simple orthographic camera component
+/// A simple orthographic camera
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct OrthographicCameraComponent {
+pub(crate) struct OrthographicCamera {
     /// The left plane
     pub(crate) left_plane: f32,
     /// The right plane
@@ -118,9 +134,8 @@ pub(crate) struct OrthographicCameraComponent {
     /// The near plane
     pub(crate) near_plane: f32,
 }
-impl Component for OrthographicCameraComponent {}
 
-impl Camera for OrthographicCameraComponent {
+impl Camera for OrthographicCamera {
     fn projection(&self) -> Matrix4x4 {
         let width = self.right_plane - self.left_plane;
         let height = self.top_plane - self.bottom_plane;
