@@ -44,7 +44,7 @@ pub(crate) trait VertexDataAttribute {
 /// The object space position
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexPosition(Vector3);
+pub(crate) struct VertexPosition(pub(crate) Vector3);
 impl VertexDataAttribute for VertexPosition {
     const FORMAT: ImageFormat = ImageFormat::R32G32B32_SFLOAT;
     const POSITION: usize = 0;
@@ -54,7 +54,7 @@ impl VertexDataAttribute for VertexPosition {
 /// The vertex color and opacity
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexColor(Vector4);
+pub(crate) struct VertexColor(pub(crate) Vector4);
 impl VertexDataAttribute for VertexColor {
     const FORMAT: ImageFormat = ImageFormat::R32G32B32A32_SFLOAT;
     const POSITION: usize = 1;
@@ -64,7 +64,7 @@ impl VertexDataAttribute for VertexColor {
 /// The vertex normal
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexNormal(Vector3);
+pub(crate) struct VertexNormal(pub(crate) Vector3);
 impl VertexDataAttribute for VertexNormal {
     const FORMAT: ImageFormat = ImageFormat::R32G32B32_SFLOAT;
     const POSITION: usize = 2;
@@ -74,7 +74,7 @@ impl VertexDataAttribute for VertexNormal {
 /// The vertex texture coordinates
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexTexCoords(Vector2);
+pub(crate) struct VertexTexCoords(pub(crate) Vector2);
 impl VertexDataAttribute for VertexTexCoords {
     const FORMAT: ImageFormat = ImageFormat::R32G32_SFLOAT;
     const POSITION: usize = 3;
