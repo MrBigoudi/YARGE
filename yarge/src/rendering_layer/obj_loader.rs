@@ -1,7 +1,12 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::{Resource, ResourceLoadingParameters, maths::{Vector3, vec2, vec3, vec4}, renderer_types::PrimitiveTopology, rendering_layer::{mesh::MeshData, vertex::VertexData}};
+use crate::{
+    Resource, ResourceLoadingParameters,
+    maths::{Vector3, vec2, vec3, vec4},
+    renderer_types::PrimitiveTopology,
+    rendering_layer::{mesh::MeshData, vertex::VertexData},
+};
 
 #[derive(Debug, Clone)]
 /// Parsed asset data
@@ -14,7 +19,7 @@ impl Resource for ObjFile {}
 
 impl ResourceLoadingParameters<ObjFile> for std::path::PathBuf {
     fn load_resource(&self) -> Result<ObjFile, ErrorType> {
-        let (models, materials) = match tobj::load_obj(self, &tobj::GPU_LOAD_OPTIONS){
+        let (models, materials) = match tobj::load_obj(self, &tobj::GPU_LOAD_OPTIONS) {
             Ok((models, materials)) => (models, materials),
             Err(err) => {
                 log_error!("Failed to load the {:?} obj: {:?}", self, err);
@@ -37,8 +42,8 @@ impl ResourceLoadingParameters<ObjFile> for std::path::PathBuf {
         let mut meshes = Vec::with_capacity(models.len());
 
         // Create the data for each mesh in the obj
-        for (_, m) in models.iter().enumerate() {
-            let mesh = &m.mesh;
+        for model in models {
+            let mesh = &model.mesh;
 
             if mesh.positions.len() % 3 != 0 {
                 log_error!("Unsupported mesh format in `{:?}' obj file", self);
@@ -48,32 +53,46 @@ impl ResourceLoadingParameters<ObjFile> for std::path::PathBuf {
             let nb_vertices = mesh.positions.len() / 3;
             let mut vertices = Vec::with_capacity(nb_vertices);
             for v in 0..nb_vertices {
-                let mut vertex = VertexData::default()
-                    .position(vec3(mesh.positions[3 * v], mesh.positions[3 * v + 1], mesh.positions[3 * v + 2]))
-                ;
+                let mut vertex = VertexData::default().position(vec3(
+                    mesh.positions[3 * v],
+                    mesh.positions[3 * v + 1],
+                    mesh.positions[3 * v + 2],
+                ));
                 if !mesh.normals.is_empty() {
-                    vertex = vertex.normal(vec3(mesh.normals[3 * v], mesh.normals[3 * v + 1], mesh.normals[3 * v + 2]));
+                    vertex = vertex.normal(vec3(
+                        mesh.normals[3 * v],
+                        mesh.normals[3 * v + 1],
+                        mesh.normals[3 * v + 2],
+                    ));
                 }
                 if !mesh.vertex_color.is_empty() {
-                    vertex = vertex.color(vec4(mesh.vertex_color[3 * v], mesh.vertex_color[3 * v + 1], mesh.vertex_color[3 * v + 2], 1.));
+                    vertex = vertex.color(vec4(
+                        mesh.vertex_color[3 * v],
+                        mesh.vertex_color[3 * v + 1],
+                        mesh.vertex_color[3 * v + 2],
+                        1.,
+                    ));
                 }
                 if !mesh.texcoords.is_empty() {
-                    vertex = vertex.texture_coordinates(vec2(mesh.texcoords[2 * v], mesh.texcoords[2 * v + 1]));
+                    vertex = vertex.texture_coordinates(vec2(
+                        mesh.texcoords[2 * v],
+                        mesh.texcoords[2 * v + 1],
+                    ));
                 }
                 vertices.push(vertex);
             }
 
             let indices: Vec<usize> = mesh.indices.iter().map(|elem| *elem as usize).collect();
 
-            // TODO: compute default normals
+            // Compute default normals
             if mesh.normals.is_empty() {
                 let nb_triangles = indices.len() / 3;
                 for tri in 0..nb_triangles {
-                    let p0_idx = indices[3*tri];
+                    let p0_idx = indices[3 * tri];
                     let p0 = vertices[p0_idx].position.0;
-                    let p1_idx = indices[3*tri + 1];
+                    let p1_idx = indices[3 * tri + 1];
                     let p1 = vertices[p1_idx].position.0;
-                    let p2_idx = indices[3*tri + 2];
+                    let p2_idx = indices[3 * tri + 2];
                     let p2 = vertices[p2_idx].position.0;
 
                     let edge_1 = (p1 - p0).normalize()?;
@@ -93,7 +112,6 @@ impl ResourceLoadingParameters<ObjFile> for std::path::PathBuf {
             };
 
             meshes.push(new_mesh);
-
         }
 
         // for (i, m) in materials.iter().enumerate() {
@@ -146,8 +164,6 @@ impl ResourceLoadingParameters<ObjFile> for std::path::PathBuf {
         //     }
         // }
 
-        Ok(ObjFile {
-            meshes,
-        })
+        Ok(ObjFile { meshes })
     }
 }

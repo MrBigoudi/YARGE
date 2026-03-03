@@ -43,28 +43,51 @@ pub(crate) struct EngineResources {
     pub(crate) cube_obj: UserResourceId,
 }
 
+/// A macro to generate register engine resource events
+macro_rules! create_register_resource_event {
+    ($R:ty, $P:ty, $parameter:expr, $name:literal) => {
+        match crate::event_builder::RegisterCustomResourceEventBuilder::default()
+            .loading_parameters::<$P, $R>($parameter)
+            .build(){
+                Ok((event, id)) => (event, id),
+                Err(err) => {
+                    log_error!("Failed to create the \"register the engine level `{:?}' resource\" event: {:?}", $name, err);
+                    return Err(ErrorType::Unknown);
+                }
+            }
+    };
+}
+/// A macro to generate load engine resource events
+macro_rules! create_load_resource_event {
+    ($R:ty, $name:literal, $id:ident) => {
+        match crate::event_builder::StartLoadCustomResourceEventBuilder::default()
+            .resource_id::<$R>(&$id)
+            .build(){
+                Ok(event) => event,
+                Err(err) => {
+                    log_error!("Failed to create the \"start load the engine level `{:?}' component\" event: {:?}", $name, err);
+                    return Err(ErrorType::Unknown);
+                }
+            }
+    };
+}
+
 impl EngineResources {
     pub(crate) fn init() -> Result<(Self, VecDeque<crate::Event>), ErrorType> {
         let mut events = VecDeque::new();
 
         // Registers the cube obj resource
-        let (event, cube_obj) = crate::event_builder::RegisterCustomResourceEventBuilder::default()
-            .loading_parameters::<std::path::PathBuf, crate::ObjFile>(&std::path::PathBuf::from(format!(
-            "{}/assets/cube.obj",
-            env!("CARGO_MANIFEST_DIR")
-        )))
-            .build()?;
+        let (event, cube_obj) = create_register_resource_event!(
+            crate::ObjFile,
+            std::path::PathBuf,
+            &std::path::PathBuf::from(format!("{}/assets/cube.obj", env!("CARGO_MANIFEST_DIR"))),
+            "cube obj"
+        );
+        events.push_back(event);
+        let event = create_load_resource_event!(crate::ObjFile, "cube_obj", cube_obj);
         events.push_back(event);
 
-        events.push_back(
-            crate::event_builder::StartLoadCustomResourceEventBuilder::default()
-                .resource_id::<crate::ObjFile>(&cube_obj)
-                .build()?,
-        );
-
-        let engine_resources = EngineResources {
-            cube_obj,
-        };
+        let engine_resources = EngineResources { cube_obj };
 
         Ok((engine_resources, events))
     }

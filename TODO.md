@@ -2,9 +2,9 @@
 
 ## Daily
 
-- Load obj files
-- Create a routine to Register engine Resource
-- Create a routine to Register engine Component
+- Create routine to register engine level systems
+- Create bounding volume structure 
+- Make the culling routine work
 
 ## Global
 
@@ -14,6 +14,10 @@
 - Move the "init" and "shutdowns" logs inside the structures methods
 - Add better documentation everywhere
 - Check / Fix update function not running when window not focused ?
+- Update the routine to Register engine Resources
+- Update the routine to Register engine Components
+- Create materials and load them in obj
+- Update AABB structure to allow BVH construction
 
 ## ECS
 

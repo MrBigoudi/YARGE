@@ -2,6 +2,7 @@
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
+    Entity,
     core_layer::application_system::ecs::component::Component,
     maths::{Matrix4x4, Vector3, mat4x4, to_radians, vec3, vec4},
 };
@@ -14,13 +15,16 @@ pub(crate) union RealCamera {
 }
 
 /// A camera component
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct CameraComponent {
+    /// The camera
     pub(crate) camera: RealCamera,
+    /// The entities visible by the camera
+    /// This field is rebuilt every-time culling is called on the camera
+    /// and should only be used after culling is complete to avoid saving wrong entities
+    pub(crate) visible_entities: Vec<Entity>,
 }
-impl Component for CameraComponent{}
-
-
+impl Component for CameraComponent {}
 
 /// A camera frustum view
 #[derive(Debug, Clone, Copy, PartialEq)]
