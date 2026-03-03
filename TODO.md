@@ -1,10 +1,13 @@
 # Todo list
 
-## Daily
+## WIP
 
 - Create routine to register engine level systems
-- Create bounding volume structure 
 - Make the culling routine work
+- Create materials and load them in obj
+- Store meshes and materials as resources instead of ObjFiles
+- Create bounding volume structures
+- Update AABB structure to allow BVH construction
 
 ## Global
 
@@ -16,8 +19,6 @@
 - Check / Fix update function not running when window not focused ?
 - Update the routine to Register engine Resources
 - Update the routine to Register engine Components
-- Create materials and load them in obj
-- Update AABB structure to allow BVH construction
 
 ## ECS
 
@@ -37,6 +38,7 @@
 
 ## Maths
 
+- Add vectors construction from smaller vectors
 - Replace duplicate code with macros
 - Add other matrix types (i32, etc...)
 - Add other matrix structures (2x3, 2x4, ...)

@@ -350,7 +350,7 @@ where
     }
 }
 
-impl SystemParam for super::resource::ResourceManager {
+impl SystemParam for &mut super::resource::ResourceManager {
     type State = ();
 
     type Item<'w, 's> = &'w mut super::resource::ResourceManager;
@@ -899,6 +899,7 @@ impl crate::core_layer::application_system::application::ApplicationSystem<'_> {
 #[cfg(test)]
 mod tests {
     use super::super::query::{Query, With, Without};
+    use super::super::resource::ResourceManager;
     use super::*;
     use crate::core_layer::application_system::ecs::component::{
         AddComponentToEntityFunction, Component, RegisterComponentFunction,
@@ -992,6 +993,39 @@ mod tests {
         fn test_system_query(
             _game: &TestGame,
             _query: Query<'_, '_, &NewComponent1>,
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+            Ok(VecDeque::new())
+        }
+
+        let internal = default_system_internal!();
+        let mut system = test_system.as_system();
+        system.init(&game, &ecs).unwrap();
+        ecs.system_manager.add_system(internal, system).unwrap();
+
+        let internal = default_system_internal!();
+        let mut system = test_system_query.as_system();
+        system.init(&game, &ecs).unwrap();
+        ecs.system_manager.add_system(internal, system).unwrap();
+    }
+
+    #[test]
+    fn systems_with_resource_manager() {
+        // Init Game
+        let game = TestGame { test: 0u32 };
+        // Init ecs
+        let mut ecs = crate::ECS::init().unwrap();
+
+        #[macros::system]
+        fn test_system(
+            _resource_manager: &mut ResourceManager,
+        ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
+            Ok(VecDeque::new())
+        }
+        #[macros::system]
+        fn test_system_query(
+            _game: &TestGame,
+            _query: Query<'_, '_, &NewComponent1>,
+            _resource_manager: &mut ResourceManager,
         ) -> Result<VecDeque<UserEventWrapper>, ErrorType> {
             Ok(VecDeque::new())
         }

@@ -461,7 +461,7 @@ impl ResourceManager {
         Ok(set)
     }
 
-    pub fn try_get<T: Resource + Clone>(
+    pub fn try_get<T: Resource>(
         &mut self,
         id: &UserResourceId,
     ) -> Result<Option<std::sync::Arc<T>>, ErrorType> {
@@ -494,7 +494,7 @@ impl ResourceManager {
         }
     }
 
-    pub fn get<T: Resource + Clone>(
+    pub fn get<T: Resource>(
         &mut self,
         id: &UserResourceId,
     ) -> Result<std::sync::Arc<T>, ErrorType> {
