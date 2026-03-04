@@ -7,6 +7,7 @@ use crate::{
         component::Component, engine::transform::TransformComponent,
     },
     maths::{Matrix4x4, Vector3, Vector4, mat4x4, to_radians, vec3, vec4},
+    rendering_layer::bounding_volumes::Frustum,
 };
 
 /// A union for the camera type
@@ -48,61 +49,11 @@ impl CameraComponent {
     }
 
     /// Gets the camera frustum in camera's view space
-    pub(crate) fn get_view_space_frustum(&self) -> CameraFrustum {
+    pub(crate) fn get_view_space_frustum(&self) -> Frustum {
         match self.projection {
             RealProjection::Perspective(perspective) => perspective.view_frustum(),
             RealProjection::Orthographic(orthographic) => orthographic.view_frustum(),
         }
-    }
-
-    /// Gets the camera frustum in world space
-    pub(crate) fn get_world_space_frustum(&self, transform: &TransformComponent) -> CameraFrustum {
-        let mut frustum = self.get_view_space_frustum();
-        frustum.as_world(&transform.get_model());
-        frustum
-    }
-}
-
-/// A camera frustum view
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct CameraFrustum {
-    /// The near plane bottom left corner
-    pub(crate) near_bottom_left: Vector3,
-    /// The near plane bottom right corner
-    pub(crate) near_bottom_right: Vector3,
-    /// The near plane top right corner
-    pub(crate) near_top_right: Vector3,
-    /// The near plane top left corner
-    pub(crate) near_top_left: Vector3,
-
-    /// The far plane bottom left corner
-    pub(crate) far_bottom_left: Vector3,
-    /// The far plane bottom right corner
-    pub(crate) far_bottom_right: Vector3,
-    /// The far plane top right corner
-    pub(crate) far_top_right: Vector3,
-    /// The far plane top left corner
-    pub(crate) far_top_left: Vector3,
-}
-
-impl CameraFrustum {
-    /// Gets the frustum in world space
-    pub(crate) fn as_world(&mut self, model: &Matrix4x4) {
-        macro_rules! transform {
-            ($var:expr) => {{
-                let new_var = vec4($var.x, $var.y, $var.z, 1.);
-                $var = (model * new_var).from_homogeneous();
-            }};
-        }
-
-        transform!(self.near_bottom_left);
-        transform!(self.near_bottom_right);
-        transform!(self.near_top_left);
-        transform!(self.near_top_right);
-        transform!(self.far_bottom_left);
-        transform!(self.far_bottom_right);
-        transform!(self.far_top_left);
-        transform!(self.far_top_right);
     }
 }
 
@@ -111,7 +62,7 @@ pub(crate) trait CameraProjection {
     fn projection(&self) -> Matrix4x4;
 
     /// Computes the view frustum
-    fn view_frustum(&self) -> CameraFrustum;
+    fn view_frustum(&self) -> Frustum;
 }
 
 /// A simple perspective camera
@@ -145,7 +96,7 @@ impl CameraProjection for PerspectiveProjection {
         )
     }
 
-    fn view_frustum(&self) -> CameraFrustum {
+    fn view_frustum(&self) -> Frustum {
         let tan_half_fov = (to_radians(self.field_of_view) * 0.5).tan();
         let near_height = 2. * self.near_plane * tan_half_fov;
         let near_width = near_height * self.aspect_ratio;
@@ -162,7 +113,7 @@ impl CameraProjection for PerspectiveProjection {
         let far_top_right = vec3(far_width * 0.5, far_height * 0.5, -self.far_plane);
         let far_top_left = vec3(-far_width * 0.5, far_height * 0.5, -self.far_plane);
 
-        CameraFrustum {
+        Frustum {
             near_bottom_left,
             near_bottom_right,
             near_top_right,
@@ -221,7 +172,7 @@ impl CameraProjection for OrthographicProjection {
         )
     }
 
-    fn view_frustum(&self) -> CameraFrustum {
+    fn view_frustum(&self) -> Frustum {
         let near_bottom_left = vec3(self.left_plane, self.bottom_plane, -self.near_plane);
         let near_bottom_right = vec3(self.right_plane, self.bottom_plane, -self.near_plane);
         let near_top_right = vec3(self.right_plane, self.top_plane, -self.near_plane);
@@ -232,7 +183,7 @@ impl CameraProjection for OrthographicProjection {
         let far_top_right = vec3(self.right_plane, self.top_plane, -self.far_plane);
         let far_top_left = vec3(self.left_plane, self.top_plane, -self.far_plane);
 
-        CameraFrustum {
+        Frustum {
             near_bottom_left,
             near_bottom_right,
             near_top_right,

@@ -2,12 +2,11 @@
 
 ## WIP
 
-- Create routine to register engine level systems
-- Make the culling routine work
-- Create materials and load them in obj
-- Store meshes and materials as resources instead of ObjFiles
 - Create bounding volume structures
-- Update AABB structure to allow BVH construction
+- Make the culling routine work
+- Create routine to register engine level systems
+- Store meshes and materials as resources instead of ObjFiles
+- Create materials and load them in obj
 
 ## Global
 
@@ -19,6 +18,7 @@
 - Check / Fix update function not running when window not focused ?
 - Update the routine to Register engine Resources
 - Update the routine to Register engine Components
+- Update AABB structure to allow BVH construction
 
 ## ECS
 

@@ -7,6 +7,7 @@ use crate::{
         camera::CameraComponent, is_activated::IsActivatedComponent, mesh::MeshComponent,
         transform::TransformComponent,
     },
+    rendering_layer::bounding_volumes::AABB,
 };
 use std::collections::VecDeque;
 
@@ -16,10 +17,10 @@ pub(crate) fn culling_system(
     q1: Query<'_, '_, (&mut CameraComponent, &TransformComponent), With<IsActivatedComponent>>,
     q2: Query<'_, '_, (&MeshComponent, &TransformComponent), With<IsActivatedComponent>>,
 ) -> Result<VecDeque<Event>, ErrorType> {
-    for (camera, transform) in &q1 {
+    for (camera, camera_transform) in &q1 {
         camera.visible_entities.clear();
-        let frustum = camera.get_world_space_frustum(transform);
-        'all_entities_loop: for ((mesh, transform), entity) in q2.with_entities() {
+        let frustum = camera.get_view_space_frustum();
+        'all_entities_loop: for ((mesh, mesh_transform), entity) in q2.with_entities() {
             // TODO: add other types of mesh file loader
             // TODO: add indices in meshComponent to point to the correct mesh in the ObjFile or store meshes and materials as resources
             let obj_file = match resource_manager.try_get::<crate::ObjFile>(&mesh.resource_file) {
@@ -33,10 +34,24 @@ pub(crate) fn culling_system(
                     return Err(ErrorType::Unknown);
                 }
             };
-            let aabb = todo!();
-            // if frustum.intersects(aabb, transform) {
-            //     camera.visible_entities.push(entity);
-            // }
+            // TODO: handle multiple meshes in obj file
+            let aabb = match AABB::from_mesh(&obj_file.meshes[0]) {
+                Ok(mut aabb) => {
+                    aabb.as_world(&mesh_transform.get_model());
+                    aabb.as_view(&camera.get_view(camera_transform));
+                    aabb
+                }
+                Err(err) => {
+                    log_error!(
+                        "Failed to build an AABB in the engine culling system: {:?}",
+                        err
+                    );
+                    return Err(ErrorType::Unknown);
+                }
+            };
+            if frustum.intersects(&aabb) {
+                camera.visible_entities.push(entity);
+            }
         }
     }
     Ok(VecDeque::new())
