@@ -1,6 +1,7 @@
-use crate::renderer_types::FinalTransform;
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
+
+use crate::renderer_types::FinalTransform;
 
 pub(crate) mod config;
 pub(crate) mod extensions;
@@ -8,6 +9,8 @@ pub(crate) mod features;
 pub(crate) mod formats;
 pub(crate) mod layers;
 pub(crate) mod usages;
+pub(crate) mod shaders;
+pub(crate) mod pipelines;
 
 /// Custrom structure for Vulkan names
 pub(crate) struct VkNames {

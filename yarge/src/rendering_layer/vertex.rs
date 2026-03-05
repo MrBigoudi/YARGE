@@ -4,7 +4,7 @@ use std::mem::offset_of;
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
-    maths::{Vector2, Vector3, Vector4},
+    maths::{Vector2f32, Vector3f32, Vector4f32},
     renderer_types::formats::ImageFormat,
     shaders::ShaderLocation,
 };
@@ -44,7 +44,7 @@ pub(crate) trait VertexDataAttribute {
 /// The object space position
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexPosition(pub(crate) Vector3);
+pub(crate) struct VertexPosition(pub(crate) Vector3f32);
 impl VertexDataAttribute for VertexPosition {
     const FORMAT: ImageFormat = ImageFormat::R32G32B32_SFLOAT;
     const POSITION: usize = 0;
@@ -54,7 +54,7 @@ impl VertexDataAttribute for VertexPosition {
 /// The vertex color and opacity
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexColor(pub(crate) Vector4);
+pub(crate) struct VertexColor(pub(crate) Vector4f32);
 impl VertexDataAttribute for VertexColor {
     const FORMAT: ImageFormat = ImageFormat::R32G32B32A32_SFLOAT;
     const POSITION: usize = 1;
@@ -64,7 +64,7 @@ impl VertexDataAttribute for VertexColor {
 /// The vertex normal
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexNormal(pub(crate) Vector3);
+pub(crate) struct VertexNormal(pub(crate) Vector3f32);
 impl VertexDataAttribute for VertexNormal {
     const FORMAT: ImageFormat = ImageFormat::R32G32B32_SFLOAT;
     const POSITION: usize = 2;
@@ -74,7 +74,7 @@ impl VertexDataAttribute for VertexNormal {
 /// The vertex texture coordinates
 /// [VertexData]
 #[derive(Debug, Clone)]
-pub(crate) struct VertexTexCoords(pub(crate) Vector2);
+pub(crate) struct VertexTexCoords(pub(crate) Vector2f32);
 impl VertexDataAttribute for VertexTexCoords {
     const FORMAT: ImageFormat = ImageFormat::R32G32_SFLOAT;
     const POSITION: usize = 3;
@@ -97,32 +97,32 @@ pub(crate) struct VertexData {
 impl Default for VertexData {
     fn default() -> Self {
         Self {
-            position: VertexPosition(Vector3::ZEROS),
-            color: VertexColor(Vector4::ONES),
-            normal: VertexNormal(Vector3::Z),
-            texture_coordinates: VertexTexCoords(Vector2::ZEROS),
+            position: VertexPosition(Vector3f32::ZEROS),
+            color: VertexColor(Vector4f32::ONES),
+            normal: VertexNormal(Vector3f32::Z),
+            texture_coordinates: VertexTexCoords(Vector2f32::ZEROS),
         }
     }
 }
 
 impl VertexData {
     /// Updates the vertex position
-    pub(crate) fn position(mut self, position: Vector3) -> Self {
+    pub(crate) fn position(mut self, position: Vector3f32) -> Self {
         self.position = VertexPosition(position);
         self
     }
     /// Updates the vertex color
-    pub(crate) fn color(mut self, color: Vector4) -> Self {
+    pub(crate) fn color(mut self, color: Vector4f32) -> Self {
         self.color = VertexColor(color);
         self
     }
     /// Updates the vertex normal
-    pub(crate) fn normal(mut self, normal: Vector3) -> Self {
+    pub(crate) fn normal(mut self, normal: Vector3f32) -> Self {
         self.normal = VertexNormal(normal);
         self
     }
     /// Updates the vertex texture coordinates
-    pub(crate) fn texture_coordinates(mut self, texture_coordinates: Vector2) -> Self {
+    pub(crate) fn texture_coordinates(mut self, texture_coordinates: Vector2f32) -> Self {
         self.texture_coordinates = VertexTexCoords(texture_coordinates);
         self
     }

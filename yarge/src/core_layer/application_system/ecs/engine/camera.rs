@@ -6,7 +6,7 @@ use crate::{
     core_layer::application_system::ecs::{
         component::Component, engine::transform::TransformComponent,
     },
-    maths::{Matrix4x4, Vector3, Vector4, mat4x4, to_radians, vec3, vec4},
+    maths::{Matrix4x4, Vector3f32, Vector4f32, mat4x4, to_radians, vec3, vec4},
     rendering_layer::bounding_volumes::Frustum,
 };
 
@@ -21,7 +21,7 @@ pub(crate) enum RealProjection {
 #[derive(Clone)]
 pub(crate) struct CameraComponent {
     /// The world up direction
-    pub(crate) world_up: Vector3,
+    pub(crate) world_up: Vector3f32,
     /// The camera projection
     pub(crate) projection: RealProjection,
     /// The entities visible by the camera
@@ -35,7 +35,7 @@ impl CameraComponent {
     /// Gets the camera view matrix
     pub(crate) fn get_view(&self, transform: &TransformComponent) -> Matrix4x4 {
         let camera_position = transform.position;
-        let target_position = transform.get_model() * Vector4::NEG_Z;
+        let target_position = transform.get_model() * Vector4f32::NEG_Z;
         let target_position = target_position.from_homogeneous();
         Matrix4x4::look_at(&camera_position, &target_position, &self.world_up)
     }

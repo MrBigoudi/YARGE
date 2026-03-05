@@ -1,7 +1,7 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::maths::Vector2;
+use crate::maths::Vector2f32;
 
 /// The configuration for the initial window
 /// The window's position is such that:
@@ -18,7 +18,7 @@ pub(crate) struct WindowConfig {
     /// `x` is the left of the window
     /// `y` is the top of the window
     /// The positions must be between [0., 0.] (left, top) and [1., 1.] (right, bottom)
-    pub(crate) position: Vector2,
+    pub(crate) position: Vector2f32,
 
     /// The window's width
     /// The width must be between 0. (0) and 1. (screen width)
@@ -37,7 +37,7 @@ impl Default for WindowConfig {
     fn default() -> Self {
         Self {
             title: String::from("NewWindow"),
-            position: Vector2::ZEROS,
+            position: Vector2f32::ZEROS,
             width: 1.,
             height: 1.,
             border_width: 4,

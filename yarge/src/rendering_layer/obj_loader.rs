@@ -3,7 +3,7 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
     Resource, ResourceLoadingParameters,
-    maths::{Vector3, vec2, vec3, vec4},
+    maths::{Vector3f32, vec2, vec3, vec4},
     renderer_types::PrimitiveTopology,
     rendering_layer::{mesh::MeshData, vertex::VertexData},
 };
@@ -97,7 +97,7 @@ impl ResourceLoadingParameters<ObjFile> for std::path::PathBuf {
 
                     let edge_1 = (p1 - p0).normalize()?;
                     let edge_2 = (p2 - p0).normalize()?;
-                    let normal = Vector3::cross(&edge_1, &edge_2).normalize()?;
+                    let normal = Vector3f32::cross(&edge_1, &edge_2).normalize()?;
 
                     vertices[p0_idx].normal.0 = normal;
                     vertices[p1_idx].normal.0 = normal;

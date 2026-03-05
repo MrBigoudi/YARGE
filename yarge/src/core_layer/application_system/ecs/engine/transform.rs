@@ -3,28 +3,28 @@ use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::core_layer::application_system::ecs::component::Component;
 
-use crate::maths::{Matrix4x4, Vector3, to_radians};
+use crate::maths::{Matrix4x4, Vector3f32, to_radians};
 
 /// A simple transform component
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct TransformComponent {
     /// The position in object space
-    pub(crate) position: Vector3,
+    pub(crate) position: Vector3f32,
     /// The scaling in object space
-    pub(crate) scale: Vector3,
+    pub(crate) scale: Vector3f32,
     /// The rotation in object space
     /// Using Euler angles (for now)
     /// The angles are in degrees between -360 and 360
-    pub(crate) rotation: Vector3,
+    pub(crate) rotation: Vector3f32,
 }
 impl Component for TransformComponent {}
 
 impl Default for TransformComponent {
     fn default() -> Self {
         Self {
-            position: Vector3::ZEROS,
-            scale: Vector3::ONES,
-            rotation: Vector3::ZEROS,
+            position: Vector3f32::ZEROS,
+            scale: Vector3f32::ONES,
+            rotation: Vector3f32::ZEROS,
         }
     }
 }

@@ -2,7 +2,7 @@
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
 use crate::{
-    maths::{Matrix4x4, Vector3, vec3, vec4},
+    maths::{Matrix4x4, Vector3f32, vec3, vec4},
     rendering_layer::mesh::MeshData,
 };
 
@@ -10,15 +10,15 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Plane {
     /// A 3D point
-    pub(crate) point: Vector3,
+    pub(crate) point: Vector3f32,
     /// A normal
-    pub(crate) normal: Vector3,
+    pub(crate) normal: Vector3f32,
 }
 
 impl Plane {
     /// Checks if a point is on the normal side of the plane
-    pub(crate) fn half_space_test(&self, point: &Vector3) -> bool {
-        Vector3::dot(&(point - self.point), &self.normal) > 0f32
+    pub(crate) fn half_space_test(&self, point: &Vector3f32) -> bool {
+        Vector3f32::dot(&(point - self.point), &self.normal) > 0f32
     }
 }
 
@@ -26,22 +26,22 @@ impl Plane {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Frustum {
     /// The near plane bottom left corner
-    pub(crate) near_bottom_left: Vector3,
+    pub(crate) near_bottom_left: Vector3f32,
     /// The near plane bottom right corner
-    pub(crate) near_bottom_right: Vector3,
+    pub(crate) near_bottom_right: Vector3f32,
     /// The near plane top right corner
-    pub(crate) near_top_right: Vector3,
+    pub(crate) near_top_right: Vector3f32,
     /// The near plane top left corner
-    pub(crate) near_top_left: Vector3,
+    pub(crate) near_top_left: Vector3f32,
 
     /// The far plane bottom left corner
-    pub(crate) far_bottom_left: Vector3,
+    pub(crate) far_bottom_left: Vector3f32,
     /// The far plane bottom right corner
-    pub(crate) far_bottom_right: Vector3,
+    pub(crate) far_bottom_right: Vector3f32,
     /// The far plane top right corner
-    pub(crate) far_top_right: Vector3,
+    pub(crate) far_top_right: Vector3f32,
     /// The far plane top left corner
-    pub(crate) far_top_left: Vector3,
+    pub(crate) far_top_left: Vector3f32,
 }
 
 /// A structure representing a frustum's planes
@@ -94,11 +94,11 @@ impl Frustum {
             .normalize()
             .unwrap();
 
-        let left_normal = Vector3::cross(&z_edge, &y_edge);
+        let left_normal = Vector3f32::cross(&z_edge, &y_edge);
         let right_normal = -left_normal;
-        let top_normal = Vector3::cross(&z_edge, &x_edge);
+        let top_normal = Vector3f32::cross(&z_edge, &x_edge);
         let bottom_normal = -top_normal;
-        let near_normal = Vector3::cross(&x_edge, &y_edge);
+        let near_normal = Vector3f32::cross(&x_edge, &y_edge);
         let far_normal = -near_normal;
 
         FrustumPlanes {
@@ -131,7 +131,7 @@ impl Frustum {
 
     /// Checks if a point is inside the frustum
     /// Assumes the point and the frustum are in the same space
-    pub(crate) fn contains(&self, point: &Vector3) -> bool {
+    pub(crate) fn contains(&self, point: &Vector3f32) -> bool {
         let planes = self.get_planes();
         !planes.left.half_space_test(point)
             && !planes.right.half_space_test(point)
@@ -157,8 +157,8 @@ impl Frustum {
 /// A structure representing an Axis-Aligned Bounding Box
 #[allow(clippy::upper_case_acronyms)]
 pub(crate) struct AABB {
-    pub(crate) mins: Vector3,
-    pub(crate) maxs: Vector3,
+    pub(crate) mins: Vector3f32,
+    pub(crate) maxs: Vector3f32,
 }
 
 impl AABB {
@@ -171,8 +171,8 @@ impl AABB {
             return Err(ErrorType::DoesNotExist);
         }
 
-        let mut mins = Vector3::INFINITY;
-        let mut maxs = Vector3::NEG_INFINITY;
+        let mut mins = Vector3f32::INFINITY;
+        let mut maxs = Vector3f32::NEG_INFINITY;
 
         for vertex in &mesh.vertices {
             let position = vertex.position.0;
@@ -214,7 +214,7 @@ impl AABB {
     }
 
     /// Gets all 8 points of the AABB
-    pub(crate) fn get_points(&self) -> [Vector3; 8] {
+    pub(crate) fn get_points(&self) -> [Vector3f32; 8] {
         [
             vec3(self.mins.x, self.mins.y, self.mins.z),
             vec3(self.mins.x, self.mins.y, self.maxs.z),

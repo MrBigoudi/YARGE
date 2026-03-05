@@ -1,7 +1,7 @@
 #[allow(unused)]
 use crate::{error::ErrorType, log_debug, log_error, log_info, log_warn};
 
-use crate::{config::Config, maths::Vector2};
+use crate::{config::Config, maths::Vector2f32};
 
 use super::event::Event;
 
@@ -40,7 +40,7 @@ pub(crate) struct WindowCommonProperties {
     /// `x` is the left of the window
     /// `y` is the top of the window
     /// The values are given between 0 and 1
-    pub(crate) position: Vector2,
+    pub(crate) position: Vector2f32,
 
     /// The window's width
     /// The width must be between 0. and 1.

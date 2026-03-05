@@ -2,14 +2,11 @@
 
 ## WIP
 
-- Create bounding volume structures
-- Make the culling routine work
-- Create routine to register engine level systems
-- Store meshes and materials as resources instead of ObjFiles
-- Create materials and load them in obj
+- Start back from the basics and draw a simple triangle
 
 ## Global
 
+- Create routine to register engine level systems
 - Create log to file
 - Add debug specific code
 - Create an example folder with many testbeds and way to run them from cargo directly
@@ -29,6 +26,8 @@
 
 ## Graphics
 
+- Store meshes and materials as resources instead of ObjFiles
+- Create materials and load them in obj
 - Implement Shaders
 - Implement GraphicsPipeline
 - Implement Camera
