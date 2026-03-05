@@ -8,9 +8,9 @@ pub(crate) mod extensions;
 pub(crate) mod features;
 pub(crate) mod formats;
 pub(crate) mod layers;
-pub(crate) mod usages;
-pub(crate) mod shaders;
 pub(crate) mod pipelines;
+pub(crate) mod shaders;
+pub(crate) mod usages;
 
 /// Custrom structure for Vulkan names
 pub(crate) struct VkNames {
