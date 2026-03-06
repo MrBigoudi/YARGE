@@ -5,7 +5,8 @@ use crate::{
     PlatformLayerImpl,
     config::Config,
     rendering_layer::rendering_impl::vulkan::init::{
-        allocator, debug_messenger, device, entry, instance, physical_device, surface, swapchain,
+        allocator, commands, debug_messenger, device, entry, instance, physical_device, surface,
+        swapchain,
     },
 };
 
@@ -30,6 +31,11 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) struct VulkanContext<'a> 
     /// The swapchain
     pub(in crate::rendering_layer::rendering_impl::vulkan) swapchain_wrapper:
         swapchain::VkSwapchain,
+    /// The command pool
+    pub(in crate::rendering_layer::rendering_impl::vulkan) command_pool: commands::VkCommandPool,
+
+    /// The current image index
+    pub(in crate::rendering_layer::rendering_impl::vulkan) image_index: usize,
 }
 
 impl VulkanContext<'_> {
@@ -143,6 +149,17 @@ impl VulkanContext<'_> {
             }
         };
 
+        let command_pool = match commands::init_command_pool(&device_wrapper, allocator.as_ref()) {
+            Ok(device) => device,
+            Err(err) => {
+                log_error!(
+                    "Failed to initialize the command pool in the Vulkan context: {:?}",
+                    err
+                );
+                return Err(ErrorType::Unknown);
+            }
+        };
+
         log_info!("Vulkan context initialized");
         Ok(Self {
             entry,
@@ -153,6 +170,8 @@ impl VulkanContext<'_> {
             physical_device,
             device_wrapper,
             swapchain_wrapper,
+            command_pool,
+            image_index: 0usize,
         })
     }
 
@@ -160,6 +179,9 @@ impl VulkanContext<'_> {
         &mut self,
     ) -> Result<(), ErrorType> {
         let allocator = self.allocator.as_ref();
+
+        commands::shutdown_command_pool(&self.device_wrapper, &mut self.command_pool, allocator);
+
         swapchain::shutdown_swapchain(&self.device_wrapper, &self.swapchain_wrapper, allocator);
 
         device::shutdown_device(&self.device_wrapper, allocator);

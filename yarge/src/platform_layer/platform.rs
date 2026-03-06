@@ -37,13 +37,34 @@ pub trait PlatformLayer {
     fn flush_log() -> Result<(), ErrorType>;
 
     /// Load a file into a string
-    fn load_to_string(path: &std::path::Path) -> Result<String, ErrorType> {
+    fn read_to_string(path: &std::path::Path) -> Result<String, ErrorType> {
         // Default implementation
         // TODO: add implementation to the platform layer
         match std::fs::read_to_string(path) {
             Ok(content) => Ok(content),
             Err(err) => {
-                log_error!("Failed to load the file `{:?}': {:?}", path, err);
+                log_error!(
+                    "Failed to load the file `{:?}' into a string: {:?}",
+                    path,
+                    err
+                );
+                Err(ErrorType::IO)
+            }
+        }
+    }
+
+    /// Load a file into a vector of bytes
+    fn read_to_bytes(path: &std::path::Path) -> Result<Vec<u8>, ErrorType> {
+        // Default implementation
+        // TODO: add implementation to the platform layer
+        match std::fs::read(path) {
+            Ok(content) => Ok(content),
+            Err(err) => {
+                log_error!(
+                    "Failed to load the file `{:?}' as a binary: {:?}",
+                    path,
+                    err
+                );
                 Err(ErrorType::IO)
             }
         }

@@ -10,6 +10,7 @@ pub(crate) mod formats;
 pub(crate) mod layers;
 pub(crate) mod pipelines;
 pub(crate) mod shaders;
+pub(crate) mod textures;
 pub(crate) mod usages;
 
 /// Custrom structure for Vulkan names

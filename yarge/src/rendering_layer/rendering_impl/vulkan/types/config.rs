@@ -94,6 +94,7 @@ impl Default for VulkanConfig {
             VkFeatures11::Multiview,
             VkFeatures11::MultiviewGeometryShader,
             VkFeatures11::MultiviewTessellationShader,
+            VkFeatures11::ShaderDrawParameters,
         ];
         let required_physical_device_features_1_2 = vec![
             VkFeatures12::ShaderBufferInt64Atomics,
@@ -102,7 +103,10 @@ impl Default for VulkanConfig {
             VkFeatures12::ShaderUniformTexelBufferArrayDynamicIndexing,
             VkFeatures12::ShaderStorageTexelBufferArrayDynamicIndexing,
         ];
-        let required_physical_device_features_1_3 = vec![VkFeatures13::DynamicRendering];
+        let required_physical_device_features_1_3 = vec![
+            VkFeatures13::DynamicRendering,
+            VkFeatures13::Synchronization2,
+        ];
         let required_physical_device_features_1_4 = vec![VkFeatures14::HostImageCopy];
         let required_device_features_ext = vec![
             VkFeaturesExt::ExtendedDynamicState,

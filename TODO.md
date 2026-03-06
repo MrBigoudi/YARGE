@@ -6,6 +6,7 @@
 
 ## Global
 
+- Refactor file locations / names
 - Create routine to register engine level systems
 - Create log to file
 - Add debug specific code
