@@ -41,6 +41,30 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
 
     fn begin_frame(&mut self) -> Result<RendererBeginFrameOutput, ErrorType> {
         // TODO: temporary code, to move
+        let fences = vec![self.context.command_pool.draw_fence];
+        if let Err(err) = unsafe { self.context.device_wrapper.device.wait_for_fences(
+            &fences, true, u64::MAX
+            ) 
+        }{
+            log_error!("Failed to wait for the Vulkan draw fence: {:?}", err);
+            return Err(ErrorType::VulkanError);
+        }
+        let (image_index, _result) = 
+            match unsafe { self.context.swapchain_wrapper.device.acquire_next_image(
+                self.context.swapchain_wrapper.swapchain,
+                u64::MAX, 
+                self.context.command_pool.present_complete_semaphore, 
+                ash::vk::Fence::null()
+            )}{
+                Ok(res)=>res,
+                Err(err) => {
+                    log_error!("Failed to acquire the next swapchain image: {:?}", err);
+                    return Err(ErrorType::Unknown);
+                }
+            }
+        ;
+
+        
         let real_path = std::path::PathBuf::from(format!(
             "{}/assets/shaders/compiled/vk_tuto.spv",
             env!("CARGO_MANIFEST_DIR")
@@ -216,7 +240,7 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
         VkCommands::transition_image_layout(
             &self.context.device_wrapper,
             command_buffer,
-            self.context.swapchain_wrapper.images[self.context.image_index],
+            self.context.swapchain_wrapper.images[image_index as usize],
             &transition_parameters,
         );
 
@@ -228,7 +252,7 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
         };
         let atachment_info = vec![
             ash::vk::RenderingAttachmentInfo::default()
-                .image_view(self.context.swapchain_wrapper.images_views[self.context.image_index])
+                .image_view(self.context.swapchain_wrapper.images_views[image_index as usize])
                 .image_layout(ash::vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
                 .load_op(ash::vk::AttachmentLoadOp::CLEAR)
                 .store_op(ash::vk::AttachmentStoreOp::STORE)
@@ -265,7 +289,7 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
             .extent(self.context.swapchain_wrapper.images_extent);
         VkCommands::set_viewport(&self.context.device_wrapper, command_buffer, viewport);
         VkCommands::set_scissor(&self.context.device_wrapper, command_buffer, scissor);
-        VkCommands::draw(&self.context.device_wrapper, command_buffer, 3, 1, 0, 0);
+        VkCommands::draw(&self.context.device_wrapper, command_buffer, 3, 0, 1, 0);
         VkCommands::end_rendering(&self.context.device_wrapper, command_buffer);
 
         let transition_parameters = VkImageLayoutTransition::default()
@@ -277,7 +301,7 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
         VkCommands::transition_image_layout(
             &self.context.device_wrapper,
             command_buffer,
-            self.context.swapchain_wrapper.images[self.context.image_index],
+            self.context.swapchain_wrapper.images[image_index as usize],
             &transition_parameters,
         );
         if let Err(err) = VkCommands::end_record(&self.context.device_wrapper, command_buffer) {
@@ -288,6 +312,52 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
             return Err(ErrorType::Unknown);
         }
 
+        if let Err(err) = unsafe {self.context.device_wrapper.device.reset_fences(&fences)}{
+            log_error!("Failed to reset the draw fence: {:?}", err);
+            return Err(ErrorType::VulkanError);
+        }
+
+        let command_buffers = vec![*command_buffer];
+        let wait_dst_stage_mask = vec![ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+        let present_semaphores = vec![self.context.command_pool.present_complete_semaphore];
+        let render_semaphores = vec![self.context.command_pool.render_finished_semaphore];
+        let submit_info = vec![ash::vk::SubmitInfo::default()
+            .wait_semaphores(&present_semaphores)
+            .wait_dst_stage_mask(&wait_dst_stage_mask)
+            .command_buffers(&command_buffers)
+            .signal_semaphores(&render_semaphores)
+        ];
+
+        if let Err(err) = unsafe {
+            self.context.device_wrapper.device.queue_submit(
+                self.context.device_wrapper.queues.graphics[0], 
+                &submit_info, 
+                self.context.command_pool.draw_fence
+            )
+        }{
+            log_error!("Failed to submit the graphics queue: {:?}", err);
+            return Err(ErrorType::VulkanError);
+        }
+
+        let swapchains = vec![self.context.swapchain_wrapper.swapchain];
+        let indices = vec![image_index];
+        let present_info = ash::vk::PresentInfoKHR::default()
+            .wait_semaphores(&render_semaphores)
+            .swapchains(&swapchains)
+            .image_indices(&indices)
+        ;
+        if let Err(err) = unsafe {
+            self.context.swapchain_wrapper.device.queue_present(
+                self.context.device_wrapper.queues.present[0], 
+            &present_info)
+        }{
+            log_error!("Failed to submit the present queue: {:?}", err);
+            return Err(ErrorType::VulkanError);
+        }
+
+        // log_error!("Function is not yet implemented");
+        // Err(ErrorType::NotImplemented)
+
         unsafe {
             self.context
                 .device_wrapper
@@ -297,21 +367,20 @@ impl<'a> RenderingLayer<'a> for VulkanRenderingLayer<'a> {
                 .device_wrapper
                 .device
                 .destroy_pipeline_layout(layout, self.context.allocator.as_ref());
-            self.context
-                .device_wrapper
-                .device
-                .destroy_pipeline(graphics_pipeline, self.context.allocator.as_ref());
+            // self.context
+            //     .device_wrapper
+            //     .device
+            //     .destroy_pipeline(graphics_pipeline, self.context.allocator.as_ref());
         }
 
-        log_error!("Function is not yet implemented");
-        Err(ErrorType::NotImplemented)
-
-        // Ok(RendererBeginFrameOutput::Success)
+        Ok(RendererBeginFrameOutput::Success)
     }
 
     fn end_frame(&mut self, _platform_layer: &mut PlatformLayerImpl) -> Result<(), ErrorType> {
-        log_error!("Function is not yet implemented");
+        // log_error!("Function is not yet implemented");
+        // Err(ErrorType::NotImplemented)
+
         // TODO: swap buffer and present to screen
-        Err(ErrorType::NotImplemented)
+        Ok(())
     }
 }

@@ -9,6 +9,11 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) struct VkCommandPool {
     pub(in crate::rendering_layer::rendering_impl::vulkan) pool: ash::vk::CommandPool,
     /// The associated command buffers
     pub(in crate::rendering_layer::rendering_impl::vulkan) buffers: Vec<ash::vk::CommandBuffer>,
+
+    // TODO: remove the temporary sync structures
+    pub(in crate::rendering_layer::rendering_impl::vulkan) present_complete_semaphore: ash::vk::Semaphore,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) render_finished_semaphore: ash::vk::Semaphore,
+    pub(in crate::rendering_layer::rendering_impl::vulkan) draw_fence: ash::vk::Fence,
 }
 
 /// Helper function to initiate the Vulkan command pool
@@ -27,9 +32,40 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) fn init_command_pool(
     } {
         Ok(pool) => {
             log_info!("Vulkan command pool initialized");
+
+            // TODO: remove the temporary sync structures
+            let semaphore_info = ash::vk::SemaphoreCreateInfo::default();
+            let fence_info = ash::vk::FenceCreateInfo::default()
+                .flags(ash::vk::FenceCreateFlags::SIGNALED)
+            ;
+            let present_complete_semaphore = match unsafe {device_wrapper.device.create_semaphore(&semaphore_info, allocator)}{
+                Ok(semaphore) => semaphore,
+                Err(err) => {
+                    log_error!("Failed to create the Vulkan present complete semaphore: {:?}", err);
+                    return Err(ErrorType::VulkanError);
+                }
+            };
+            let render_finished_semaphore = match unsafe {device_wrapper.device.create_semaphore(&semaphore_info, allocator)}{
+                Ok(semaphore) => semaphore,
+                Err(err) => {
+                    log_error!("Failed to create the Vulkan render finished semaphore: {:?}", err);
+                    return Err(ErrorType::VulkanError);
+                }
+            };
+            let draw_fence = match unsafe {device_wrapper.device.create_fence(&fence_info, allocator)}{
+                Ok(fence) => fence,
+                Err(err) => {
+                    log_error!("Failed to create the Vulkan draw fence: {:?}", err);
+                    return Err(ErrorType::VulkanError);
+                }
+            };
+
             Ok(VkCommandPool {
                 pool,
                 buffers: vec![],
+                present_complete_semaphore,
+                render_finished_semaphore,
+                draw_fence,
             })
         }
         Err(err) => {
@@ -46,6 +82,10 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) fn shutdown_command_pool(
     allocator: Option<&ash::vk::AllocationCallbacks<'_>>,
 ) {
     unsafe {
+        device_wrapper.device.destroy_semaphore(command_pool.present_complete_semaphore, allocator);
+        device_wrapper.device.destroy_semaphore(command_pool.render_finished_semaphore, allocator);
+        device_wrapper.device.destroy_fence(command_pool.draw_fence, allocator);
+
         device_wrapper
             .device
             .destroy_command_pool(command_pool.pool, allocator);

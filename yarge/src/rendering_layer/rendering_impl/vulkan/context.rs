@@ -33,9 +33,6 @@ pub(in crate::rendering_layer::rendering_impl::vulkan) struct VulkanContext<'a> 
         swapchain::VkSwapchain,
     /// The command pool
     pub(in crate::rendering_layer::rendering_impl::vulkan) command_pool: commands::VkCommandPool,
-
-    /// The current image index
-    pub(in crate::rendering_layer::rendering_impl::vulkan) image_index: usize,
 }
 
 impl VulkanContext<'_> {
@@ -171,7 +168,6 @@ impl VulkanContext<'_> {
             device_wrapper,
             swapchain_wrapper,
             command_pool,
-            image_index: 0usize,
         })
     }
 
