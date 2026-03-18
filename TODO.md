@@ -47,6 +47,7 @@
 
 ## Vulkan
 
+- Use bindless with a single use descriptor set
 - Put the physical device rate strategy in the configuration
 - Add other strategies depending on the config: AR / VR / Raytracing / Embedded app / Offline simulation ...
 - Add other features (ex PhysicalDeviceExtendedDynamicStateFeaturesEXT)
